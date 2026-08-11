@@ -1,0 +1,16 @@
+export const STAFF_ROLES = [
+  "Administrator",
+  "Manager",
+  "Coordinator",
+  "Teacher",
+  "Dance Instructor",
+  "Music Instructor",
+  "Art Instructor",
+  "Public Speaking Trainer",
+  "Accountant",
+  "Receptionist",
+  "Office Assistant",
+  "Marketing Officer",
+  "Driver",
+  "Cleaner",
+] as const;
