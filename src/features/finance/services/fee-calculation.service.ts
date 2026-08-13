@@ -1,152 +1,258 @@
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
+
+import { db } from "@/firebase/config";
+
 import type { Enrollment } from "@/features/enrollments/types/enrollment.types";
-import type { Activity } from "@/features/activities/types/activity.types";
 import type { Attendance } from "@/features/attendance/types/attendance.types";
 
-export type FeeBillingType = "Monthly" | "Session";
+/* =========================================================
+   TYPES
+========================================================= */
 
-export interface FeeCalculationResult {
+export interface StudentFeeLine {
   enrollmentId: string;
 
-  enrollmentCode: string;
-
-  studentId: string;
-
-  studentName: string;
-
-  studentCode: string;
-
   activityId: string;
-
   activityName: string;
-
   activityCode: string;
 
-  billingType: FeeBillingType;
-
   monthlyFee: number;
-
+  expectedSessions: number;
   sessionFee: number;
 
-  totalSessions: number;
-
   attendedSessions: number;
-
-  absentSessions: number;
 
   calculatedAmount: number;
 }
 
-/**
- * Determine the session fee.
- *
- * Priority:
- *
- * Attendance sessionFee
- *        ↓
- * Enrollment sessionFee
- *        ↓
- * Activity sessionFee
- */
-export function resolveSessionFee(
-  enrollment: Enrollment,
-  activity?: Activity,
-  attendances: Attendance[] = []
-): number {
-  const attendanceFee = attendances.find(
-    (attendance) =>
-      attendance.sessionFee !== undefined &&
-      attendance.sessionFee !== null
-  )?.sessionFee;
+export interface StudentFeeSummary {
+  studentId: string;
+  studentName: string;
+  studentCode: string;
 
-  if (
-    attendanceFee !== undefined &&
-    attendanceFee !== null
-  ) {
-    return Number(attendanceFee) || 0;
-  }
+  month: string;
 
-  if (
-    enrollment.sessionFee !== undefined &&
-    enrollment.sessionFee !== null
-  ) {
-    return Number(enrollment.sessionFee) || 0;
-  }
+  lines: StudentFeeLine[];
 
-  if (
-    activity?.sessionFee !== undefined &&
-    activity.sessionFee !== null
-  ) {
-    return Number(activity.sessionFee) || 0;
-  }
-
-  return 0;
+  totalAmount: number;
 }
 
-/**
- * Calculate the fee for one enrollment.
- *
- * Only Present attendance is billable for session-based billing.
- */
-export function calculateEnrollmentFee(
-  enrollment: Enrollment,
-  activity: Activity | undefined,
-  attendances: Attendance[],
-  billingType: FeeBillingType = "Session"
-): FeeCalculationResult {
-  const enrollmentId = enrollment.id || "";
+/* =========================================================
+   HELPERS
+========================================================= */
 
-  const enrollmentAttendances = attendances.filter(
-    (attendance) =>
-      attendance.enrollmentId === enrollmentId
+function toNumber(value: unknown): number {
+  const number = Number(value);
+
+  return Number.isFinite(number) ? number : 0;
+}
+
+function roundMoney(value: number): number {
+  return (
+    Math.round((value + Number.EPSILON) * 100) / 100
   );
+}
 
-  const attendedSessions =
-    enrollmentAttendances.filter(
-      (attendance) =>
-        attendance.status === "Present"
-    ).length;
-
-  const absentSessions =
-    enrollmentAttendances.filter(
-      (attendance) =>
-        attendance.status === "Absent"
-    ).length;
-
-  const totalSessions =
-    enrollmentAttendances.length;
-
-  const monthlyFee =
-    Number(activity?.fee) || 0;
-
-  const sessionFee = resolveSessionFee(
-    enrollment,
-    activity,
-    enrollmentAttendances
-  );
-
-  let calculatedAmount = 0;
-
-  if (billingType === "Monthly") {
-    calculatedAmount = monthlyFee;
-  } else {
-    calculatedAmount =
-      attendedSessions * sessionFee;
+function getMonthFromDate(date: string): string {
+  if (!date) {
+    return "";
   }
 
+  return date.substring(0, 7);
+}
+
+/* =========================================================
+   ATTENDANCE MAPPER
+========================================================= */
+
+function mapAttendance(
+  attendanceDoc: {
+    id: string;
+    data: () => Record<string, unknown>;
+  }
+): Attendance {
+  const data = attendanceDoc.data();
+
   return {
-    enrollmentId,
+    id: attendanceDoc.id,
+
+    attendanceCode:
+      String(data.attendanceCode ?? ""),
+
+    enrollmentId:
+      String(data.enrollmentId ?? ""),
 
     enrollmentCode:
-      enrollment.enrollmentCode,
+      String(data.enrollmentCode ?? ""),
 
     studentId:
-      enrollment.studentId,
+      String(data.studentId ?? ""),
 
     studentName:
-      enrollment.studentName,
+      String(data.studentName ?? ""),
 
     studentCode:
-      enrollment.studentCode,
+      String(data.studentCode ?? ""),
+
+    activityId:
+      String(data.activityId ?? ""),
+
+    activityName:
+      String(data.activityName ?? ""),
+
+    activityCode:
+      String(data.activityCode ?? ""),
+
+    sessionDate:
+      String(data.sessionDate ?? ""),
+
+    sessionDateBS:
+      String(data.sessionDateBS ?? ""),
+
+    status:
+      data.status === "Present"
+        ? "Present"
+        : "Absent",
+
+    sessionFee:
+      toNumber(data.sessionFee),
+
+    notes:
+      String(data.notes ?? ""),
+
+    createdAt:
+      data.createdAt,
+
+    updatedAt:
+      data.updatedAt,
+  };
+}
+
+/* =========================================================
+   CALCULATE SESSION FEE
+========================================================= */
+
+export function calculateSessionFee(
+  monthlyFee: number,
+  expectedSessionsPerMonth: number
+): number {
+  const safeMonthlyFee =
+    toNumber(monthlyFee);
+
+  const safeExpectedSessions =
+    Math.floor(
+      toNumber(
+        expectedSessionsPerMonth
+      )
+    );
+
+  if (
+    safeMonthlyFee <= 0 ||
+    safeExpectedSessions <= 0
+  ) {
+    return 0;
+  }
+
+  return roundMoney(
+    safeMonthlyFee /
+      safeExpectedSessions
+  );
+}
+
+/* =========================================================
+   CALCULATE ONE ENROLLMENT
+========================================================= */
+
+export function calculateEnrollmentFee(
+  enrollment: Enrollment,
+  attendedSessions: number
+): StudentFeeLine {
+  const monthlyFee =
+    Math.max(
+      0,
+      roundMoney(
+        toNumber(
+          enrollment.monthlyFee
+        )
+      )
+    );
+
+  const expectedSessions =
+    Math.max(
+      0,
+      Math.floor(
+        toNumber(
+          enrollment.expectedSessionsPerMonth
+        )
+      )
+    );
+
+  let sessionFee =
+    Math.max(
+      0,
+      roundMoney(
+        toNumber(
+          enrollment.sessionFee
+        )
+      )
+    );
+
+  /*
+   * If session fee is missing,
+   * calculate it automatically.
+   */
+  if (
+    sessionFee <= 0 &&
+    monthlyFee > 0 &&
+    expectedSessions > 0
+  ) {
+    sessionFee =
+      calculateSessionFee(
+        monthlyFee,
+        expectedSessions
+      );
+  }
+
+  const safeAttendance =
+    Math.max(
+      0,
+      Math.floor(
+        toNumber(
+          attendedSessions
+        )
+      )
+    );
+
+  /*
+   * Calculate fee from attended
+   * sessions.
+   */
+  const sessionBasedAmount =
+    roundMoney(
+      safeAttendance *
+        sessionFee
+    );
+
+  /*
+   * Never charge more than the
+   * configured monthly fee.
+   */
+  const calculatedAmount =
+    monthlyFee > 0
+      ? Math.min(
+          sessionBasedAmount,
+          monthlyFee
+        )
+      : sessionBasedAmount;
+
+  return {
+    enrollmentId:
+      enrollment.id ?? "",
 
     activityId:
       enrollment.activityId,
@@ -157,61 +263,317 @@ export function calculateEnrollmentFee(
     activityCode:
       enrollment.activityCode,
 
-    billingType,
-
     monthlyFee,
+
+    expectedSessions,
 
     sessionFee,
 
-    totalSessions,
+    attendedSessions:
+      safeAttendance,
 
-    attendedSessions,
-
-    absentSessions,
-
-    calculatedAmount,
+    calculatedAmount:
+      roundMoney(
+        calculatedAmount
+      ),
   };
 }
 
-/**
- * Calculate fees for multiple enrollments.
- */
-export function calculateStudentFees(
-  enrollments: Enrollment[],
-  activities: Activity[],
-  attendances: Attendance[],
-  billingType: FeeBillingType = "Session"
-): FeeCalculationResult[] {
-  return enrollments.map((enrollment) => {
-    const activity = activities.find(
-      (item) =>
-        item.id === enrollment.activityId
-    );
+/* =========================================================
+   GET STUDENT ENROLLMENTS
+========================================================= */
 
-    const enrollmentAttendances =
-      attendances.filter(
-        (attendance) =>
-          attendance.enrollmentId === enrollment.id
-      );
+export async function getStudentEnrollments(
+  studentId: string
+): Promise<Enrollment[]> {
+  if (!studentId) {
+    return [];
+  }
 
-    return calculateEnrollmentFee(
-      enrollment,
-      activity,
-      enrollmentAttendances,
-      billingType
-    );
-  });
+  const q = query(
+    collection(
+      db,
+      "enrollments"
+    ),
+    where(
+      "studentId",
+      "==",
+      studentId
+    )
+  );
+
+  const snapshot =
+    await getDocs(q);
+
+  return snapshot.docs.map(
+    (enrollmentDoc) => ({
+      id: enrollmentDoc.id,
+      ...enrollmentDoc.data(),
+    })
+  ) as Enrollment[];
 }
 
-/**
- * Calculate the total amount for multiple enrollments.
- */
-export function calculateStudentTotal(
-  results: FeeCalculationResult[]
-): number {
-  return results.reduce(
-    (total, item) =>
-      total + item.calculatedAmount,
-    0
+/* =========================================================
+   GET ENROLLMENT ATTENDANCE
+========================================================= */
+
+export async function getEnrollmentAttendance(
+  enrollmentId: string,
+  month: string
+): Promise<Attendance[]> {
+  if (
+    !enrollmentId ||
+    !month
+  ) {
+    return [];
+  }
+
+  /*
+   * IMPORTANT:
+   *
+   * Attendance service uses:
+   *
+   * "attendances"
+   *
+   * Therefore finance must use
+   * exactly the same collection.
+   */
+  const q = query(
+    collection(
+      db,
+      "attendances"
+    ),
+    where(
+      "enrollmentId",
+      "==",
+      enrollmentId
+    )
   );
+
+  const snapshot =
+    await getDocs(q);
+
+  const attendanceList =
+    snapshot.docs.map(
+      (attendanceDoc) =>
+        mapAttendance({
+          id: attendanceDoc.id,
+          data: () =>
+            attendanceDoc.data(),
+        })
+    );
+
+  /*
+   * Only Present attendance
+   * belonging to the selected
+   * BS month is billable.
+   */
+  return attendanceList.filter(
+    (attendance) => {
+      const date =
+        attendance.sessionDateBS ||
+        attendance.sessionDate ||
+        "";
+
+      return (
+        getMonthFromDate(
+          date
+        ) === month &&
+        attendance.status ===
+          "Present"
+      );
+    }
+  );
+}
+
+/* =========================================================
+   CALCULATE STUDENT MONTHLY FEE
+========================================================= */
+
+export async function calculateStudentMonthlyFee(
+  studentId: string,
+  month: string
+): Promise<StudentFeeSummary> {
+  if (
+    !studentId ||
+    !month
+  ) {
+    return {
+      studentId,
+      studentName: "",
+      studentCode: "",
+      month,
+      lines: [],
+      totalAmount: 0,
+    };
+  }
+
+  const enrollments =
+    await getStudentEnrollments(
+      studentId
+    );
+
+  /*
+   * Only active enrollments
+   * participate in billing.
+   */
+  const activeEnrollments =
+    enrollments.filter(
+      (enrollment) =>
+        enrollment.status ===
+        "Active"
+    );
+
+  const lines: StudentFeeLine[] =
+    [];
+
+  for (
+    const enrollment of
+      activeEnrollments
+  ) {
+    if (!enrollment.id) {
+      continue;
+    }
+
+    const attendance =
+      await getEnrollmentAttendance(
+        enrollment.id,
+        month
+      );
+
+    const line =
+      calculateEnrollmentFee(
+        enrollment,
+        attendance.length
+      );
+
+    lines.push(line);
+  }
+
+  const totalAmount =
+    roundMoney(
+      lines.reduce(
+        (
+          total,
+          line
+        ) =>
+          total +
+          line.calculatedAmount,
+        0
+      )
+    );
+
+  /*
+   * Enrollment stores a snapshot
+   * of the student's information.
+   */
+  const firstEnrollment =
+    activeEnrollments[0];
+
+  return {
+    studentId,
+
+    studentName:
+      firstEnrollment
+        ?.studentName ?? "",
+
+    studentCode:
+      firstEnrollment
+        ?.studentCode ?? "",
+
+    month,
+
+    lines,
+
+    totalAmount,
+  };
+}
+
+/* =========================================================
+   COUNT PRESENT SESSIONS
+========================================================= */
+
+export async function countPresentSessions(
+  enrollmentId: string,
+  month: string
+): Promise<number> {
+  const attendance =
+    await getEnrollmentAttendance(
+      enrollmentId,
+      month
+    );
+
+  return attendance.length;
+}
+
+/* =========================================================
+   CALCULATE ALL STUDENT MONTHLY FEES
+========================================================= */
+
+export async function calculateAllStudentMonthlyFees(
+  month: string
+): Promise<StudentFeeSummary[]> {
+  if (!month) {
+    return [];
+  }
+
+  const snapshot =
+    await getDocs(
+      collection(
+        db,
+        "enrollments"
+      )
+    );
+
+  const enrollments =
+    snapshot.docs.map(
+      (enrollmentDoc) => ({
+        id: enrollmentDoc.id,
+        ...enrollmentDoc.data(),
+      })
+    ) as Enrollment[];
+
+  const activeEnrollments =
+    enrollments.filter(
+      (enrollment) =>
+        enrollment.status ===
+        "Active"
+    );
+
+  /*
+   * Get unique students.
+   *
+   * This is important because one
+   * student can have multiple
+   * activities.
+   */
+  const studentIds =
+    Array.from(
+      new Set(
+        activeEnrollments
+          .map(
+            (enrollment) =>
+              enrollment.studentId
+          )
+          .filter(Boolean)
+      )
+    );
+
+  const results:
+    StudentFeeSummary[] = [];
+
+  for (
+    const studentId of
+      studentIds
+  ) {
+    const summary =
+      await calculateStudentMonthlyFee(
+        studentId,
+        month
+      );
+
+    results.push(summary);
+  }
+
+  return results;
 }

@@ -17,7 +17,7 @@ export const enrollmentSchema = z.object({
 
   sessionFee: z
     .string()
-    .optional(),
+    .min(1, "Session fee is required"),
 
   notes: z
     .string()
@@ -26,6 +26,4 @@ export const enrollmentSchema = z.object({
   status: z.enum(["Active", "Inactive"]),
 });
 
-export type EnrollmentFormData = z.infer<
-  typeof enrollmentSchema
->;
+export type EnrollmentFormData = z.infer<typeof enrollmentSchema>;

@@ -6,6 +6,7 @@ export interface Activity {
   activityName: string;
   category: string;
   coachName?: string;
+  feePerSession?: number;
   fee?: number;
   sessionFee?: number;
   description?: string;

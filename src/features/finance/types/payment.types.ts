@@ -1,8 +1,8 @@
 export type PaymentMethod =
   | "Cash"
   | "Bank"
-  | "Card"
   | "Online"
+  | "Card"
   | "Other";
 
 export interface Payment {
@@ -11,14 +11,15 @@ export interface Payment {
   paymentNumber: string;
 
   invoiceId: string;
+  invoiceNumber: string;
 
   studentId: string;
   studentName: string;
-  studentCode?: string;
-
-  paymentDate: string;
+  studentCode: string;
 
   amount: number;
+
+  paymentDate: string;
 
   paymentMethod: PaymentMethod;
 
@@ -28,18 +29,4 @@ export interface Payment {
 
   createdAt?: unknown;
   updatedAt?: unknown;
-}
-
-export interface PaymentFormData {
-  invoiceId: string;
-
-  paymentDate: string;
-
-  amount: number;
-
-  paymentMethod: PaymentMethod;
-
-  referenceNumber?: string;
-
-  notes?: string;
 }

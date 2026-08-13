@@ -57,6 +57,10 @@ export async function addActivity(
   const activityCode =
     await generateActivityCode();
 
+  const numFeePerSession = data.feePerSession?.trim()
+    ? Number(data.feePerSession)
+    : 0;
+
   const payload = {
     activityCode,
 
@@ -69,15 +73,9 @@ export async function addActivity(
     coachName:
       data.coachName?.trim() || "",
 
-    fee:
-      data.fee?.trim()
-        ? Number(data.fee)
-        : 0,
-
-    sessionFee:
-      data.sessionFee?.trim()
-        ? Number(data.sessionFee)
-        : 0,
+    feePerSession: numFeePerSession,
+    fee: numFeePerSession, // Backward compatibility
+    sessionFee: numFeePerSession, // Backward compatibility
 
     description:
       data.description?.trim() || "",
@@ -103,6 +101,10 @@ export async function updateActivity(
   activityId: string,
   data: ActivityFormData
 ): Promise<void> {
+  const numFeePerSession = data.feePerSession?.trim()
+    ? Number(data.feePerSession)
+    : 0;
+
   const payload = {
     activityName:
       data.activityName.trim(),
@@ -113,15 +115,9 @@ export async function updateActivity(
     coachName:
       data.coachName?.trim() || "",
 
-    fee:
-      data.fee?.trim()
-        ? Number(data.fee)
-        : 0,
-
-    sessionFee:
-      data.sessionFee?.trim()
-        ? Number(data.sessionFee)
-        : 0,
+    feePerSession: numFeePerSession,
+    fee: numFeePerSession, // Backward compatibility
+    sessionFee: numFeePerSession, // Backward compatibility
 
     description:
       data.description?.trim() || "",

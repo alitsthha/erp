@@ -58,7 +58,7 @@ export default function EnrollmentTable({
           <thead className="border-b border-slate-200 bg-slate-50">
             <tr>
               <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Enrollment
+                Enrollment Code
               </th>
 
               <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -70,7 +70,7 @@ export default function EnrollmentTable({
               </th>
 
               <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Date
+                Enrollment Date
               </th>
 
               <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -93,7 +93,7 @@ export default function EnrollmentTable({
                 key={enrollment.id}
                 className="transition hover:bg-slate-50/80"
               >
-                {/* Enrollment */}
+                {/* Enrollment Code */}
                 <td className="whitespace-nowrap px-5 py-4">
                   <span className="rounded-lg bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-700">
                     {enrollment.enrollmentCode}
@@ -134,21 +134,19 @@ export default function EnrollmentTable({
 
                 {/* Date */}
                 <td className="whitespace-nowrap px-5 py-4">
-                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <div className="flex items-center gap-2 text-sm text-slate-700">
                     <CalendarDays
                       size={15}
                       className="text-slate-400"
                     />
-
                     {enrollment.enrollmentDate || "-"}
                   </div>
                 </td>
 
-                {/* Fee */}
+                {/* Session Fee */}
                 <td className="whitespace-nowrap px-5 py-4">
                   <span className="text-sm font-semibold text-slate-900">
-                    {typeof enrollment.sessionFee ===
-                    "number"
+                    {typeof enrollment.sessionFee === "number"
                       ? `Rs. ${enrollment.sessionFee.toLocaleString()}`
                       : "-"}
                   </span>
@@ -241,8 +239,7 @@ export default function EnrollmentTable({
                 </p>
 
                 <p className="mt-1 text-sm font-semibold text-slate-800">
-                  {typeof enrollment.sessionFee ===
-                  "number"
+                  {typeof enrollment.sessionFee === "number"
                     ? `Rs. ${enrollment.sessionFee.toLocaleString()}`
                     : "-"}
                 </p>

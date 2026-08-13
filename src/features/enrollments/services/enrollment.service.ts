@@ -23,20 +23,17 @@ import type { Enrollment } from "../types/enrollment.types";
 import type { Student } from "@/features/students/types/student.types";
 import type { Activity } from "@/features/activities/types/activity.types";
 
-/* =====================================================
+/* =========================================================
    GET ALL ENROLLMENTS
-===================================================== */
+========================================================= */
 
-export async function getEnrollments(): Promise<
-  Enrollment[]
-> {
+export async function getEnrollments(): Promise<Enrollment[]> {
   const enrollmentQuery = query(
     collection(db, "enrollments"),
-    orderBy("enrollmentCode")
+    orderBy("enrollmentCode", "asc")
   );
 
-  const snapshot =
-    await getDocs(enrollmentQuery);
+  const snapshot = await getDocs(enrollmentQuery);
 
   return snapshot.docs.map(
     (enrollmentDoc) => ({
@@ -46,27 +43,23 @@ export async function getEnrollments(): Promise<
   ) as Enrollment[];
 }
 
-/* =====================================================
-   GET ALL - DASHBOARD FRIENDLY ALIAS
-===================================================== */
-
-export async function getAllEnrollments() {
+export async function getAllEnrollments(): Promise<Enrollment[]> {
   return getEnrollments();
 }
 
-/* =====================================================
+/* =========================================================
    GET SINGLE ENROLLMENT
-===================================================== */
+========================================================= */
 
 export async function getEnrollmentById(
   enrollmentId: string
 ): Promise<Enrollment | null> {
+  if (!enrollmentId) {
+    return null;
+  }
+
   const snapshot = await getDoc(
-    doc(
-      db,
-      "enrollments",
-      enrollmentId
-    )
+    doc(db, "enrollments", enrollmentId)
   );
 
   if (!snapshot.exists()) {
@@ -79,13 +72,11 @@ export async function getEnrollmentById(
   } as Enrollment;
 }
 
-/* =====================================================
+/* =========================================================
    GET STUDENTS
-===================================================== */
+========================================================= */
 
-export async function getStudentsForEnrollment(): Promise<
-  Student[]
-> {
+export async function getStudentsForEnrollment(): Promise<Student[]> {
   const snapshot = await getDocs(
     collection(db, "students")
   );
@@ -98,13 +89,11 @@ export async function getStudentsForEnrollment(): Promise<
   ) as Student[];
 }
 
-/* =====================================================
+/* =========================================================
    GET ACTIVITIES
-===================================================== */
+========================================================= */
 
-export async function getActivitiesForEnrollment(): Promise<
-  Activity[]
-> {
+export async function getActivitiesForEnrollment(): Promise<Activity[]> {
   const snapshot = await getDocs(
     collection(db, "activities")
   );
@@ -117,203 +106,134 @@ export async function getActivitiesForEnrollment(): Promise<
   ) as Activity[];
 }
 
-/* =====================================================
+/* =========================================================
    ADD ENROLLMENT
-===================================================== */
+========================================================= */
 
 export async function addEnrollment(
   data: EnrollmentFormData
-) {
-  const enrollmentCode =
-    await generateEnrollmentCode();
+): Promise<string> {
+  const enrollmentCode = await generateEnrollmentCode();
 
-  const studentSnapshot =
-    await getDoc(
-      doc(
-        db,
-        "students",
-        data.studentId
-      )
-    );
+  const studentSnapshot = await getDoc(
+    doc(db, "students", data.studentId)
+  );
 
-  const activitySnapshot =
-    await getDoc(
-      doc(
-        db,
-        "activities",
-        data.activityId
-      )
-    );
+  const activitySnapshot = await getDoc(
+    doc(db, "activities", data.activityId)
+  );
 
   if (!studentSnapshot.exists()) {
-    throw new Error(
-      "Selected student was not found."
-    );
+    throw new Error("Selected student was not found.");
   }
 
   if (!activitySnapshot.exists()) {
-    throw new Error(
-      "Selected activity was not found."
-    );
+    throw new Error("Selected activity was not found.");
   }
 
-  const student =
-    studentSnapshot.data();
+  const student = studentSnapshot.data();
+  const activity = activitySnapshot.data() as Activity;
 
-  const activity =
-    activitySnapshot.data();
+  const numSessionFee = data.sessionFee
+    ? Number(data.sessionFee)
+    : (activity.feePerSession ?? activity.sessionFee ?? activity.fee ?? 0);
 
-  const manualFee =
-    data.sessionFee?.trim();
-
-  const activityFee =
-    activity.sessionFee ??
-    activity.fee;
-
-  const finalFee = manualFee
-    ? Number(manualFee)
-    : typeof activityFee === "number"
-    ? activityFee
-    : undefined;
-
-  await addDoc(
+  const docRef = await addDoc(
     collection(db, "enrollments"),
     {
       enrollmentCode,
 
       studentId: data.studentId,
-      studentName:
-        student.fullName ?? "",
-      studentCode:
-        student.studentCode ?? "",
+      studentName: student.fullName ?? "",
+      studentCode: student.studentCode ?? "",
 
       activityId: data.activityId,
-      activityName:
-        activity.activityName ?? "",
-      activityCode:
-        activity.activityCode ?? "",
+      activityName: activity.activityName ?? "",
+      activityCode: activity.activityCode ?? "",
 
-      enrollmentDate:
-        data.enrollmentDate,
-
-      sessionFee: finalFee,
+      enrollmentDate: data.enrollmentDate,
+      sessionFee: numSessionFee,
 
       notes: data.notes ?? "",
-
       status: data.status,
 
-      createdAt:
-        serverTimestamp(),
-
-      updatedAt:
-        serverTimestamp(),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
     }
   );
+
+  return docRef.id;
 }
 
-/* =====================================================
+/* =========================================================
    UPDATE ENROLLMENT
-===================================================== */
+========================================================= */
 
 export async function updateEnrollment(
   enrollmentId: string,
   data: EnrollmentFormData
-) {
-  const studentSnapshot =
-    await getDoc(
-      doc(
-        db,
-        "students",
-        data.studentId
-      )
-    );
+): Promise<void> {
+  if (!enrollmentId) {
+    throw new Error("Enrollment ID is required.");
+  }
 
-  const activitySnapshot =
-    await getDoc(
-      doc(
-        db,
-        "activities",
-        data.activityId
-      )
-    );
+  const studentSnapshot = await getDoc(
+    doc(db, "students", data.studentId)
+  );
+
+  const activitySnapshot = await getDoc(
+    doc(db, "activities", data.activityId)
+  );
 
   if (!studentSnapshot.exists()) {
-    throw new Error(
-      "Selected student was not found."
-    );
+    throw new Error("Selected student was not found.");
   }
 
   if (!activitySnapshot.exists()) {
-    throw new Error(
-      "Selected activity was not found."
-    );
+    throw new Error("Selected activity was not found.");
   }
 
-  const student =
-    studentSnapshot.data();
+  const student = studentSnapshot.data();
+  const activity = activitySnapshot.data() as Activity;
 
-  const activity =
-    activitySnapshot.data();
-
-  const manualFee =
-    data.sessionFee?.trim();
-
-  const activityFee =
-    activity.sessionFee ??
-    activity.fee;
-
-  const finalFee = manualFee
-    ? Number(manualFee)
-    : typeof activityFee === "number"
-    ? activityFee
-    : undefined;
+  const numSessionFee = data.sessionFee
+    ? Number(data.sessionFee)
+    : (activity.feePerSession ?? activity.sessionFee ?? activity.fee ?? 0);
 
   await updateDoc(
-    doc(
-      db,
-      "enrollments",
-      enrollmentId
-    ),
+    doc(db, "enrollments", enrollmentId),
     {
       studentId: data.studentId,
-      studentName:
-        student.fullName ?? "",
-      studentCode:
-        student.studentCode ?? "",
+      studentName: student.fullName ?? "",
+      studentCode: student.studentCode ?? "",
 
       activityId: data.activityId,
-      activityName:
-        activity.activityName ?? "",
-      activityCode:
-        activity.activityCode ?? "",
+      activityName: activity.activityName ?? "",
+      activityCode: activity.activityCode ?? "",
 
-      enrollmentDate:
-        data.enrollmentDate,
-
-      sessionFee: finalFee,
+      enrollmentDate: data.enrollmentDate,
+      sessionFee: numSessionFee,
 
       notes: data.notes ?? "",
-
       status: data.status,
 
-      updatedAt:
-        serverTimestamp(),
+      updatedAt: serverTimestamp(),
     }
   );
 }
 
-/* =====================================================
-   DELETE
-===================================================== */
+/* =========================================================
+   DELETE ENROLLMENT
+========================================================= */
 
 export async function deleteEnrollment(
   enrollmentId: string
-) {
+): Promise<void> {
+  if (!enrollmentId) {
+    throw new Error("Enrollment ID is required.");
+  }
+
   await deleteDoc(
-    doc(
-      db,
-      "enrollments",
-      enrollmentId
-    )
+    doc(db, "enrollments", enrollmentId)
   );
 }

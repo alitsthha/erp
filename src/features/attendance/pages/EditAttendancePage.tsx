@@ -11,12 +11,9 @@ import type { Enrollment } from "@/features/enrollments/types/enrollment.types";
 
 import {
   getAttendanceById,
-  updateAttendance,
 } from "@/features/attendance/services/attendance.service";
 
 import { getAllEnrollments } from "@/features/enrollments/services/enrollment.service";
-
-import type { AttendanceFormData } from "@/features/attendance/schemas/attendance.schema";
 
 import AttendanceForm from "@/features/attendance/forms/AttendanceForm";
 
@@ -24,27 +21,16 @@ export default function EditAttendancePage() {
   const { attendanceId } = useParams();
   const navigate = useNavigate();
 
-  const [attendance, setAttendance] =
-    useState<Attendance | null>(null);
-
-  const [enrollments, setEnrollments] =
-    useState<Enrollment[]>([]);
-
-  const [isLoading, setIsLoading] =
-    useState(true);
-
-  const [isSaving, setIsSaving] =
-    useState(false);
+  const [attendance, setAttendance] = useState<Attendance | null>(null);
+  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setIsLoading(true);
 
-        const [
-          attendanceData,
-          enrollmentsData,
-        ] = await Promise.all([
+        const [attendanceData, enrollmentsData] = await Promise.all([
           getAttendanceById(attendanceId || ""),
           getAllEnrollments(),
         ]);
@@ -52,10 +38,7 @@ export default function EditAttendancePage() {
         setAttendance(attendanceData);
         setEnrollments(enrollmentsData);
       } catch (error) {
-        console.error(
-          "Error loading attendance:",
-          error
-        );
+        console.error("Error loading attendance:", error);
       } finally {
         setIsLoading(false);
       }
@@ -64,52 +47,12 @@ export default function EditAttendancePage() {
     loadData();
   }, [attendanceId]);
 
-  const handleSubmit = async (
-    data: AttendanceFormData
-  ) => {
-    if (!attendanceId) return;
-
-    try {
-      setIsSaving(true);
-
-      await updateAttendance(
-        attendanceId,
-        {
-          sessionDate: data.sessionDate,
-          sessionDateBS: data.sessionDate,
-          status: data.status,
-          sessionFee: data.sessionFee,
-          notes: data.notes,
-        }
-      );
-
-      navigate("/attendance");
-    } catch (error) {
-      console.error(
-        "Error updating attendance:",
-        error
-      );
-
-      alert(
-        "Failed to update attendance record."
-      );
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center px-4">
         <div className="flex flex-col items-center gap-3 text-slate-500">
-          <Loader2
-            size={30}
-            className="animate-spin"
-          />
-
-          <p className="text-sm">
-            Loading attendance record...
-          </p>
+          <Loader2 size={30} className="animate-spin" />
+          <p className="text-sm">Loading attendance record...</p>
         </div>
       </div>
     );
@@ -128,8 +71,7 @@ export default function EditAttendancePage() {
           </h1>
 
           <p className="mt-2 text-sm text-slate-500">
-            The attendance record may have been
-            deleted or no longer exists.
+            The attendance record may have been deleted or no longer exists.
           </p>
 
           <button
@@ -147,7 +89,6 @@ export default function EditAttendancePage() {
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-
       {/* Header */}
       <div>
         <button
@@ -166,11 +107,11 @@ export default function EditAttendancePage() {
 
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-              Edit Attendance
+              Attendance Roster for {attendance.sessionDateBS || attendance.sessionDate}
             </h1>
 
             <p className="mt-1 text-sm text-slate-500 sm:text-base">
-              Update attendance information for{" "}
+              Editing record for{" "}
               <span className="font-medium text-slate-700">
                 {attendance.studentName}
               </span>
@@ -180,25 +121,12 @@ export default function EditAttendancePage() {
       </div>
 
       {/* Form */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 bg-slate-50/70 px-5 py-4 sm:px-8">
-          <h2 className="text-base font-semibold text-slate-900">
-            Attendance Details
-          </h2>
-
-          <p className="mt-1 text-sm text-slate-500">
-            Update the session date, status, fee, or notes.
-          </p>
-        </div>
-
-        <div className="p-5 sm:p-8">
-          <AttendanceForm
-            enrollments={enrollments}
-            initialData={attendance}
-            onSubmit={handleSubmit}
-            isLoading={isSaving}
-          />
-        </div>
+      <div className="p-1">
+        <AttendanceForm
+          enrollments={enrollments}
+          initialData={attendance}
+          onSuccess={() => navigate("/attendance")}
+        />
       </div>
     </div>
   );

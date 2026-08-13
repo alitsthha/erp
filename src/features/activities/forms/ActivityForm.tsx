@@ -34,8 +34,7 @@ const defaultValues: ActivityFormData = {
   activityName: "",
   category: "",
   coachName: "",
-  fee: "",
-  sessionFee: "",
+  feePerSession: "",
   description: "",
   status: "Active",
 };
@@ -61,8 +60,7 @@ export default function ActivityForm({ activityId }: Props) {
   const activityName = watch("activityName");
   const category = watch("category");
   const coachName = watch("coachName");
-  const fee = watch("fee");
-  const sessionFee = watch("sessionFee");
+  const feePerSession = watch("feePerSession");
   const status = watch("status");
 
   /*
@@ -87,20 +85,20 @@ export default function ActivityForm({ activityId }: Props) {
           return;
         }
 
+        const feeVal =
+          activity.feePerSession ??
+          activity.sessionFee ??
+          activity.fee;
+
         reset({
           activityCode: activity.activityCode ?? "",
           activityName: activity.activityName ?? "",
           category: activity.category ?? "",
           coachName: activity.coachName ?? "",
 
-          fee:
-            activity.fee !== undefined
-              ? String(activity.fee)
-              : "",
-
-          sessionFee:
-            activity.sessionFee !== undefined
-              ? String(activity.sessionFee)
+          feePerSession:
+            feeVal !== undefined
+              ? String(feeVal)
               : "",
 
           description: activity.description ?? "",
@@ -166,15 +164,10 @@ export default function ActivityForm({ activityId }: Props) {
         : "border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-50"
     }`;
 
-  const numericFee = useMemo(() => {
-    const value = Number(fee);
+  const numericFeePerSession = useMemo(() => {
+    const value = Number(feePerSession);
     return Number.isFinite(value) ? value : 0;
-  }, [fee]);
-
-  const numericSessionFee = useMemo(() => {
-    const value = Number(sessionFee);
-    return Number.isFinite(value) ? value : 0;
-  }, [sessionFee]);
+  }, [feePerSession]);
 
   /*
   ============================================================
@@ -211,7 +204,7 @@ export default function ActivityForm({ activityId }: Props) {
 
               <p className="mt-1 text-sm text-slate-500">
                 {activityId
-                  ? "Update activity information and pricing."
+                  ? "Update activity details and per-session pricing."
                   : "Create a new academy activity or program."}
               </p>
             </div>
@@ -370,7 +363,7 @@ export default function ActivityForm({ activityId }: Props) {
       </section>
 
       {/* =====================================================
-          PRICING
+          PRICING (SINGLE ACTIVITY FEE PER SESSION)
       ====================================================== */}
 
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -382,25 +375,23 @@ export default function ActivityForm({ activityId }: Props) {
 
             <div>
               <h2 className="text-base font-semibold text-slate-900">
-                Pricing
+                Activity Pricing
               </h2>
 
               <p className="mt-0.5 text-xs text-slate-500">
-                Set the activity and per-session fees.
+                Set the single per-session fee for this activity.
               </p>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-5 p-5 sm:p-6 md:grid-cols-2">
-          {/* Activity Fee */}
-
-          <div>
+        <div className="p-5 sm:p-6">
+          <div className="w-full sm:max-w-md">
             <label
-              htmlFor="fee"
+              htmlFor="feePerSession"
               className="mb-2 block text-sm font-medium text-slate-700"
             >
-              Activity Fee
+              Activity Fee per Session (Rs.)
             </label>
 
             <div className="relative">
@@ -409,61 +400,23 @@ export default function ActivityForm({ activityId }: Props) {
               </span>
 
               <input
-                id="fee"
+                id="feePerSession"
                 type="number"
                 min="0"
                 step="0.01"
-                placeholder="0"
-                {...register("fee")}
+                placeholder="0.00"
+                {...register("feePerSession")}
                 className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-12 pr-4 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-50"
               />
             </div>
 
             <p className="mt-1.5 text-xs text-slate-400">
-              Main activity or monthly fee.
+              Fee charged per session for students attending this activity.
             </p>
 
-            {numericFee > 0 && (
+            {numericFeePerSession > 0 && (
               <p className="mt-2 text-xs font-medium text-emerald-600">
-                Current fee: {formatCurrency(numericFee)}
-              </p>
-            )}
-          </div>
-
-          {/* Session Fee */}
-
-          <div>
-            <label
-              htmlFor="sessionFee"
-              className="mb-2 block text-sm font-medium text-slate-700"
-            >
-              Per Session Fee
-            </label>
-
-            <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500">
-                Rs.
-              </span>
-
-              <input
-                id="sessionFee"
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="0"
-                {...register("sessionFee")}
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-12 pr-4 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-50"
-              />
-            </div>
-
-            <p className="mt-1.5 text-xs text-slate-400">
-              Used when calculating session-based billing.
-            </p>
-
-            {numericSessionFee > 0 && (
-              <p className="mt-2 text-xs font-medium text-emerald-600">
-                Per session:{" "}
-                {formatCurrency(numericSessionFee)}
+                Current rate: {formatCurrency(numericFeePerSession)} / session
               </p>
             )}
           </div>
@@ -533,11 +486,11 @@ export default function ActivityForm({ activityId }: Props) {
 
             <div className="min-w-0">
               <p className="text-xs font-medium uppercase tracking-wide text-blue-600">
-                Session Fee
+                Fee per Session
               </p>
 
               <p className="mt-0.5 truncate text-xl font-bold text-slate-900">
-                {formatCurrency(numericSessionFee)}
+                {formatCurrency(numericFeePerSession)}
               </p>
             </div>
           </div>

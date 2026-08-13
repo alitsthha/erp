@@ -15,7 +15,7 @@ export interface Enrollment {
 
   enrollmentDate: string;
 
-  sessionFee?: number;
+  sessionFee: number;
 
   notes?: string;
 

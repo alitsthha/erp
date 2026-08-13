@@ -9,6 +9,7 @@ import {
   FileText,
   User,
   Activity as ActivityIcon,
+  BadgeDollarSign,
 } from "lucide-react";
 
 import { enrollmentSchema } from "../schemas/enrollment.schema";
@@ -28,10 +29,7 @@ import type { Student } from "@/features/students/types/student.types";
 import { convertADToBS, getCurrentBSDate } from "@/utils/nepali-date";
 import BsDateSelect from "@/components/forms/BsDateSelect";
 
-import {
-  formatCurrency,
-  
-} from "@/utils/currency";
+import { formatCurrency } from "@/utils/currency";
 
 type Props = {
   enrollmentId?: string;
@@ -63,7 +61,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
     watch,
     formState: { errors, isSubmitting },
   } = useForm<EnrollmentFormData>({
-    resolver: zodResolver(enrollmentSchema),
+    resolver: zodResolver(enrollmentSchema) as any,
 
     defaultValues: {
       studentId: "",
@@ -136,13 +134,14 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
       return;
     }
 
-    const activityFee =
+    const feePerSession =
+      selectedActivity.feePerSession ??
       selectedActivity.sessionFee ??
       selectedActivity.fee ??
-      undefined;
+      0;
 
-    if (typeof activityFee === "number") {
-      setValue("sessionFee", String(activityFee));
+    if (feePerSession > 0) {
+      setValue("sessionFee", String(feePerSession));
     }
   }, [selectedActivity, setValue]);
 
@@ -168,8 +167,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
 
     const loadEnrollment = async () => {
       try {
-        const enrollment =
-          await getEnrollmentById(enrollmentId);
+        const enrollment = await getEnrollmentById(enrollmentId);
 
         if (!enrollment) {
           throw new Error("Enrollment not found.");
@@ -178,9 +176,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
         reset({
           studentId: enrollment.studentId,
           activityId: enrollment.activityId,
-          enrollmentDate: normalizeToBs(
-            enrollment.enrollmentDate
-          ),
+          enrollmentDate: normalizeToBs(enrollment.enrollmentDate),
           sessionFee:
             enrollment.sessionFee !== undefined
               ? String(enrollment.sessionFee)
@@ -208,12 +204,10 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
     try {
       if (enrollmentId) {
         await updateEnrollment(enrollmentId, data);
-
         alert("Enrollment updated successfully!");
       } else {
         await addEnrollment(data);
-
-        alert("Enrollment added successfully!");
+        alert("Enrollment created successfully!");
       }
 
       reset({
@@ -274,11 +268,11 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
 
             <div>
               <h2 className="text-base font-semibold text-slate-900">
-                Enrollment Information
+                Enrollment Details
               </h2>
 
               <p className="mt-0.5 text-sm text-slate-500">
-                Select a student, activity and enrollment date.
+                Select a student, activity, enrollment date, and session fee.
               </p>
             </div>
           </div>
@@ -397,9 +391,16 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
 
             {selectedActivity && (
               <div className="mt-2 text-xs text-slate-400">
-                Activity code:{" "}
+                Fee per session:{" "}
                 <span className="font-medium text-slate-600">
-                  {selectedActivity.activityCode}
+                  {formatCurrency(
+                    Number(
+                      selectedActivity.feePerSession ??
+                        selectedActivity.sessionFee ??
+                        selectedActivity.fee ??
+                        0
+                    )
+                  )}
                 </span>
               </div>
             )}
@@ -413,24 +414,14 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
               control={control}
               render={({ field }) => (
                 <BsDateSelect
-                  label="Enrollment Date"
-                  value={
-                    field.value ?? getCurrentBSDate()
-                  }
+                  label="Enrollment Date (BS)"
+                  value={field.value ?? getCurrentBSDate()}
                   onChange={field.onChange}
                   error={errors.enrollmentDate?.message}
-                  helperText="Today's BS date is selected automatically."
+                  helperText="Date when student enrolled."
                 />
               )}
             />
-
-            <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-600">
-              <CheckCircle2 size={13} />
-
-              <span>
-                Default date: {getCurrentBSDate()}
-              </span>
-            </div>
           </div>
 
           {/* Session Fee */}
@@ -440,7 +431,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
               htmlFor="sessionFee"
               className="mb-2 block text-sm font-medium text-slate-700"
             >
-              Session Fee
+              Session Fee (Rs.) <span className="text-red-500">*</span>
             </label>
 
             <div className="relative">
@@ -454,7 +445,11 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
                 min="0"
                 step="0.01"
                 {...register("sessionFee")}
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-14 pr-4 text-sm font-medium text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-50"
+                className={`h-11 w-full rounded-xl border bg-white pl-14 pr-4 text-sm font-medium text-slate-900 outline-none transition focus:ring-2 ${
+                  errors.sessionFee
+                    ? "border-red-300 focus:border-red-400 focus:ring-red-50"
+                    : "border-slate-300 focus:border-blue-500 focus:ring-blue-50"
+                }`}
                 placeholder="0.00"
               />
             </div>
@@ -465,20 +460,9 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
               </p>
             )}
 
-            {selectedActivity && (
-              <p className="mt-2 text-xs text-slate-400">
-                Suggested fee:{" "}
-                <span className="font-medium text-slate-600">
-                  {formatCurrency(
-                    Number(
-                      selectedActivity.sessionFee ??
-                        selectedActivity.fee ??
-                        0
-                    )
-                  )}
-                </span>
-              </p>
-            )}
+            <p className="mt-1.5 text-xs text-slate-400">
+              Fee charged per attendance session for this student enrollment.
+            </p>
           </div>
 
           {/* Notes */}
@@ -500,17 +484,11 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
               <textarea
                 id="notes"
                 {...register("notes")}
-                rows={4}
-                placeholder="Add any useful information about this enrollment..."
+                rows={3}
+                placeholder="Add any useful notes about this enrollment..."
                 className="w-full resize-none rounded-xl border border-slate-300 bg-white py-3 pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-50"
               />
             </div>
-
-            {errors.notes && (
-              <p className="mt-1.5 text-xs font-medium text-red-500">
-                {errors.notes.message}
-              </p>
-            )}
           </div>
         </div>
       </section>
@@ -534,15 +512,14 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
               </p>
 
               <p className="mt-0.5 font-semibold text-slate-900">
-                {selectedStudent?.fullName ??
-                  "Not selected"}
+                {selectedStudent?.fullName ?? "Not selected"}
               </p>
             </div>
           </div>
 
           {selectedStudent && (
             <div className="mt-4 border-t border-slate-100 pt-3 text-xs text-slate-500">
-              {selectedStudent.studentCode}
+              Code: {selectedStudent.studentCode}
             </div>
           )}
         </div>
@@ -561,27 +538,24 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
               </p>
 
               <p className="mt-0.5 font-semibold text-slate-900">
-                {selectedActivity?.activityName ??
-                  "Not selected"}
+                {selectedActivity?.activityName ?? "Not selected"}
               </p>
             </div>
           </div>
 
           {selectedActivity && (
             <div className="mt-4 border-t border-slate-100 pt-3 text-xs text-slate-500">
-              {selectedActivity.activityCode}
+              Category: {selectedActivity.category}
             </div>
           )}
         </div>
 
-        {/* Fee Summary */}
+        {/* Session Fee Summary */}
 
         <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-5 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-blue-600 shadow-sm">
-              <span className="text-sm font-bold">
-                Rs.
-              </span>
+              <BadgeDollarSign size={17} />
             </div>
 
             <div>
@@ -590,9 +564,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
               </p>
 
               <p className="mt-0.5 text-xl font-bold text-slate-900">
-                {formatCurrency(
-                  Number(selectedSessionFee || 0)
-                )}
+                {formatCurrency(Number(selectedSessionFee || 0))} / session
               </p>
             </div>
           </div>
@@ -622,7 +594,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
               </h2>
 
               <p className="mt-0.5 text-xs text-slate-500">
-                Active enrollments are included in academy records.
+                Active enrollments are included in attendance.
               </p>
             </div>
           </div>

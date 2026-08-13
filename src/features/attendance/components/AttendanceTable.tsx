@@ -44,7 +44,7 @@ export default function AttendanceTable({
               Status
             </th>
             <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">
-              Fee
+              Session Fee
             </th>
             <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">
               Actions
@@ -71,20 +71,20 @@ export default function AttendanceTable({
                 <div className="text-xs text-slate-600">{record.activityCode}</div>
               </td>
               <td className="px-6 py-4 text-sm text-slate-900">
-                <div className="font-medium">{record.sessionDateBS}</div>
-                <div className="text-xs text-slate-600">
-                  {formatBSDate(record.sessionDateBS, 'full')}
+                <div className="font-semibold">{record.sessionDateBS || record.sessionDate}</div>
+                <div className="text-xs text-slate-500">
+                  {formatBSDate(record.sessionDateBS || record.sessionDate, 'full')}
                 </div>
               </td>
               <td className="px-6 py-4 text-sm">
                 <span
-                  className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
+                  className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
                     record.status === "Present"
                       ? "bg-green-100 text-green-800"
                       : "bg-red-100 text-red-800"
                   }`}
                 >
-                  {record.status === "Present" ? "Present" : "Present"}
+                  {record.status}
                 </span>
               </td>
               <td className="px-6 py-4 text-sm font-medium text-slate-900">

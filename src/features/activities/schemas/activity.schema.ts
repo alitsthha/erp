@@ -18,12 +18,9 @@ export const activitySchema = z.object({
     .trim()
     .optional(),
 
-  fee: z
+  feePerSession: z
     .string()
-    .optional(),
-
-  sessionFee: z
-    .string()
+    .trim()
     .optional(),
 
   description: z
@@ -34,5 +31,4 @@ export const activitySchema = z.object({
   status: z.enum(["Active", "Inactive"]),
 });
 
-export type ActivityFormData =
-  z.infer<typeof activitySchema>;
+export type ActivityFormData = z.infer<typeof activitySchema>;

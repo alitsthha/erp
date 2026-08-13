@@ -1,7 +1,9 @@
+import SettingsForm from "../components/SettingsForm";
+
 export default function SettingsPage() {
   return (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold">Settings</h1>
+    <div className="w-full min-h-screen bg-slate-50/50 p-4 sm:p-6 lg:p-8">
+      <SettingsForm />
     </div>
   );
 }

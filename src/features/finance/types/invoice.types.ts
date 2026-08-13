@@ -1,39 +1,22 @@
 export type InvoiceStatus =
   | "Draft"
-  | "Issued"
+  | "Unpaid"
   | "Partially Paid"
   | "Paid"
-  | "Overdue"
   | "Cancelled";
 
-export type BillingType =
-  | "Monthly"
-  | "Session"
-  | "One-Time";
-
-export interface InvoiceItem {
-  id?: string;
-
-  description: string;
-
-  activityId?: string;
-  activityName?: string;
-
+export interface InvoiceLine {
   enrollmentId?: string;
 
-  billingType: BillingType;
+  activityId?: string;
+  activityName: string;
+  activityCode?: string;
 
-  quantity: number;
+  sessionCount: number;
 
-  unitPrice: number;
+  sessionFee: number;
 
   amount: number;
-
-  sessionCount?: number;
-
-  attendanceCount?: number;
-
-  notes?: string;
 }
 
 export interface Invoice {
@@ -43,26 +26,20 @@ export interface Invoice {
 
   studentId: string;
   studentName: string;
-  studentCode?: string;
-
-  invoiceDate: string;
+  studentCode: string;
 
   billingMonth: string;
 
+  invoiceDate: string;
   dueDate?: string;
 
-  items: InvoiceItem[];
+  lines: InvoiceLine[];
 
   subtotal: number;
-
   discount: number;
-
-  adjustment: number;
-
   totalAmount: number;
 
   paidAmount: number;
-
   dueAmount: number;
 
   status: InvoiceStatus;
@@ -71,22 +48,4 @@ export interface Invoice {
 
   createdAt?: unknown;
   updatedAt?: unknown;
-}
-
-export interface InvoiceFormData {
-  studentId: string;
-
-  invoiceDate: string;
-
-  billingMonth: string;
-
-  dueDate?: string;
-
-  items: InvoiceItem[];
-
-  discount?: number;
-
-  adjustment?: number;
-
-  notes?: string;
 }
