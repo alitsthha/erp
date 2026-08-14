@@ -2,6 +2,11 @@ export type AttendanceStatus =
   | "Present"
   | "Absent";
 
+export type BillingStatus =
+  | "Due"
+  | "Paid"
+  | "No Charge";
+
 export interface Attendance {
   id?: string;
 
@@ -18,23 +23,22 @@ export interface Attendance {
   activityName: string;
   activityCode: string;
 
-  /*
-   * Gregorian date if your attendance
-   * record stores it.
-   */
   sessionDate: string;
-
-  /*
-   * Nepali BS date.
-   *
-   * Example:
-   * 2083-04-15
-   */
   sessionDateBS: string;
 
   status: AttendanceStatus;
 
   sessionFee?: number;
+
+  /**
+   * Finance Fields
+   */
+
+  chargeAmount?: number;
+
+  dueAmount?: number;
+
+  billingStatus?: BillingStatus;
 
   notes?: string;
 

@@ -21,6 +21,42 @@ export const studentSchema = z.object({
     .email("Enter a valid email")
     .or(z.literal("")),
 
+  parentName: z
+    .string()
+    .optional()
+    .or(z.literal("")),
+
+  parentPhone: z
+    .string()
+    .optional()
+    .or(z.literal("")),
+
+  parentEmail: z
+    .string()
+    .optional()
+    .or(z.literal("")),
+
+  studentEmail: z
+    .string()
+    .optional()
+    .or(z.literal("")),
+
+  gender: z.enum([
+    "Male",
+    "Female",
+    "Other",
+  ]).optional(),
+
+  dateOfBirth: z
+    .string()
+    .optional()
+    .or(z.literal("")),
+
+  admissionDate: z
+    .string()
+    .optional()
+    .or(z.literal("")),
+
   status: z.enum([
     "Active",
     "Inactive",

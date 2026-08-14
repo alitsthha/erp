@@ -94,7 +94,12 @@ const menu: MenuItem[] = [
   {
     title: "Finance",
     icon: Wallet,
-    path: "/finance",
+    children: [
+      { title: "Overview", path: "/finance" },
+      { title: "Billing", path: "/finance/billing" },
+      { title: "Income", path: "/finance/income" },
+      { title: "Reports", path: "/finance/reports" },
+    ],
   },
   {
     title: "Reports",
@@ -122,6 +127,7 @@ export default function Sidebar({
   >({
     Students: true,
     Staff: true,
+    Finance: true,
     Expenses: false,
     Billing: false,
   });

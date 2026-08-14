@@ -5,7 +5,7 @@ export interface OrganizationSettings {
   phone: string;
   address: string;
   website: string;
-  taxId: string; // PAN or VAT Number
+  taxId?: string; // PAN or VAT Number
   academicYear: string;
   currency: string;
   timeZone: string;

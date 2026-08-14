@@ -7,8 +7,13 @@ import {
 
 import { db } from "@/firebase/config";
 
-import type { Enrollment } from "@/features/enrollments/types/enrollment.types";
-import type { Attendance } from "@/features/attendance/types/attendance.types";
+import type {
+  Enrollment,
+} from "@/features/enrollments/types/enrollment.types";
+
+import type {
+  Attendance,
+} from "@/features/attendance/types/attendance.types";
 
 /* =========================================================
    TYPES
@@ -46,91 +51,53 @@ export interface StudentFeeSummary {
    HELPERS
 ========================================================= */
 
-function toNumber(value: unknown): number {
+function toNumber(
+  value: unknown
+): number {
   const number = Number(value);
 
-  return Number.isFinite(number) ? number : 0;
+  return Number.isFinite(number)
+    ? number
+    : 0;
 }
 
-function roundMoney(value: number): number {
+function toString(
+  value: unknown
+): string {
+  return typeof value === "string"
+    ? value
+    : "";
+}
+
+function roundMoney(
+  value: number
+): number {
   return (
-    Math.round((value + Number.EPSILON) * 100) / 100
+    Math.round(
+      (value + Number.EPSILON) * 100
+    ) / 100
   );
 }
 
-function getMonthFromDate(date: string): string {
+/* =========================================================
+   GET MONTH FROM BS DATE
+========================================================= */
+
+function getMonthFromDate(
+  date: string
+): string {
   if (!date) {
     return "";
   }
 
-  return date.substring(0, 7);
-}
+  const parts =
+    date.split("-");
 
-/* =========================================================
-   ATTENDANCE MAPPER
-========================================================= */
-
-function mapAttendance(
-  attendanceDoc: {
-    id: string;
-    data: () => Record<string, unknown>;
+  if (parts.length < 2) {
+    return "";
   }
-): Attendance {
-  const data = attendanceDoc.data();
 
-  return {
-    id: attendanceDoc.id,
-
-    attendanceCode:
-      String(data.attendanceCode ?? ""),
-
-    enrollmentId:
-      String(data.enrollmentId ?? ""),
-
-    enrollmentCode:
-      String(data.enrollmentCode ?? ""),
-
-    studentId:
-      String(data.studentId ?? ""),
-
-    studentName:
-      String(data.studentName ?? ""),
-
-    studentCode:
-      String(data.studentCode ?? ""),
-
-    activityId:
-      String(data.activityId ?? ""),
-
-    activityName:
-      String(data.activityName ?? ""),
-
-    activityCode:
-      String(data.activityCode ?? ""),
-
-    sessionDate:
-      String(data.sessionDate ?? ""),
-
-    sessionDateBS:
-      String(data.sessionDateBS ?? ""),
-
-    status:
-      data.status === "Present"
-        ? "Present"
-        : "Absent",
-
-    sessionFee:
-      toNumber(data.sessionFee),
-
-    notes:
-      String(data.notes ?? ""),
-
-    createdAt:
-      data.createdAt,
-
-    updatedAt:
-      data.updatedAt,
-  };
+  return `${parts[0]}-${parts[1]}`;
 }
 
 /* =========================================================
@@ -141,26 +108,16 @@ export function calculateSessionFee(
   monthlyFee: number,
   expectedSessionsPerMonth: number
 ): number {
-  const safeMonthlyFee =
-    toNumber(monthlyFee);
-
-  const safeExpectedSessions =
-    Math.floor(
-      toNumber(
-        expectedSessionsPerMonth
-      )
-    );
-
   if (
-    safeMonthlyFee <= 0 ||
-    safeExpectedSessions <= 0
+    monthlyFee <= 0 ||
+    expectedSessionsPerMonth <= 0
   ) {
     return 0;
   }
 
   return roundMoney(
-    safeMonthlyFee /
-      safeExpectedSessions
+    monthlyFee /
+      expectedSessionsPerMonth
   );
 }
 
@@ -173,39 +130,20 @@ export function calculateEnrollmentFee(
   attendedSessions: number
 ): StudentFeeLine {
   const monthlyFee =
-    Math.max(
-      0,
-      roundMoney(
-        toNumber(
-          enrollment.monthlyFee
-        )
-      )
+    toNumber(
+      enrollment.monthlyFee
     );
 
   const expectedSessions =
-    Math.max(
-      0,
-      Math.floor(
-        toNumber(
-          enrollment.expectedSessionsPerMonth
-        )
-      )
+    toNumber(
+      enrollment.expectedSessionsPerMonth
     );
 
   let sessionFee =
-    Math.max(
-      0,
-      roundMoney(
-        toNumber(
-          enrollment.sessionFee
-        )
-      )
+    toNumber(
+      enrollment.sessionFee
     );
 
-  /*
-   * If session fee is missing,
-   * calculate it automatically.
-   */
   if (
     sessionFee <= 0 &&
     monthlyFee > 0 &&
@@ -228,46 +166,58 @@ export function calculateEnrollmentFee(
       )
     );
 
-  /*
-   * Calculate fee from attended
-   * sessions.
-   */
-  const sessionBasedAmount =
-    roundMoney(
-      safeAttendance *
-        sessionFee
-    );
+  const sessionAmount =
+    safeAttendance *
+    sessionFee;
 
   /*
-   * Never charge more than the
+   * Never charge more than
    * configured monthly fee.
    */
   const calculatedAmount =
     monthlyFee > 0
       ? Math.min(
-          sessionBasedAmount,
+          sessionAmount,
           monthlyFee
         )
-      : sessionBasedAmount;
+      : sessionAmount;
 
   return {
     enrollmentId:
       enrollment.id ?? "",
 
     activityId:
-      enrollment.activityId,
+      toString(
+        enrollment.activityId
+      ),
 
     activityName:
-      enrollment.activityName,
+      toString(
+        enrollment.activityName
+      ),
 
     activityCode:
-      enrollment.activityCode,
+      toString(
+        enrollment.activityCode
+      ),
 
-    monthlyFee,
+    monthlyFee:
+      roundMoney(
+        monthlyFee
+      ),
 
-    expectedSessions,
+    expectedSessions:
+      Math.max(
+        0,
+        Math.floor(
+          expectedSessions
+        )
+      ),
 
-    sessionFee,
+    sessionFee:
+      roundMoney(
+        sessionFee
+      ),
 
     attendedSessions:
       safeAttendance,
@@ -307,10 +257,133 @@ export async function getStudentEnrollments(
 
   return snapshot.docs.map(
     (enrollmentDoc) => ({
-      id: enrollmentDoc.id,
+      id:
+        enrollmentDoc.id,
+
       ...enrollmentDoc.data(),
     })
   ) as Enrollment[];
+}
+
+/* =========================================================
+   MAP ATTENDANCE
+========================================================= */
+
+function mapAttendance(
+  id: string,
+  data: Record<string, unknown>
+): Attendance {
+  const status =
+    data.status === "Present"
+      ? "Present"
+      : "Absent";
+
+  const sessionFee =
+    toNumber(
+      data.sessionFee
+    );
+
+  const chargeAmount =
+    toNumber(
+      data.chargeAmount
+    );
+
+  const dueAmount =
+    toNumber(
+      data.dueAmount
+    );
+
+  const billingStatus =
+    data.billingStatus ===
+      "Paid" ||
+    data.billingStatus ===
+      "Due" ||
+    data.billingStatus ===
+      "No Charge"
+      ? data.billingStatus
+      : chargeAmount > 0
+        ? "Due"
+        : "No Charge";
+
+  return {
+    id,
+
+    attendanceCode:
+      toString(
+        data.attendanceCode
+      ),
+
+    enrollmentId:
+      toString(
+        data.enrollmentId
+      ),
+
+    enrollmentCode:
+      toString(
+        data.enrollmentCode
+      ),
+
+    studentId:
+      toString(
+        data.studentId
+      ),
+
+    studentName:
+      toString(
+        data.studentName
+      ),
+
+    studentCode:
+      toString(
+        data.studentCode
+      ),
+
+    activityId:
+      toString(
+        data.activityId
+      ),
+
+    activityName:
+      toString(
+        data.activityName
+      ),
+
+    activityCode:
+      toString(
+        data.activityCode
+      ),
+
+    sessionDate:
+      toString(
+        data.sessionDate
+      ),
+
+    sessionDateBS:
+      toString(
+        data.sessionDateBS
+      ),
+
+    status,
+
+    sessionFee,
+
+    chargeAmount,
+
+    dueAmount,
+
+    billingStatus,
+
+    notes:
+      data.notes
+        ? toString(data.notes)
+        : undefined,
+
+    createdAt:
+      data.createdAt,
+
+    updatedAt:
+      data.updatedAt,
+  };
 }
 
 /* =========================================================
@@ -328,16 +401,6 @@ export async function getEnrollmentAttendance(
     return [];
   }
 
-  /*
-   * IMPORTANT:
-   *
-   * Attendance service uses:
-   *
-   * "attendances"
-   *
-   * Therefore finance must use
-   * exactly the same collection.
-   */
   const q = query(
     collection(
       db,
@@ -356,18 +419,15 @@ export async function getEnrollmentAttendance(
   const attendanceList =
     snapshot.docs.map(
       (attendanceDoc) =>
-        mapAttendance({
-          id: attendanceDoc.id,
-          data: () =>
-            attendanceDoc.data(),
-        })
+        mapAttendance(
+          attendanceDoc.id,
+          attendanceDoc.data() as Record<
+            string,
+            unknown
+          >
+        )
     );
 
-  /*
-   * Only Present attendance
-   * belonging to the selected
-   * BS month is billable.
-   */
   return attendanceList.filter(
     (attendance) => {
       const date =
@@ -376,9 +436,8 @@ export async function getEnrollmentAttendance(
         "";
 
       return (
-        getMonthFromDate(
-          date
-        ) === month &&
+        getMonthFromDate(date) ===
+          month &&
         attendance.status ===
           "Present"
       );
@@ -394,29 +453,11 @@ export async function calculateStudentMonthlyFee(
   studentId: string,
   month: string
 ): Promise<StudentFeeSummary> {
-  if (
-    !studentId ||
-    !month
-  ) {
-    return {
-      studentId,
-      studentName: "",
-      studentCode: "",
-      month,
-      lines: [],
-      totalAmount: 0,
-    };
-  }
-
   const enrollments =
     await getStudentEnrollments(
       studentId
     );
 
-  /*
-   * Only active enrollments
-   * participate in billing.
-   */
   const activeEnrollments =
     enrollments.filter(
       (enrollment) =>
@@ -424,8 +465,8 @@ export async function calculateStudentMonthlyFee(
         "Active"
     );
 
-  const lines: StudentFeeLine[] =
-    [];
+  const lines:
+    StudentFeeLine[] = [];
 
   for (
     const enrollment of
@@ -453,20 +494,13 @@ export async function calculateStudentMonthlyFee(
   const totalAmount =
     roundMoney(
       lines.reduce(
-        (
-          total,
-          line
-        ) =>
+        (total, line) =>
           total +
           line.calculatedAmount,
         0
       )
     );
 
-  /*
-   * Enrollment stores a snapshot
-   * of the student's information.
-   */
   const firstEnrollment =
     activeEnrollments[0];
 
@@ -507,7 +541,7 @@ export async function countPresentSessions(
 }
 
 /* =========================================================
-   CALCULATE ALL STUDENT MONTHLY FEES
+   CALCULATE ALL STUDENTS
 ========================================================= */
 
 export async function calculateAllStudentMonthlyFees(
@@ -528,7 +562,9 @@ export async function calculateAllStudentMonthlyFees(
   const enrollments =
     snapshot.docs.map(
       (enrollmentDoc) => ({
-        id: enrollmentDoc.id,
+        id:
+          enrollmentDoc.id,
+
         ...enrollmentDoc.data(),
       })
     ) as Enrollment[];
@@ -540,22 +576,13 @@ export async function calculateAllStudentMonthlyFees(
         "Active"
     );
 
-  /*
-   * Get unique students.
-   *
-   * This is important because one
-   * student can have multiple
-   * activities.
-   */
   const studentIds =
     Array.from(
       new Set(
-        activeEnrollments
-          .map(
-            (enrollment) =>
-              enrollment.studentId
-          )
-          .filter(Boolean)
+        activeEnrollments.map(
+          (enrollment) =>
+            enrollment.studentId
+        )
       )
     );
 
@@ -572,7 +599,9 @@ export async function calculateAllStudentMonthlyFees(
         month
       );
 
-    results.push(summary);
+    results.push(
+      summary
+    );
   }
 
   return results;

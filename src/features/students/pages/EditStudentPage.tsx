@@ -17,7 +17,10 @@ export default function EditStudentPage() {
         description="Update student details."
       />
 
-      <StudentForm studentId={studentId} />
+      <StudentForm
+        initialData={{}}
+        onSubmit={async () => undefined}
+      />
     </div>
   );
 }

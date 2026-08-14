@@ -15,9 +15,15 @@ export async function generateCode(
     const counterDoc = await transaction.get(counterRef);
 
     if (!counterDoc.exists()) {
-      throw new Error(
-        `Counter '${counterName}' does not exist.`
-      );
+      const nextNumber = 1;
+
+      transaction.set(counterRef, {
+        lastNumber: nextNumber,
+      });
+
+      return `${prefix}-${nextNumber
+        .toString()
+        .padStart(6, "0")}`;
     }
 
     const lastNumber = counterDoc.data().lastNumber || 0;

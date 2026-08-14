@@ -1,4 +1,6 @@
-export type EnrollmentStatus = "Active" | "Inactive";
+export type EnrollmentStatus =
+  | "Active"
+  | "Inactive";
 
 export interface Enrollment {
   id?: string;
@@ -15,7 +17,30 @@ export interface Enrollment {
 
   enrollmentDate: string;
 
-  sessionFee: number;
+  /**
+   * Monthly fee configured for this enrollment.
+   *
+   * Example:
+   * Music = Rs. 10,000 / month
+   */
+  monthlyFee?: number;
+
+  /**
+   * Expected number of sessions in a normal month.
+   *
+   * Example:
+   * 5 sessions/month
+   */
+  expectedSessionsPerMonth?: number;
+
+  /**
+   * Automatically calculated or manually overridden
+   * fee for one attended session.
+   *
+   * Example:
+   * 10,000 / 5 = Rs. 2,000
+   */
+  sessionFee?: number;
 
   notes?: string;
 

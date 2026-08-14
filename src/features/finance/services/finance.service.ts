@@ -152,7 +152,7 @@ export async function getFinanceInvoices(
   try {
     const snapshot = await getDocs(
       query(
-        collection(db, "financeInvoices"),
+        collection(db, "invoices"),
         orderBy("createdAt", "desc"),
       ),
     );
@@ -215,16 +215,26 @@ export async function getFinanceSummary(
     getFinancePayments(filters),
   ]);
 
-  const totalIncome = incomeRecords.reduce(
-    (total, record) =>
-      total +
-      toNumber(
-        record.amount ??
-          record.totalAmount ??
-          record.paidAmount,
-      ),
-    0,
-  );
+  const totalIncome =
+    incomeRecords.reduce(
+      (total, record) =>
+        total +
+        toNumber(
+          record.amount ??
+            record.totalAmount ??
+            record.paidAmount,
+        ),
+      0,
+    ) +
+    paymentRecords.reduce(
+      (total, payment) =>
+        total +
+        toNumber(
+          payment.amount ??
+            payment.paidAmount,
+        ),
+      0,
+    );
 
   const totalExpenses = expenseRecords.reduce(
     (total, record) =>
@@ -236,33 +246,27 @@ export async function getFinanceSummary(
     0,
   );
 
-  const totalInvoiced = invoiceRecords.reduce(
-    (total, record) =>
-      total +
-      toNumber(
-        record.totalAmount ??
-          record.amount,
-      ),
-    0,
-  );
+  const outstandingAmount = invoiceRecords.reduce(
+    (total, invoice) => {
+      const invoiceTotal = toNumber(
+        invoice.totalAmount ??
+          invoice.amount,
+      );
 
-  const totalPaid = paymentRecords.reduce(
-    (total, record) =>
-      total +
-      toNumber(
-        record.amount ??
-          record.paidAmount,
-      ),
-    0,
-  );
+      const paid = toNumber(
+        invoice.paidAmount,
+      );
 
-  /**
-   * Outstanding = invoiced - paid.
-   *
-   * Never allow a negative outstanding amount.
-   */
-  const outstandingAmount = Math.max(
-    totalInvoiced - totalPaid,
+      const due = toNumber(
+        invoice.dueAmount ??
+          Math.max(
+            invoiceTotal - paid,
+            0,
+          ),
+      );
+
+      return total + Math.max(due, 0);
+    },
     0,
   );
 
@@ -277,14 +281,19 @@ export async function getFinanceSummary(
         invoice.paidAmount,
       );
 
+      const due = toNumber(
+        invoice.dueAmount ??
+          Math.max(
+            total - paid,
+            0,
+          ),
+      );
+
       const status = String(
         invoice.status ?? "",
       ).toLowerCase();
 
-      return (
-        total > paid &&
-        status !== "paid"
-      );
+      return due > 0 && status !== "paid";
     },
   ).length;
 
@@ -309,19 +318,24 @@ export async function getFinanceSummary(
         invoice.paidAmount,
       );
 
+      const due = toNumber(
+        invoice.dueAmount ??
+          Math.max(
+            invoiceTotal - paid,
+            0,
+          ),
+      );
+
       if (
         status === "paid" ||
-        invoiceTotal <= paid ||
+        due <= 0 ||
         !dueDate
       ) {
         return total;
       }
 
       if (dueDate < new Date()) {
-        return (
-          total +
-          Math.max(invoiceTotal - paid, 0)
-        );
+        return total + due;
       }
 
       return total;

@@ -84,7 +84,7 @@ export default function FinancePage() {
       value: formatCurrency(
         summary.netProfit,
       ),
-      description: "Income - Expenses",
+      description: "Student fee income - expenses",
       icon: TrendingUp,
     },
     {
@@ -124,8 +124,7 @@ export default function FinancePage() {
           </h1>
 
           <p className="mt-1 text-sm text-slate-500 sm:text-base">
-            Manage income, billing, expenses,
-            payroll and accounting.
+            Simple student billing, income tracking, and finance overview.
           </p>
         </div>
 
@@ -322,11 +321,11 @@ export default function FinancePage() {
       <section>
         <div className="mb-4">
           <h2 className="text-lg font-semibold text-slate-900">
-            Finance Modules
+            Quick Access
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
-            Manage different parts of your financial system.
+            Student billing, income, and finance reports in one place.
           </p>
         </div>
 
@@ -334,40 +333,22 @@ export default function FinancePage() {
 
           {[
             {
-              title: "Accounts",
-              description:
-                "Chart of accounts, cash and bank accounts.",
-              href: "/finance/accounts",
-            },
-            {
               title: "Income",
               description:
-                "Student fees, camps and other income.",
+                "Track student fee collections and payment records.",
               href: "/finance/income",
             },
             {
               title: "Billing",
               description:
-                "Invoices, payments and outstanding dues.",
+                "Create invoices and record student payments.",
               href: "/finance/billing",
             },
             {
-              title: "Expenses",
+              title: "Reports",
               description:
-                "Rent, utilities, food and other expenses.",
-              href: "/finance/expenses",
-            },
-            {
-              title: "Payroll",
-              description:
-                "Salary, deductions and payslips.",
-              href: "/finance/payroll",
-            },
-            {
-              title: "Accounting",
-              description:
-                "Transactions, journals and financial records.",
-              href: "/finance/accounting",
+                "Cash flow, profit, expense and date-based summaries.",
+              href: "/finance/reports",
             },
           ].map((module) => (
             <Link

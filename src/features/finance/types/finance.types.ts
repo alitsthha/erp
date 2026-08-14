@@ -7,15 +7,13 @@ export interface FinanceSummary {
 
   outstandingAmount: number;
 
+  outstandingInvoices: number;
+
+  overdueAmount: number;
+
   cashBalance: number;
 
   bankBalance: number;
-
-  invoiceCount: number;
-
-  paidInvoiceCount: number;
-
-  unpaidInvoiceCount: number;
 }
 
 export interface FinanceDateFilter {

@@ -14,13 +14,10 @@ import {
   Sliders,
   Bell,
   ShieldAlert,
-  ShieldCheck,
   CheckCircle2,
   RotateCcw,
   Save,
   AlertCircle,
-  Sparkles,
-  Lock,
 } from "lucide-react";
 
 import {
@@ -53,7 +50,6 @@ export default function SettingsForm() {
   });
 
   const watchInstitutionName = watch("institutionName");
-  const watchEmail = watch("email");
   const watchAcademicYear = watch("academicYear");
   const watchCurrency = watch("currency");
   const watchMaintenanceMode = watch("maintenanceMode");
