@@ -14,6 +14,10 @@ export const staffSchema = z.object({
   address: z.string().min(3, "Address is required"),
   employmentType: z.enum(["Full Time", "Part Time", "Contract", "Temporary", "Volunteer"]),
   status: z.enum(["Active", "Inactive", "Resigned"]),
+  designation: z.string().optional(),
+  qualification: z.string().optional(),
+  emergencyContactName: z.string().optional(),
+  emergencyContactPhone: z.string().optional(),
 });
 
 export type StaffFormData = z.infer<typeof staffSchema>;

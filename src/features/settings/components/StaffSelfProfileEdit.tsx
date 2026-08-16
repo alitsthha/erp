@@ -8,7 +8,6 @@ import {
   Save,
   CheckCircle2,
   AlertCircle,
-  Briefcase,
   GraduationCap,
   HeartPulse,
 } from "lucide-react";
@@ -31,7 +30,6 @@ export default function StaffSelfProfileEdit() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
-  const [designation, setDesignation] = useState("");
   const [qualification, setQualification] = useState("");
   const [emergencyContactName, setEmergencyContactName] = useState("");
   const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
@@ -57,7 +55,6 @@ export default function StaffSelfProfileEdit() {
           setFullName(matched.fullName || "");
           setPhone(matched.phone || "");
           setAddress(matched.address || "");
-          setDesignation(matched.designation || "");
           setQualification(matched.qualification || "");
           setEmergencyContactName(matched.emergencyContactName || "");
           setEmergencyContactPhone(matched.emergencyContactPhone || "");
@@ -96,7 +93,6 @@ export default function StaffSelfProfileEdit() {
           fullName: fullName.trim(),
           phone: phone.trim(),
           address: address.trim(),
-          designation: designation.trim(),
           qualification: qualification.trim(),
           emergencyContactName: emergencyContactName.trim(),
           emergencyContactPhone: emergencyContactPhone.trim(),
@@ -216,21 +212,6 @@ export default function StaffSelfProfileEdit() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="+977 98XXXXXXXX"
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-3 text-xs outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              />
-            </div>
-          </div>
-
-          {/* Designation */}
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold text-slate-700">Designation / Subject</label>
-            <div className="relative">
-              <Briefcase size={16} className="absolute left-3.5 top-3.5 text-slate-400" />
-              <input
-                type="text"
-                value={designation}
-                onChange={(e) => setDesignation(e.target.value)}
-                placeholder="e.g. Senior Art Instructor"
                 className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-3 text-xs outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
             </div>

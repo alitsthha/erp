@@ -9,6 +9,10 @@ export interface Staff {
   joiningDate: string;
   employmentType: string;
   status: string;
+  designation?: string;
+  qualification?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
 }
 
 export interface PaymentRecord {
