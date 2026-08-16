@@ -207,7 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           message.includes("invalid-credential") ||
           message.includes("user-not-found") ||
           message.includes("wrong-password")
-            ? "Invalid email or password. For immediate admin access, use alitshrestha74@gmail.com with password admin123."
+            ? "Invalid email or password. Check the password and retry or contact support."
             : message,
       };
     }
