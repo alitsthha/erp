@@ -290,24 +290,22 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-full bg-slate-50 p-4 sm:p-6 lg:p-8">
-        <div className="mx-auto max-w-7xl">
-          <div className="animate-pulse space-y-6">
-            <div className="h-32 rounded-3xl bg-slate-200" />
+      <div className="mx-auto max-w-7xl">
+        <div className="animate-pulse space-y-6">
+          <div className="h-32 rounded-3xl bg-slate-200" />
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              {Array.from({ length: 4 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="h-32 rounded-2xl bg-slate-200"
-                />
-              ))}
-            </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={index}
+                className="h-32 rounded-2xl bg-slate-200"
+              />
+            ))}
+          </div>
 
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-              <div className="h-96 rounded-2xl bg-slate-200 xl:col-span-2" />
-              <div className="h-96 rounded-2xl bg-slate-200" />
-            </div>
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+            <div className="h-96 rounded-2xl bg-slate-200 xl:col-span-2" />
+            <div className="h-96 rounded-2xl bg-slate-200" />
           </div>
         </div>
       </div>
@@ -322,37 +320,34 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <div className="min-h-full bg-slate-50 p-4 sm:p-6 lg:p-8">
-        <div className="mx-auto max-w-7xl">
-          <div className="rounded-2xl border border-red-200 bg-white p-8 text-center shadow-sm">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
-              <XCircle className="h-6 w-6 text-red-600" />
-            </div>
-
-            <h2 className="mt-4 text-lg font-semibold text-slate-900">
-              Dashboard could not load
-            </h2>
-
-            <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-              {error}
-            </p>
-
-            <button
-              type="button"
-              onClick={() => void loadDashboardData()}
-              className="mt-5 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
-            >
-              Try Again
-            </button>
+      <div className="mx-auto max-w-7xl">
+        <div className="rounded-2xl border border-red-200 bg-white p-8 text-center shadow-sm">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
+            <XCircle className="h-6 w-6 text-red-600" />
           </div>
+
+          <h2 className="mt-4 text-lg font-semibold text-slate-900">
+            Dashboard could not load
+          </h2>
+
+          <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
+            {error}
+          </p>
+
+          <button
+            type="button"
+            onClick={() => void loadDashboardData()}
+            className="mt-5 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
+          >
+            Try Again
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-full bg-slate-50 p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-7xl space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6">
 
         {/* =====================================================
             HEADER
@@ -955,6 +950,5 @@ export default function DashboardPage() {
         </div>
 
       </div>
-    </div>
   );
 }

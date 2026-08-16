@@ -124,13 +124,7 @@ export default function Sidebar({
 }: SidebarProps) {
   const [expanded, setExpanded] = useState<
     Record<string, boolean>
-  >({
-    Students: true,
-    Staff: true,
-    Finance: true,
-    Expenses: false,
-    Billing: false,
-  });
+  >({});
 
   function toggleMenu(title: string) {
     setExpanded((prev) => ({
@@ -159,7 +153,7 @@ export default function Sidebar({
       <aside
         className={`
           fixed inset-y-0 left-0 z-50
-          flex w-64 flex-col
+          flex h-full w-64 shrink-0 flex-col
           border-r border-slate-200
           bg-white
           shadow-sm
@@ -341,33 +335,6 @@ export default function Sidebar({
           </div>
         </nav>
 
-        {/* =================================================
-            SIDEBAR FOOTER
-        ================================================== */}
-        <div className="shrink-0 border-t border-slate-200 p-3">
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
-            <div className="flex items-center gap-3">
-              {/* Small logo */}
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white">
-                <img
-                  src="/yea-logo.png"
-                  alt="YEA"
-                  className="h-full w-full object-contain"
-                />
-              </div>
-
-              <div className="min-w-0">
-                <p className="truncate text-xs font-semibold text-slate-700">
-                  Young Explorers Academy
-                </p>
-
-                <p className="mt-0.5 text-[10px] text-slate-400">
-                  Management System
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
       </aside>
     </>
   );

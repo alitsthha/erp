@@ -12,7 +12,7 @@ export default function Header({
   onMenuClick,
 }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-30 h-16 border-b border-slate-200 bg-white">
+    <header className="sticky top-0 z-30 h-16 shrink-0 border-b border-slate-200 bg-white">
       <div className="flex h-full items-center gap-3 px-4 sm:px-5 md:px-6">
 
         {/* Mobile Menu */}
