@@ -6,7 +6,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { onAuthStateChanged, type User } from "firebase/auth";
+import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 
 import { auth } from "@/lib/firebase";
 import {
@@ -24,6 +24,7 @@ type AuthContextValue = {
   loading: boolean;
   isAdmin: boolean;
   isTeacher: boolean;
+  logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -117,6 +118,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return unsubscribe;
   }, []);
 
+  const logout = async () => {
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("erp_demo_session");
+    }
+    try {
+      await signOut(auth);
+    } catch (err) {
+      console.warn("Sign out error:", err);
+    }
+    setUser(null);
+    setRole(null);
+    setPermissions(createDefaultPermissions("teacher"));
+  };
+
   const value = useMemo(
     () => ({
       user,
@@ -130,6 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role === "dance_teacher" ||
         role === "art_teacher" ||
         role === "sports_teacher",
+      logout,
     }),
     [user, role, permissions, loading]
   );
