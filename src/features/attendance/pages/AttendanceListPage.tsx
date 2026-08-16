@@ -33,11 +33,15 @@ import AttendanceSearch from "@/features/attendance/components/AttendanceSearch"
 import AttendanceFilters from "@/features/attendance/components/AttendanceFilters";
 import AttendanceTable from "@/features/attendance/components/AttendanceTable";
 
+import { useAuth } from "@/app/providers/AuthProvider";
+import { isActivityAllowedForRole } from "@/lib/rbac";
+
 type FilterStatus = "All" | "Present" | "Absent";
 type ViewMode = "daily" | "all";
 
 export default function AttendanceListPage() {
   const navigate = useNavigate();
+  const { role } = useAuth();
 
   // Current BS Date by default
   const todayBS = useMemo(() => getCurrentBSDate(), []);
@@ -102,18 +106,20 @@ export default function AttendanceListPage() {
     };
   }, [selectedDateBS, viewMode]);
 
-  // Determine active raw records list based on view mode
+  // Determine active raw records list based on view mode and role access
   const activeRecords: Attendance[] = useMemo(() => {
-    if (viewMode === "daily") {
-      return dailyData?.attendances || [];
-    }
-    return allAttendances;
-  }, [viewMode, dailyData, allAttendances]);
+    const raw = viewMode === "daily" ? dailyData?.attendances || [] : allAttendances;
+    return raw.filter((item) =>
+      isActivityAllowedForRole(role, item.activityName, item.activityCode)
+    );
+  }, [viewMode, dailyData, allAttendances, role]);
 
   // Extract distinct activities available for selected date / dataset
   const availableActivities = useMemo(() => {
     if (viewMode === "daily" && dailyData?.activities) {
-      return dailyData.activities;
+      return dailyData.activities.filter((act) =>
+        isActivityAllowedForRole(role, act.activityName, act.activityCode)
+      );
     }
 
     const map = new Map<
@@ -461,9 +467,9 @@ export default function AttendanceListPage() {
       </div>
 
       {/* =====================================================
-          ACTIVITY CORRESPONDENCE / TABS
+          ACTIVITY CORRESPONDENCE / TABS (Hidden for specific roled staff)
       ====================================================== */}
-      {availableActivities.length > 0 && (
+      {(role === "admin" || role === "teacher") && availableActivities.length > 0 && (
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">

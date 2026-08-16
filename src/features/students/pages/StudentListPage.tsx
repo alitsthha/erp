@@ -18,10 +18,17 @@ import {
 
 import type { Student } from "../types/student.types";
 
+import { useAuth } from "@/app/providers/AuthProvider";
+import { isActivityAllowedForRole } from "@/lib/rbac";
+import { getAllEnrollments } from "@/features/enrollments/services/enrollment.service";
+import type { Enrollment } from "@/features/enrollments/types/enrollment.types";
+
 export default function StudentListPage() {
   const navigate = useNavigate();
+  const { role, isAdmin } = useAuth();
 
   const [students, setStudents] = useState<Student[]>([]);
+  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -29,7 +36,7 @@ export default function StudentListPage() {
   const [statusFilter, setStatusFilter] = useState("all");
 
   // --------------------------------------------------
-  // LOAD STUDENTS
+  // LOAD STUDENTS & ENROLLMENTS
   // --------------------------------------------------
 
   async function loadStudents() {
@@ -37,9 +44,13 @@ export default function StudentListPage() {
       setLoading(true);
       setError("");
 
-      const data = await getStudents();
+      const [data, enrollmentData] = await Promise.all([
+        getStudents(),
+        getAllEnrollments(),
+      ]);
 
       setStudents(data);
+      setEnrollments(enrollmentData);
     } catch (error) {
       console.error(error);
       setError("Failed to load students.");
@@ -52,6 +63,20 @@ export default function StudentListPage() {
     void loadStudents();
   }, []);
 
+  // Allowed Student IDs for specialized teacher role
+  const allowedStudentIds = useMemo(() => {
+    if (!role || role === "admin" || role === "teacher") {
+      return null;
+    }
+    const ids = new Set<string>();
+    for (const e of enrollments) {
+      if (isActivityAllowedForRole(role, e.activityName, e.activityCode)) {
+        if (e.studentId) ids.add(e.studentId);
+      }
+    }
+    return ids;
+  }, [enrollments, role]);
+
   // --------------------------------------------------
   // FILTER STUDENTS
   // --------------------------------------------------
@@ -60,13 +85,13 @@ export default function StudentListPage() {
     const keyword = search.trim().toLowerCase();
 
     return students.filter((student) => {
+      if (allowedStudentIds && !allowedStudentIds.has(student.id || "")) {
+        return false;
+      }
+
       const name = student.fullName ?? "";
       const code = student.studentCode ?? "";
 
-      // IMPORTANT:
-      // Use guardianName only.
-      // Do NOT use parentName because it doesn't exist
-      // in the Student type.
       const guardian = student.guardianName ?? "";
 
       const matchesSearch =
@@ -82,7 +107,7 @@ export default function StudentListPage() {
 
       return matchesSearch && matchesStatus;
     });
-  }, [students, search, statusFilter]);
+  }, [students, search, statusFilter, allowedStudentIds]);
 
   // --------------------------------------------------
   // DELETE STUDENT
@@ -143,38 +168,17 @@ export default function StudentListPage() {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() =>
-            navigate("/students/add")
-          }
-          className="
-            inline-flex
-            w-full
-            items-center
-            justify-center
-            gap-2
-            rounded-lg
-            bg-blue-600
-            px-4
-            py-2.5
-            text-sm
-            font-medium
-            text-white
-            shadow-sm
-            transition
-            hover:bg-blue-700
-            focus:outline-none
-            focus:ring-2
-            focus:ring-blue-500
-            focus:ring-offset-2
-            sm:w-auto
-          "
-        >
-          <Plus size={18} />
-
-          Add Student
-        </button>
+        {/* Add Student CTA (Admin Only) */}
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => navigate("/students/add")}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
+          >
+            <Plus size={18} />
+            Add Student
+          </button>
+        )}
       </div>
 
       {/* ============================================

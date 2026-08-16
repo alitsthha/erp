@@ -4,7 +4,7 @@ import { getFirestore } from "firebase/firestore";
 import { getFunctions } from "firebase/functions";
 import { getStorage } from "firebase/storage";
 
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: "AIzaSyCPy_fSz1TfZazP7If1JYfhdHaBHjS4Y3c",
   authDomain: "academy-erp-451f2.firebaseapp.com",
   projectId: "academy-erp-451f2",

@@ -197,7 +197,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
                 >
                   <Settings size={15} className="text-slate-400" />
-                  <span>Settings</span>
+                  <span>{isAdmin ? "Organization Settings" : "My Profile & Details"}</span>
                 </button>
               </div>
 

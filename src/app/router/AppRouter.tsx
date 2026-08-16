@@ -151,7 +151,11 @@ export default function AppRouter() {
 
             <Route
               path="/students/add"
-              element={<AddStudentPage />}
+              element={
+                <AdminRoute>
+                  <AddStudentPage />
+                </AdminRoute>
+              }
             />
 
             <Route

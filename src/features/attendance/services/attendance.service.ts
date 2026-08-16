@@ -456,18 +456,44 @@ export async function saveBatchAttendance(
   }
 
   /*
+   * Fetch all existing attendance records for this dateBS from 'attendances' collection
+   * to ensure daily_attendances document contains ALL activities and ALL student records for this dateBS.
+   */
+  let allDateAttendances: Attendance[] = [];
+  try {
+    const existingDateRecords = await getAttendanceByDate(dateBS);
+    const map = new Map<string, Attendance>();
+
+    // Add existing records to map (keyed by enrollmentId or studentId+activityId)
+    for (const rec of existingDateRecords) {
+      const key = rec.enrollmentId || `${rec.studentId}_${rec.activityId}`;
+      map.set(key, rec);
+    }
+
+    // Overlay newly saved batch attendances
+    for (const rec of savedAttendances) {
+      const key = rec.enrollmentId || `${rec.studentId}_${rec.activityId}`;
+      map.set(key, rec);
+    }
+
+    allDateAttendances = Array.from(map.values());
+  } catch {
+    allDateAttendances = savedAttendances;
+  }
+
+  /*
    * Save Date-Specific Daily Document with array entry of all attendance
    * in correspondence to the activities.
    */
   try {
-    const activityGroups = groupAttendancesByActivity(savedAttendances);
-    const presentCount = savedAttendances.filter(
+    const activityGroups = groupAttendancesByActivity(allDateAttendances);
+    const presentCount = allDateAttendances.filter(
       (r) => r.status === "Present"
     ).length;
-    const absentCount = savedAttendances.filter(
+    const absentCount = allDateAttendances.filter(
       (r) => r.status === "Absent"
     ).length;
-    const totalSessionFees = savedAttendances
+    const totalSessionFees = allDateAttendances
       .filter((r) => r.status === "Present")
       .reduce((sum, r) => sum + (r.sessionFee || 0), 0);
 
@@ -477,12 +503,12 @@ export async function saveBatchAttendance(
       sessionDateBS: dateBS,
       sessionDate:
         validRecords[0].sessionDate || convertBSToAD(dateBS),
-      totalRecords: savedAttendances.length,
+      totalRecords: allDateAttendances.length,
       presentCount,
       absentCount,
       totalSessionFees,
       activitiesCount: activityGroups.length,
-      attendances: savedAttendances.map((item) => sanitizeForFirestore({ ...item })),
+      attendances: allDateAttendances.map((item) => sanitizeForFirestore({ ...item })),
       activities: activityGroups.map((group) => ({
         activityId: group.activityId,
         activityName: group.activityName,
@@ -513,63 +539,40 @@ export async function getDailyAttendanceByDate(
     return null;
   }
 
-  // 1. Check daily_attendances collection
-  try {
-    const dailyRef = doc(db, DAILY_COLLECTION_NAME, sessionDateBS);
-    const dailySnap = await getDoc(dailyRef);
+  // 1. Fetch all individual attendance records from the 'attendances' collection for dateBS
+  const records = await getAttendanceByDate(sessionDateBS);
+  let allRecords = records;
 
-    if (dailySnap.exists()) {
-      const data = dailySnap.data() as Record<string, unknown>;
-      const rawAttendances = Array.isArray(data.attendances)
-        ? (data.attendances as Record<string, unknown>[]).map((item, index) =>
+  // 2. Fallback to daily_attendances collection if no records returned from attendances collection
+  if (allRecords.length === 0) {
+    try {
+      const dailyRef = doc(db, DAILY_COLLECTION_NAME, sessionDateBS);
+      const dailySnap = await getDoc(dailyRef);
+
+      if (dailySnap.exists()) {
+        const data = dailySnap.data() as Record<string, unknown>;
+        if (Array.isArray(data.attendances)) {
+          allRecords = (data.attendances as Record<string, unknown>[]).map((item, index) =>
             mapAttendanceDoc(
               (item.id as string) || `${sessionDateBS}-${index}`,
               item
             )
-          )
-        : [];
-
-      const activities = groupAttendancesByActivity(rawAttendances);
-
-      return {
-        id: sessionDateBS,
-        sessionDateBS,
-        sessionDate:
-          toString(data.sessionDate) || convertBSToAD(sessionDateBS),
-        totalRecords: toNumber(data.totalRecords) || rawAttendances.length,
-        presentCount:
-          toNumber(data.presentCount) ||
-          rawAttendances.filter((r) => r.status === "Present").length,
-        absentCount:
-          toNumber(data.absentCount) ||
-          rawAttendances.filter((r) => r.status === "Absent").length,
-        totalSessionFees:
-          toNumber(data.totalSessionFees) ||
-          rawAttendances
-            .filter((r) => r.status === "Present")
-            .reduce((sum, r) => sum + (r.sessionFee || 0), 0),
-        activitiesCount:
-          toNumber(data.activitiesCount) || activities.length,
-        attendances: rawAttendances,
-        activities,
-        createdAt: data.createdAt,
-        updatedAt: data.updatedAt,
-      };
+          );
+        }
+      }
+    } catch (err) {
+      console.warn("Error reading daily_attendances fallback:", err);
     }
-  } catch (err) {
-    console.warn("Error reading from daily_attendances, checking attendances table:", err);
   }
 
-  // 2. Fallback: Query attendances collection
-  const records = await getAttendanceByDate(sessionDateBS);
-  if (records.length === 0) {
+  if (allRecords.length === 0) {
     return null;
   }
 
-  const activities = groupAttendancesByActivity(records);
-  const presentCount = records.filter((r) => r.status === "Present").length;
-  const absentCount = records.filter((r) => r.status === "Absent").length;
-  const totalSessionFees = records
+  const activities = groupAttendancesByActivity(allRecords);
+  const presentCount = allRecords.filter((r) => r.status === "Present").length;
+  const absentCount = allRecords.filter((r) => r.status === "Absent").length;
+  const totalSessionFees = allRecords
     .filter((r) => r.status === "Present")
     .reduce((sum, r) => sum + (r.sessionFee || 0), 0);
 
@@ -577,12 +580,12 @@ export async function getDailyAttendanceByDate(
     id: sessionDateBS,
     sessionDateBS,
     sessionDate: convertBSToAD(sessionDateBS),
-    totalRecords: records.length,
+    totalRecords: allRecords.length,
     presentCount,
     absentCount,
     totalSessionFees,
     activitiesCount: activities.length,
-    attendances: records,
+    attendances: allRecords,
     activities,
   };
 }

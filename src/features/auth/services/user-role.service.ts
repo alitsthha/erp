@@ -1,7 +1,8 @@
+import { initializeApp, deleteApp } from "firebase/app";
+import { getAuth, createUserWithEmailAndPassword, signOut } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
-import { createUserWithEmailAndPassword } from "firebase/auth";
 
-import { auth, db } from "@/lib/firebase";
+import { db, firebaseConfig } from "@/lib/firebase";
 import type { AppRole, ModulePermissions } from "@/lib/rbac";
 
 export type UserRoleRecord = {
@@ -30,17 +31,32 @@ export async function createTeacherAccount({
     throw new Error("Password must be at least 6 characters long.");
   }
 
+  const secondaryAppName = `SecondaryAuthApp-${Date.now()}`;
+  const secondaryApp = initializeApp(firebaseConfig, secondaryAppName);
+  const secondaryAuth = getAuth(secondaryApp);
+
   try {
-    await createUserWithEmailAndPassword(auth, normalizedEmail, password);
+    await createUserWithEmailAndPassword(secondaryAuth, normalizedEmail, password);
+    await signOut(secondaryAuth);
   } catch (error: unknown) {
     const err = error as { code?: string; message?: string };
     if (err.code === "auth/email-already-in-use") {
-      throw new Error("This email already has an account. Use a different email or update the existing role.");
+      console.warn("Account already exists in Firebase Auth. Role and permissions will be updated.");
+      return;
     }
     if (err.code === "auth/invalid-email") {
       throw new Error("Invalid email format.");
     }
+    if (err.code === "auth/weak-password") {
+      throw new Error("Password is too weak. Please enter at least 6 characters.");
+    }
     throw error;
+  } finally {
+    try {
+      await deleteApp(secondaryApp);
+    } catch {
+      // Ignore cleanup error
+    }
   }
 }
 

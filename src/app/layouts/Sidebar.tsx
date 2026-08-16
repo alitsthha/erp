@@ -132,36 +132,41 @@ export default function Sidebar({
   >({});
 
   // Filter menu items based on user permissions
-  const filteredMenu = menu.filter((item) => {
-    // Admin sees everything except "Assign Role" (shown separately)
-    if (isAdmin) {
-      return item.path !== "/admin/assign-role";
-    }
+  const filteredMenu = menu
+    .filter((item) => {
+      // Admin sees everything except "Assign Role" (shown separately)
+      if (isAdmin) {
+        return item.path !== "/admin/assign-role";
+      }
 
-    // Teachers see only modules they have access to
-    if (item.moduleKey) {
-      return hasModuleAccess(role, item.moduleKey, permissions);
-    }
+      // Teachers see only modules they have access to
+      if (item.moduleKey) {
+        return hasModuleAccess(role, item.moduleKey, permissions);
+      }
 
-    // Items without moduleKey are hidden for teachers
-    return false;
-  });
+      // Items without moduleKey are hidden for teachers
+      return false;
+    })
+    .map((item) => {
+      if (!isAdmin && item.children) {
+        return {
+          ...item,
+          children: item.children.filter((child) => child.path !== "/students/add"),
+        };
+      }
+      return item;
+    });
 
   // Build visible menu with proper structure
   const visibleMenu: MenuItem[] = isAdmin
     ? [
-        {
-          title: "Dashboard",
-          icon: LayoutDashboard,
-          path: "/dashboard",
-          moduleKey: "dashboard",
-        },
+        filteredMenu[0],
         {
           title: "Assign Role",
           icon: UserCog,
           path: "/admin/assign-role",
         },
-        ...filteredMenu,
+        ...filteredMenu.slice(1),
       ]
     : filteredMenu;
 

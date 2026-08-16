@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
 import { getLandingRouteForRole } from "@/lib/rbac";
@@ -10,6 +11,7 @@ export default function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,7 +64,7 @@ export default function LoginPage() {
         onSubmit={handleLogin}
         className="w-96 rounded-xl bg-white p-8 shadow-lg"
       >
-        <h1 className="mb-6 text-center text-3xl font-bold">
+        <h1 className="mb-6 text-center text-3xl font-bold text-slate-900">
           Academy ERP
         </h1>
 
@@ -72,28 +74,40 @@ export default function LoginPage() {
           </p>
         )}
 
-        <input
-          type="email"
-          placeholder="Email"
-          className="mb-4 w-full rounded border p-3"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
+        <div className="mb-4">
+          <input
+            type="email"
+            placeholder="Email"
+            className="w-full rounded border border-slate-300 p-3 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
 
-        <input
-          type="password"
-          placeholder="Password"
-          className="mb-4 w-full rounded border p-3"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
+        <div className="relative mb-4">
+          <input
+            type={showPassword ? "text" : "password"}
+            placeholder="Password"
+            className="w-full rounded border border-slate-300 p-3 pr-10 text-sm outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((prev) => !prev)}
+            className="absolute right-3 top-3.5 text-slate-400 transition hover:text-slate-600 focus:outline-none"
+            title={showPassword ? "Hide password" : "Show password"}
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
 
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded bg-blue-600 p-3 text-white hover:bg-blue-700 disabled:opacity-60 font-semibold transition"
+          className="w-full rounded bg-blue-600 p-3 font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60"
         >
           {submitting ? "Logging in..." : "Login"}
         </button>

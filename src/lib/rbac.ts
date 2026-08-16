@@ -140,9 +140,10 @@ export function createDefaultPermissions(role: AppRole): ModulePermissions {
 }
 
 export function normalizePermissions(
-  permissions?: Partial<Record<ModuleName, boolean>> | null
+  permissions?: Partial<Record<ModuleName, boolean>> | null,
+  role: AppRole = "teacher"
 ): ModulePermissions {
-  const base = createDefaultPermissions("teacher");
+  const base = createDefaultPermissions(role);
   const merged = { ...base };
 
   if (!permissions) {
@@ -150,7 +151,9 @@ export function normalizePermissions(
   }
 
   for (const key of moduleNames) {
-    merged[key] = permissions[key] ?? base[key];
+    if (typeof permissions[key] === "boolean") {
+      merged[key] = permissions[key]!;
+    }
   }
 
   return merged;
@@ -185,8 +188,7 @@ export function hasModuleAccess(
     return true;
   }
 
-  const base = createDefaultPermissions(role);
-  const merged = normalizePermissions({ ...base, ...permissions });
+  const merged = normalizePermissions(permissions, role);
   return !!merged[moduleName];
 }
 
@@ -196,4 +198,68 @@ export function getLandingRouteForRole(role: AppRole | null | undefined): string
   }
 
   return "/attendance";
+}
+
+export function isActivityAllowedForRole(
+  role: AppRole | null | undefined,
+  activityName?: string | null,
+  activityCode?: string | null
+): boolean {
+  if (!role || role === "admin" || role === "teacher") {
+    return true;
+  }
+
+  const name = (activityName || "").toLowerCase();
+  const code = (activityCode || "").toLowerCase();
+  const full = `${name} ${code}`;
+
+  switch (role) {
+    case "art_teacher":
+      return (
+        full.includes("art") ||
+        full.includes("draw") ||
+        full.includes("paint") ||
+        full.includes("sketch") ||
+        full.includes("craft")
+      );
+
+    case "music_teacher":
+      return (
+        full.includes("music") ||
+        full.includes("sing") ||
+        full.includes("vocal") ||
+        full.includes("piano") ||
+        full.includes("guitar") ||
+        full.includes("violin") ||
+        full.includes("instrument") ||
+        full.includes("harmonium") ||
+        full.includes("tabla")
+      );
+
+    case "dance_teacher":
+      return (
+        full.includes("dance") ||
+        full.includes("ballet") ||
+        full.includes("hiphop") ||
+        full.includes("salsa") ||
+        full.includes("classical")
+      );
+
+    case "sports_teacher":
+      return (
+        full.includes("sport") ||
+        full.includes("taekwondo") ||
+        full.includes("karate") ||
+        full.includes("football") ||
+        full.includes("cricket") ||
+        full.includes("basketball") ||
+        full.includes("swimming") ||
+        full.includes("martial") ||
+        full.includes("futsal") ||
+        full.includes("volleyball")
+      );
+
+    default:
+      return true;
+  }
 }

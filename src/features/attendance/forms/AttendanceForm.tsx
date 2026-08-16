@@ -23,6 +23,8 @@ import {
 
 import { getCurrentBSDate } from "@/utils/nepali-date";
 import BsDateSelect from "@/components/forms/BsDateSelect";
+import { useAuth } from "@/app/providers/AuthProvider";
+import { isActivityAllowedForRole } from "@/lib/rbac";
 
 interface ActivityOption {
   id: string;
@@ -123,11 +125,17 @@ export default function AttendanceForm({
     }
   }, [attendanceDate]);
 
+  const { role } = useAuth();
+
   /*
    * Active enrollments.
    */
   const activeEnrollments = useMemo(() => {
     return enrollments.filter((enrollment) => {
+      if (!isActivityAllowedForRole(role, enrollment.activityName, enrollment.activityCode)) {
+        return false;
+      }
+
       const isActive =
         enrollment.status === "Active" ||
         !enrollment.status;
@@ -582,33 +590,35 @@ export default function AttendanceForm({
           </div>
         </div>
 
-        <div className="mt-5 grid gap-4 md:grid-cols-[1fr_220px]">
-          <div>
-            <label htmlFor="attendance-activity" className="mb-2 block text-sm font-medium text-slate-700">
-              Filter by activity
-            </label>
-            <select
-              id="attendance-activity"
-              value={activityId}
-              onChange={(event) => onActivityChange?.(event.target.value)}
-              disabled={isLoading || activities.length === 0}
-              className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-100"
-            >
-              <option value="">All activities</option>
-              {activities.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.name}
-                </option>
-              ))}
-            </select>
-          </div>
+        {(role === "admin" || role === "teacher") && (
+          <div className="mt-5 grid gap-4 md:grid-cols-[1fr_220px]">
+            <div>
+              <label htmlFor="attendance-activity" className="mb-2 block text-sm font-medium text-slate-700">
+                Filter by activity
+              </label>
+              <select
+                id="attendance-activity"
+                value={activityId}
+                onChange={(event) => onActivityChange?.(event.target.value)}
+                disabled={isLoading || activities.length === 0}
+                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-100"
+              >
+                <option value="">All activities</option>
+                {activities.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div className="flex items-end">
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
-              {isLoading ? "Loading..." : hasActivityFilter ? "Filtered view" : "All enrollments"}
+            <div className="flex items-end">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+                {isLoading ? "Loading..." : hasActivityFilter ? "Filtered view" : "All enrollments"}
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="relative w-full md:max-w-md">
