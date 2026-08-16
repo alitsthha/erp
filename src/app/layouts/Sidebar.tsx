@@ -2,6 +2,9 @@ import { useState } from "react";
 import { NavLink } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
 
+import { useAuth } from "@/app/providers/AuthProvider";
+import { hasModuleAccess, type ModuleName } from "@/lib/rbac";
+
 import {
   LayoutDashboard,
   Sparkles,
@@ -25,6 +28,7 @@ type MenuItem = {
   title: string;
   icon: LucideIcon;
   path?: string;
+  moduleKey?: ModuleName;
   children?: ChildMenu[];
 };
 
@@ -33,15 +37,23 @@ const menu: MenuItem[] = [
     title: "Dashboard",
     icon: LayoutDashboard,
     path: "/dashboard",
+    moduleKey: "dashboard",
+  },
+  {
+    title: "Assign Role",
+    icon: UserCog,
+    path: "/admin/assign-role",
   },
   {
     title: "Activities",
     icon: Sparkles,
     path: "/activities",
+    moduleKey: "activities",
   },
   {
     title: "Students",
     icon: Users,
+    moduleKey: "students",
     children: [
       {
         title: "Student List",
@@ -57,10 +69,12 @@ const menu: MenuItem[] = [
     title: "Enrollment",
     icon: ClipboardList,
     path: "/enrollments",
+    moduleKey: "enrollments",
   },
   {
     title: "Staff",
     icon: UserCog,
+    moduleKey: "staff",
     children: [
       {
         title: "All Staff",
@@ -70,46 +84,36 @@ const menu: MenuItem[] = [
         title: "Add Staff",
         path: "/staff/add",
       },
-      {
-        title: "Departments",
-        path: "/staff/departments",
-      },
-      {
-        title: "Roles",
-        path: "/staff/roles",
-      },
-      {
-        title: "Salary Configuration",
-        path: "/staff/salary-config",
-      },
     ],
   },
   {
     title: "Attendance",
     icon: CalendarCheck,
     path: "/attendance",
+    moduleKey: "attendance",
   },
-    
-
   {
     title: "Finance",
     icon: Wallet,
+    moduleKey: "billing",
     children: [
       { title: "Overview", path: "/finance" },
       { title: "Billing", path: "/finance/billing" },
       { title: "Income", path: "/finance/income" },
-      { title: "Reports", path: "/finance/reports" },
+      { title: "Payroll", path: "/finance/payroll" },
     ],
   },
   {
     title: "Reports",
     icon: BarChart3,
     path: "/reports",
+    moduleKey: "reports",
   },
   {
     title: "Settings",
     icon: Settings,
     path: "/settings",
+    moduleKey: "settings",
   },
 ];
 
@@ -122,9 +126,44 @@ export default function Sidebar({
   open,
   onClose,
 }: SidebarProps) {
+  const { role, isAdmin, permissions } = useAuth();
   const [expanded, setExpanded] = useState<
     Record<string, boolean>
   >({});
+
+  // Filter menu items based on user permissions
+  const filteredMenu = menu.filter((item) => {
+    // Admin sees everything except "Assign Role" (shown separately)
+    if (isAdmin) {
+      return item.path !== "/admin/assign-role";
+    }
+
+    // Teachers see only modules they have access to
+    if (item.moduleKey) {
+      return hasModuleAccess(role, item.moduleKey, permissions);
+    }
+
+    // Items without moduleKey are hidden for teachers
+    return false;
+  });
+
+  // Build visible menu with proper structure
+  const visibleMenu: MenuItem[] = isAdmin
+    ? [
+        {
+          title: "Dashboard",
+          icon: LayoutDashboard,
+          path: "/dashboard",
+          moduleKey: "dashboard",
+        },
+        {
+          title: "Assign Role",
+          icon: UserCog,
+          path: "/admin/assign-role",
+        },
+        ...filteredMenu,
+      ]
+    : filteredMenu;
 
   function toggleMenu(title: string) {
     setExpanded((prev) => ({
@@ -205,11 +244,11 @@ export default function Sidebar({
         ================================================== */}
         <nav className="flex-1 overflow-y-auto px-3 py-5">
           <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
-            Main Menu
+            {isAdmin ? "Admin Panel" : "My Modules"}
           </p>
 
           <div className="space-y-1">
-            {menu.map((item) => {
+            {visibleMenu.map((item) => {
               const Icon = item.icon;
 
               {/* ===========================================

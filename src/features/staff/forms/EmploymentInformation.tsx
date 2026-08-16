@@ -2,10 +2,9 @@ import type {
   FieldErrors,
   UseFormRegister,
 } from "react-hook-form";
+import { Calendar, Briefcase, CheckCircle } from "lucide-react";
 
 import type { StaffFormData } from "../schemas/staff.schema";
-import { STAFF_DEPARTMENTS } from "../constants/departments";
-import { STAFF_ROLES } from "../constants/roles";
 
 type Props = {
   register: UseFormRegister<StaffFormData>;
@@ -17,103 +16,116 @@ export default function EmploymentInformation({
   errors,
 }: Props) {
   return (
-    <div className="rounded-2xl border bg-white p-6 shadow-sm">
-      <h2 className="mb-6 text-xl font-semibold">
-        Employment Information
-      </h2>
+    <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+      {/* Joining Date */}
+      <div>
+        <label
+          htmlFor="joiningDate"
+          className="mb-2 block text-sm font-medium text-slate-700"
+        >
+          Joining Date <span className="text-red-500">*</span>
+        </label>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-
-        <div>
-          <label className="mb-2 block font-medium">
-            Department
-          </label>
-
-          <select
-            {...register("department")}
-            className="w-full rounded-xl border px-4 py-3"
-          >
-            <option value="">Select Department</option>
-
-            {STAFF_DEPARTMENTS.map((department) => (
-              <option key={department} value={department}>
-                {department}
-              </option>
-            ))}
-          </select>
-
-          <p className="mt-1 text-sm text-red-500">
-            {errors.department?.message}
-          </p>
-        </div>
-
-        <div>
-          <label className="mb-2 block font-medium">
-            Role
-          </label>
-
-          <select
-            {...register("role")}
-            className="w-full rounded-xl border px-4 py-3"
-          >
-            <option value="">Select Role</option>
-
-            {STAFF_ROLES.map((role) => (
-              <option key={role} value={role}>
-                {role}
-              </option>
-            ))}
-          </select>
-
-          <p className="mt-1 text-sm text-red-500">
-            {errors.role?.message}
-          </p>
-        </div>
-
-        <div>
-          <label className="mb-2 block font-medium">
-            Joining Date (BS)
-          </label>
-
-          <input
-            {...register("joiningDate")}
-            className="w-full rounded-xl border px-4 py-3"
+        <div className="relative">
+          <Calendar
+            size={17}
+            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
           />
 
-          <p className="mt-1 text-sm text-red-500">
-            {errors.joiningDate?.message}
-          </p>
+          <input
+            id="joiningDate"
+            type="date"
+            {...register("joiningDate")}
+            className={`h-11 w-full rounded-xl border bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:ring-2 ${
+              errors.joiningDate
+                ? "border-red-300 focus:border-red-400 focus:ring-red-50"
+                : "border-slate-300 focus:border-blue-500 focus:ring-blue-50"
+            }`}
+          />
         </div>
 
-        <div>
-          <label className="mb-2 block font-medium">
-            Employment Type
-          </label>
+        {errors.joiningDate && (
+          <p className="mt-1.5 text-xs font-medium text-red-500">
+            {errors.joiningDate.message}
+          </p>
+        )}
+      </div>
+
+      {/* Employment Type */}
+      <div>
+        <label
+          htmlFor="employmentType"
+          className="mb-2 block text-sm font-medium text-slate-700"
+        >
+          Employment Type <span className="text-red-500">*</span>
+        </label>
+
+        <div className="relative">
+          <Briefcase
+            size={17}
+            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+          />
 
           <select
+            id="employmentType"
             {...register("employmentType")}
-            className="w-full rounded-xl border px-4 py-3"
+            className={`h-11 w-full rounded-xl border bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:ring-2 ${
+              errors.employmentType
+                ? "border-red-300 focus:border-red-400 focus:ring-red-50"
+                : "border-slate-300 focus:border-blue-500 focus:ring-blue-50"
+            }`}
           >
+            <option value="">Select Employment Type</option>
             <option value="Full Time">Full Time</option>
             <option value="Part Time">Part Time</option>
             <option value="Contract">Contract</option>
+            <option value="Temporary">Temporary</option>
+            <option value="Volunteer">Volunteer</option>
           </select>
         </div>
 
-        <div>
-          <label className="mb-2 block font-medium">
-            Status
-          </label>
+        {errors.employmentType && (
+          <p className="mt-1.5 text-xs font-medium text-red-500">
+            {errors.employmentType.message}
+          </p>
+        )}
+      </div>
+
+      {/* Status */}
+      <div>
+        <label
+          htmlFor="status"
+          className="mb-2 block text-sm font-medium text-slate-700"
+        >
+          Status <span className="text-red-500">*</span>
+        </label>
+
+        <div className="relative">
+          <CheckCircle
+            size={17}
+            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+          />
 
           <select
+            id="status"
             {...register("status")}
-            className="w-full rounded-xl border px-4 py-3"
+            className={`h-11 w-full rounded-xl border bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:ring-2 ${
+              errors.status
+                ? "border-red-300 focus:border-red-400 focus:ring-red-50"
+                : "border-slate-300 focus:border-blue-500 focus:ring-blue-50"
+            }`}
           >
             <option value="Active">Active</option>
             <option value="Inactive">Inactive</option>
+            <option value="Resigned">Resigned</option>
           </select>
         </div>
 
+        {errors.status && (
+          <p className="mt-1.5 text-xs font-medium text-red-500">
+            {errors.status.message}
+          </p>
+        )}
       </div>
     </div>
   );

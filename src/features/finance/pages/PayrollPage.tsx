@@ -1,27 +1,23 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2, Users, Wallet } from "lucide-react";
 
 import { getStaff } from "@/features/staff/services/staff.service";
-import { getSalaryConfigs } from "@/features/staff/services/salaryConfig.service";
 import type { Staff } from "@/features/staff/types/staff.types";
-import type { SalaryConfig } from "@/features/staff/types/salaryConfig.types";
 
 export default function PayrollPage() {
   const navigate = useNavigate();
   const [staff, setStaff] = useState<Staff[]>([]);
-  const [salaryConfigs, setSalaryConfigs] = useState<SalaryConfig[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
       try {
         setLoading(true);
-        const [staffList, configs] = await Promise.all([getStaff(), getSalaryConfigs()]);
+        const staffList = await getStaff();
         setStaff(staffList.filter((member) => member.status !== "Inactive"));
-        setSalaryConfigs(configs.filter((config) => config.status === "Active"));
       } catch (error) {
-        console.error("Failed to load payroll data:", error);
+        console.error("Failed to load staff data:", error);
       } finally {
         setLoading(false);
       }
@@ -29,33 +25,6 @@ export default function PayrollPage() {
 
     void loadData();
   }, []);
-
-  const payrollRows = useMemo(
-    () =>
-      staff.map((member) => {
-        const config = salaryConfigs.find((item) => item.role === member.role) ?? null;
-        const basic = Number(member.basicSalary ?? config?.basicSalary ?? 0);
-        const allowance = Number(member.allowance ?? config?.allowance ?? 0);
-        const overtime = Number(member.overtimeRate ?? config?.overtimeRate ?? 0);
-        const bonus = Number(config?.bonus ?? 0);
-        const deduction = Number(config?.deduction ?? 0);
-        const tax = Number(config?.tax ?? 0);
-        const gross = basic + allowance + overtime + bonus;
-        const net = gross - deduction - tax;
-
-        return {
-          ...member,
-          gross,
-          deduction,
-          tax,
-          net,
-        };
-      }),
-    [salaryConfigs, staff],
-  );
-
-  const grossTotal = payrollRows.reduce((sum, row) => sum + row.gross, 0);
-  const netTotal = payrollRows.reduce((sum, row) => sum + row.net, 0);
 
   return (
     <div className="min-h-full bg-slate-50">
@@ -79,20 +48,14 @@ export default function PayrollPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div className="rounded-2xl border bg-white p-5 shadow-sm">
             <Users size={22} className="mb-3 text-blue-600" />
-            <p className="text-sm text-slate-500">Staff</p>
+            <p className="text-sm text-slate-500">Active Staff</p>
             <p className="mt-2 text-2xl font-bold">{staff.length}</p>
           </div>
 
-          <div className="rounded-2xl border bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border bg-white p-5 shadow-sm sm:col-span-2 lg:col-span-2">
             <Wallet size={22} className="mb-3 text-green-600" />
-            <p className="text-sm text-slate-500">Gross Salary</p>
-            <p className="mt-2 text-2xl font-bold">Rs. {grossTotal.toLocaleString("en-IN")}</p>
-          </div>
-
-          <div className="rounded-2xl border bg-white p-5 shadow-sm sm:col-span-2 lg:col-span-1">
-            <Wallet size={22} className="mb-3 text-purple-600" />
-            <p className="text-sm text-slate-500">Net Salary</p>
-            <p className="mt-2 text-2xl font-bold">Rs. {netTotal.toLocaleString("en-IN")}</p>
+            <p className="text-sm text-slate-500">Payment Management</p>
+            <p className="mt-2 text-sm text-slate-600">Grant and track staff payments through the Payment module</p>
           </div>
         </div>
 
@@ -100,41 +63,58 @@ export default function PayrollPage() {
           {loading ? (
             <div className="flex min-h-[200px] items-center justify-center text-sm text-slate-500">
               <Loader2 className="mr-2 animate-spin" size={18} />
-              Loading payroll...
+              Loading staff...
             </div>
-          ) : payrollRows.length === 0 ? (
+          ) : staff.length === 0 ? (
             <div className="flex min-h-[200px] flex-col items-center justify-center text-center">
               <Users size={32} className="mb-4 text-slate-400" />
-              <h2 className="text-lg font-semibold text-slate-900">No payroll data</h2>
-              <p className="mt-2 text-sm text-slate-500">Add staff and salary config to see payroll here.</p>
+              <h2 className="text-lg font-semibold text-slate-900">No staff available</h2>
+              <p className="mt-2 text-sm text-slate-500">Add staff members to manage their payments.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm">
                 <thead className="bg-slate-50 text-slate-600">
                   <tr>
-                    <th className="px-3 py-3 font-medium">Staff</th>
-                    <th className="px-3 py-3 font-medium">Role</th>
-                    <th className="px-3 py-3 font-medium">Basic</th>
-                    <th className="px-3 py-3 font-medium">Allowance</th>
-                    <th className="px-3 py-3 font-medium">Deductions</th>
-                    <th className="px-3 py-3 font-medium text-right">Net</th>
+                    <th className="px-3 py-3 font-medium">Staff Name</th>
+                    <th className="px-3 py-3 font-medium">Email</th>
+                    <th className="px-3 py-3 font-medium">Employment Type</th>
+                    <th className="px-3 py-3 font-medium">Status</th>
+                    <th className="px-3 py-3 font-medium text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {payrollRows.map((row) => (
-                    <tr key={row.id} className="border-t border-slate-200">
+                  {staff.map((member) => (
+                    <tr key={member.id} className="border-t border-slate-200">
                       <td className="px-3 py-3 text-slate-700">
                         <div>
-                          <p className="font-medium text-slate-900">{row.fullName}</p>
-                          <p className="text-xs text-slate-500">{row.staffCode}</p>
+                          <p className="font-medium text-slate-900">{member.fullName}</p>
+                          <p className="text-xs text-slate-500">{member.staffCode}</p>
                         </div>
                       </td>
-                      <td className="px-3 py-3 text-slate-700">{row.role}</td>
-                      <td className="px-3 py-3 text-slate-700">Rs. {Number(row.basicSalary ?? 0).toLocaleString("en-IN")}</td>
-                      <td className="px-3 py-3 text-slate-700">Rs. {Number(row.allowance ?? 0).toLocaleString("en-IN")}</td>
-                      <td className="px-3 py-3 text-slate-700">Rs. {(row.deduction + row.tax).toLocaleString("en-IN")}</td>
-                      <td className="px-3 py-3 text-right font-semibold text-slate-900">Rs. {row.net.toLocaleString("en-IN")}</td>
+                      <td className="px-3 py-3 text-slate-700">{member.email ?? "—"}</td>
+                      <td className="px-3 py-3 text-slate-700">{member.employmentType}</td>
+                      <td className="px-3 py-3">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                            member.status === "Active"
+                              ? "bg-green-100 text-green-700"
+                              : member.status === "Inactive"
+                                ? "bg-red-100 text-red-700"
+                                : "bg-gray-100 text-gray-700"
+                          }`}
+                        >
+                          {member.status}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-right">
+                        <button
+                          onClick={() => navigate(`/staff/payment/${member.id}`)}
+                          className="text-blue-600 hover:underline"
+                        >
+                          Grant Payment
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

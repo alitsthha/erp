@@ -10,21 +10,20 @@ export default function AddStaffPage() {
   async function handleAdd(data: StaffFormData) {
     try {
       await addStaff(data);
-
-      alert("Staff added successfully.");
-
-      navigate("/staff");
+      navigate("/staff", { replace: true });
     } catch (error) {
       console.error(error);
-
       alert("Unable to save staff.");
     }
   }
 
   return (
-    <StaffForm
-      onSave={handleAdd}
-      submitLabel="Add Staff"
-    />
+    <div className="min-h-full space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+      <StaffForm
+        onSave={handleAdd}
+        submitLabel="Add Staff"
+        onCancel={() => navigate("/staff")}
+      />
+    </div>
   );
 }

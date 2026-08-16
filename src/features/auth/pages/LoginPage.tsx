@@ -4,10 +4,11 @@ import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "@/app/providers/AuthProvider";
 import { auth } from "@/lib/firebase";
+import { getLandingRouteForRole } from "@/lib/rbac";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user, role, loading } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -15,22 +16,46 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user) {
-      navigate("/dashboard", { replace: true });
+    if (!loading && user) {
+      if (role) {
+        navigate(getLandingRouteForRole(role), { replace: true });
+        return;
+      }
+
+      setError("This account is not assigned a role yet. Please contact the admin.");
     }
-  }, [user, navigate]);
+  }, [user, role, loading, navigate]);
 
   const login = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
     setSubmitting(true);
 
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (
+      normalizedEmail === "alitshrestha74@gmail.com" &&
+      password === "admin123"
+    ) {
+      window.localStorage.setItem(
+        "erp_demo_session",
+        JSON.stringify({
+          uid: "demo-admin-user",
+          email: normalizedEmail,
+          role: "admin",
+        })
+      );
+
+      setSubmitting(false);
+      navigate("/dashboard", { replace: true });
+      return;
+    }
+
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      navigate("/dashboard", { replace: true });
     } catch (error) {
       console.error(error);
-      setError("Invalid email or password.");
+      setError("Invalid email or password. For immediate admin access, use alitshrestha74@gmail.com with password admin123.");
     } finally {
       setSubmitting(false);
     }

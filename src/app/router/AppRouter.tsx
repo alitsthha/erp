@@ -5,8 +5,10 @@ import {
   Navigate,
 } from "react-router-dom";
 
+import { useAuth } from "@/app/providers/AuthProvider";
+
 import DashboardLayout from "@/app/layouts/DashboardLayout";
-import ProtectedRoute from "@/app/router/ProtectedRoute";
+import ProtectedRoute, { AdminRoute } from "@/app/router/ProtectedRoute";
 
 // ================= AUTH =================
 import LoginPage from "@/features/auth/pages/LoginPage";
@@ -39,21 +41,7 @@ import EditAttendancePage from "@/features/attendance/pages/EditAttendancePage";
 import StaffListPage from "@/features/staff/pages/StaffListPage";
 import AddStaffPage from "@/features/staff/pages/AddStaffPage";
 import EditStaffPage from "@/features/staff/pages/EditStaffPage";
-
-// ================= DEPARTMENTS =================
-import DepartmentsPage from "@/features/staff/pages/DepartmentsPage";
-import AddDepartmentPage from "@/features/staff/pages/AddDepartmentPage";
-import EditDepartmentPage from "@/features/staff/pages/EditDepartmentPage";
-
-// ================= ROLES =================
-import RolesPage from "@/features/staff/pages/RolesPage";
-import AddRolePage from "@/features/staff/pages/AddRolePage";
-import EditRolePage from "@/features/staff/pages/EditRolePage";
-
-// ================= SALARY CONFIGURATION =================
-import SalaryConfigPage from "@/features/staff/pages/SalaryConfigPage";
-import AddSalaryConfigPage from "@/features/staff/pages/AddSalaryConfigPage";
-import EditSalaryConfigPage from "@/features/staff/pages/EditSalaryConfigPage";
+import PaymentGrantPage from "@/features/staff/pages/PaymentGrantPage";
 
 // ================= FINANCE =================
 import FinancePage from "@/features/finance/pages/FinancePage";
@@ -71,6 +59,22 @@ import ReportsPage from "@/features/reports/pages/ReportsPage";
 
 // ================= SETTINGS =================
 import SettingsPage from "@/features/settings/pages/SettingsPage";
+import RoleAssignmentPage from "@/features/auth/pages/RoleAssignmentPage";
+import { getLandingRouteForRole } from "@/lib/rbac";
+
+function RootRedirect() {
+  const { user, role, loading } = useAuth();
+
+  if (loading) {
+    return <div className="flex min-h-screen items-center justify-center text-slate-500">Loading...</div>;
+  }
+
+  if (!user || !role) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <Navigate to={getLandingRouteForRole(role)} replace />;
+}
 
 export default function AppRouter() {
   return (
@@ -88,12 +92,7 @@ export default function AppRouter() {
 
         <Route
           path="/"
-          element={
-            <Navigate
-              to="/dashboard"
-              replace
-            />
-          }
+          element={<RootRedirect />}
         />
 
         {/* =====================================================
@@ -103,6 +102,15 @@ export default function AppRouter() {
         <Route element={<ProtectedRoute />}>
 
           <Route element={<DashboardLayout />}>
+
+            <Route
+              path="/admin/assign-role"
+              element={
+                <AdminRoute>
+                  <RoleAssignmentPage />
+                </AdminRoute>
+              }
+            />
 
             {/* =================================================
                 DASHBOARD
@@ -213,61 +221,9 @@ export default function AppRouter() {
               element={<EditStaffPage />}
             />
 
-            {/* =================================================
-                DEPARTMENTS
-            ================================================= */}
-
             <Route
-              path="/staff/departments"
-              element={<DepartmentsPage />}
-            />
-
-            <Route
-              path="/staff/departments/add"
-              element={<AddDepartmentPage />}
-            />
-
-            <Route
-              path="/staff/departments/edit/:departmentId"
-              element={<EditDepartmentPage />}
-            />
-
-            {/* =================================================
-                ROLES
-            ================================================= */}
-
-            <Route
-              path="/staff/roles"
-              element={<RolesPage />}
-            />
-
-            <Route
-              path="/staff/roles/add"
-              element={<AddRolePage />}
-            />
-
-            <Route
-              path="/staff/roles/edit/:roleId"
-              element={<EditRolePage />}
-            />
-
-            {/* =================================================
-                SALARY CONFIGURATION
-            ================================================= */}
-
-            <Route
-              path="/staff/salary-config"
-              element={<SalaryConfigPage />}
-            />
-
-            <Route
-              path="/staff/salary-config/add"
-              element={<AddSalaryConfigPage />}
-            />
-
-            <Route
-              path="/staff/salary-config/edit/:salaryId"
-              element={<EditSalaryConfigPage />}
+              path="/staff/payment/:staffId"
+              element={<PaymentGrantPage />}
             />
 
             {/* =================================================
@@ -349,12 +305,7 @@ export default function AppRouter() {
 
         <Route
           path="*"
-          element={
-            <Navigate
-              to="/dashboard"
-              replace
-            />
-          }
+          element={<RootRedirect />}
         />
 
       </Routes>
