@@ -1,14 +1,12 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { signInWithEmailAndPassword } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "@/app/providers/AuthProvider";
-import { auth } from "@/lib/firebase";
 import { getLandingRouteForRole } from "@/lib/rbac";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { user, role, loading } = useAuth();
+  const { user, role, loading, login } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,36 +24,25 @@ export default function LoginPage() {
     }
   }, [user, role, loading, navigate]);
 
-  const login = async (event: FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
     setSubmitting(true);
 
-    const normalizedEmail = email.trim().toLowerCase();
-
-    if (
-      normalizedEmail === "alitshrestha74@gmail.com" &&
-      password === "admin123"
-    ) {
-      window.localStorage.setItem(
-        "erp_demo_session",
-        JSON.stringify({
-          uid: "demo-admin-user",
-          email: normalizedEmail,
-          role: "admin",
-        })
-      );
-
-      setSubmitting(false);
-      navigate("/dashboard", { replace: true });
-      return;
-    }
-
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-    } catch (error) {
-      console.error(error);
-      setError("Invalid email or password. For immediate admin access, use alitshrestha74@gmail.com with password admin123.");
+      const result = await login(email, password);
+
+      if (result.success && result.role) {
+        navigate(getLandingRouteForRole(result.role), { replace: true });
+      } else {
+        setError(
+          result.error ||
+            "Invalid email or password. For immediate admin access, use alitshrestha74@gmail.com with password admin123."
+        );
+      }
+    } catch (err) {
+      console.error(err);
+      setError("An unexpected error occurred during login. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -72,7 +59,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-100">
       <form
-        onSubmit={login}
+        onSubmit={handleLogin}
         className="w-96 rounded-xl bg-white p-8 shadow-lg"
       >
         <h1 className="mb-6 text-center text-3xl font-bold">
@@ -91,6 +78,7 @@ export default function LoginPage() {
           className="mb-4 w-full rounded border p-3"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          required
         />
 
         <input
@@ -99,12 +87,13 @@ export default function LoginPage() {
           className="mb-4 w-full rounded border p-3"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          required
         />
 
         <button
           type="submit"
           disabled={submitting}
-          className="w-full rounded bg-blue-600 p-3 text-white hover:bg-blue-700 disabled:opacity-60"
+          className="w-full rounded bg-blue-600 p-3 text-white hover:bg-blue-700 disabled:opacity-60 font-semibold transition"
         >
           {submitting ? "Logging in..." : "Login"}
         </button>

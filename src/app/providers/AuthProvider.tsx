@@ -6,7 +6,12 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { onAuthStateChanged, signOut, type User } from "firebase/auth";
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut,
+  type User,
+} from "firebase/auth";
 
 import { auth } from "@/lib/firebase";
 import {
@@ -24,6 +29,10 @@ type AuthContextValue = {
   loading: boolean;
   isAdmin: boolean;
   isTeacher: boolean;
+  login: (
+    email: string,
+    password: string
+  ) => Promise<{ success: boolean; role?: AppRole; error?: string }>;
   logout: () => Promise<void>;
 };
 
@@ -82,9 +91,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
-
       if (!currentUser) {
+        setUser(null);
         setRole(null);
         setPermissions(createDefaultPermissions("teacher"));
         setLoading(false);
@@ -104,12 +112,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ? { role: "admin" as AppRole, permissions: createDefaultPermissions("admin") }
           : await getUserRoleForEmail(email);
 
-      const nextRole = profile?.role ?? null;
+      const nextRole = profile?.role ?? "teacher";
       const nextPermissions =
         nextRole === "admin"
           ? createDefaultPermissions("admin")
-          : normalizePermissions(profile?.permissions ?? createDefaultPermissions("teacher"));
+          : normalizePermissions(profile?.permissions ?? createDefaultPermissions(nextRole));
 
+      setUser(currentUser);
       setRole(nextRole);
       setPermissions(nextPermissions);
       setLoading(false);
@@ -117,6 +126,92 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return unsubscribe;
   }, []);
+
+  const login = async (
+    emailInput: string,
+    passwordInput: string
+  ): Promise<{ success: boolean; role?: AppRole; error?: string }> => {
+    setLoading(true);
+    const normalizedEmail = emailInput.trim().toLowerCase();
+
+    // 1. Check Demo Admin Session
+    if (
+      normalizedEmail === "alitshrestha74@gmail.com" &&
+      passwordInput === "admin123"
+    ) {
+      const demoUser = {
+        uid: "demo-admin-user",
+        email: normalizedEmail,
+      } as User;
+      const demoRole: AppRole = "admin";
+      const demoPermissions = createDefaultPermissions("admin");
+
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(
+          "erp_demo_session",
+          JSON.stringify({
+            uid: "demo-admin-user",
+            email: normalizedEmail,
+            role: demoRole,
+          })
+        );
+      }
+
+      setUser(demoUser);
+      setRole(demoRole);
+      setPermissions(demoPermissions);
+      setLoading(false);
+      return { success: true, role: demoRole };
+    }
+
+    // 2. Firebase Authentication
+    try {
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        emailInput,
+        passwordInput
+      );
+      const currentUser = userCredential.user;
+      const email = currentUser.email?.trim().toLowerCase() ?? "";
+
+      const fallbackAdminEmails = [
+        "admin@academy.edu",
+        "admin@gmail.com",
+        "admin@outlook.com",
+        "alitshrestha74@gmail.com",
+      ];
+
+      const profile =
+        email && fallbackAdminEmails.includes(email)
+          ? { role: "admin" as AppRole, permissions: createDefaultPermissions("admin") }
+          : await getUserRoleForEmail(email);
+
+      const nextRole = profile?.role ?? "teacher";
+      const nextPermissions =
+        nextRole === "admin"
+          ? createDefaultPermissions("admin")
+          : normalizePermissions(profile?.permissions ?? createDefaultPermissions(nextRole));
+
+      setUser(currentUser);
+      setRole(nextRole);
+      setPermissions(nextPermissions);
+      setLoading(false);
+      return { success: true, role: nextRole };
+    } catch (err: unknown) {
+      setLoading(false);
+      const message =
+        err instanceof Error ? err.message : "Invalid email or password.";
+      return {
+        success: false,
+        error:
+          message.includes("invalid-credential") ||
+          message.includes("user-not-found") ||
+          message.includes("wrong-password")
+            ? "Invalid email or password. For immediate admin access, use alitshrestha74@gmail.com with password admin123."
+            : message,
+      };
+    }
+  };
 
   const logout = async () => {
     if (typeof window !== "undefined") {
@@ -145,6 +240,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role === "dance_teacher" ||
         role === "art_teacher" ||
         role === "sports_teacher",
+      login,
       logout,
     }),
     [user, role, permissions, loading]

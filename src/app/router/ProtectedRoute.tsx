@@ -24,7 +24,7 @@ export default function ProtectedRoute() {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  if (role === "teacher" && location.pathname !== "/attendance") {
+  if (role === "teacher" && !location.pathname.startsWith("/attendance") && location.pathname !== "/settings") {
     return <Navigate to="/attendance" replace />;
   }
 
