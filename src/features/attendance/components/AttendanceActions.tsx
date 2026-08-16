@@ -18,47 +18,53 @@ export default function AttendanceActions({
 
   return (
     <>
-      <div className="flex gap-2">
+      <div className="flex items-center justify-end gap-1.5">
         <button
+          type="button"
           onClick={() => onEdit(recordId)}
           disabled={isLoading}
-          className="rounded border border-slate-300 p-2 text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+          title="Edit record"
+          className="rounded-lg border border-slate-200 p-1.5 text-slate-600 transition hover:border-slate-300 hover:bg-slate-100 disabled:opacity-50"
         >
-          <Pencil size={16} />
+          <Pencil size={15} />
         </button>
         <button
+          type="button"
           onClick={() => setDeleteConfirm(true)}
           disabled={isLoading}
-          className="rounded border border-slate-300 p-2 text-red-600 hover:bg-red-50 disabled:opacity-50"
+          title="Delete record"
+          className="rounded-lg border border-rose-200 p-1.5 text-rose-600 transition hover:border-rose-300 hover:bg-rose-50 disabled:opacity-50"
         >
-          <Trash2 size={16} />
+          <Trash2 size={15} />
         </button>
       </div>
 
       {deleteConfirm && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="rounded-lg bg-white p-6 shadow-lg">
-            <h3 className="text-lg font-semibold text-slate-900">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-[2px]">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+            <h3 className="text-base font-bold text-slate-900">
               Delete Attendance Record
             </h3>
-            <p className="mt-2 text-slate-600">
-              This action cannot be undone. Are you sure you want to delete this attendance record?
+            <p className="mt-2 text-sm text-slate-500">
+              This will remove this student's attendance entry. Are you sure you want to proceed?
             </p>
-            <div className="mt-4 flex gap-4">
+            <div className="mt-6 flex items-center justify-end gap-3">
               <button
+                type="button"
                 onClick={() => setDeleteConfirm(false)}
-                className="flex-1 rounded-lg border border-slate-300 px-4 py-2 font-medium text-slate-700 hover:bg-slate-50"
+                className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={() => {
                   onDelete(recordId);
                   setDeleteConfirm(false);
                 }}
-                className="flex-1 rounded-lg bg-red-600 px-4 py-2 font-medium text-white hover:bg-red-700"
+                className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700"
               >
-                Delete
+                Delete Record
               </button>
             </div>
           </div>

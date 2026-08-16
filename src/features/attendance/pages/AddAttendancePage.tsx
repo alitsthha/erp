@@ -4,7 +4,7 @@ import {
   ClipboardCheck,
   Loader2,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import type { Enrollment } from "@/features/enrollments/types/enrollment.types";
 import { getAllEnrollments } from "@/features/enrollments/services/enrollment.service";
@@ -13,6 +13,9 @@ import AttendanceForm from "@/features/attendance/forms/AttendanceForm";
 
 export default function AddAttendancePage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const queryDate = searchParams.get("date") || "";
+  const queryActivity = searchParams.get("activity") || "";
 
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -22,7 +25,13 @@ export default function AddAttendancePage() {
    *
    * Empty string means All Activities.
    */
-  const [activityId, setActivityId] = useState("");
+  const [activityId, setActivityId] = useState(queryActivity);
+
+  useEffect(() => {
+    if (queryActivity) {
+      setActivityId(queryActivity);
+    }
+  }, [queryActivity]);
 
   useEffect(() => {
     const loadEnrollments = async () => {
@@ -203,6 +212,7 @@ export default function AddAttendancePage() {
         /* ATTENDANCE FORM */
         <AttendanceForm
           enrollments={filteredEnrollments}
+          attendanceDate={queryDate || undefined}
           activityId={activityId}
           activityName={selectedActivityName}
           activities={activities}
