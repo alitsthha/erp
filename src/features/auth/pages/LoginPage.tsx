@@ -39,7 +39,7 @@ export default function LoginPage() {
       } else {
         setError(
           result.error ||
-            "Invalid email or password. For immediate admin access, use alitshrestha74@gmail.com with password admin123."
+            "Invalid email or password. Check the password and retry or contact support."
         );
       }
     } catch (err) {
