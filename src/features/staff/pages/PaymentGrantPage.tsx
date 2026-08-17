@@ -4,16 +4,25 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Briefcase, ChevronLeft, Plus, Trash2 } from "lucide-react";
 
+import BsDateSelect from "@/components/forms/BsDateSelect";
 import PageContainer from "@/components/common/PageContainer";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
+import { convertADToBS, formatBSDate, getCurrentBSDate } from "@/utils/nepali-date";
+import { createPayment, deletePayment, getPaymentsByStaffId } from "@/features/finance/services/payment.service";
 import { paymentSchema, type PaymentFormData } from "../schemas/staff.schema";
 import { useStaff } from "../hooks/useStaff";
-import {
-  addPayment,
-  getPaymentsByStaffId,
-  deletePayment,
-} from "../services/payment.service";
 import type { PaymentRecord } from "../types/staff.types";
+
+function normalizeToBsDate(value?: string): string {
+  if (!value) return "";
+
+  const year = Number(value.slice(0, 4));
+  if (Number.isFinite(year) && year >= 2070 && year <= 2100) {
+    return value;
+  }
+
+  return convertADToBS(value);
+}
 
 export default function PaymentGrantPage() {
   const { staffId } = useParams<{ staffId: string }>();
@@ -29,14 +38,19 @@ export default function PaymentGrantPage() {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<PaymentFormData>({
     resolver: zodResolver(paymentSchema),
     defaultValues: {
       staffId: staffId || "",
       status: "pending",
+      paymentDate: getCurrentBSDate(),
     },
   });
+
+  const paymentDateValue = watch("paymentDate") || getCurrentBSDate();
 
   useEffect(() => {
     if (!staffId) return;
@@ -49,7 +63,20 @@ export default function PaymentGrantPage() {
     try {
       setLoadingPayments(true);
       const data = await getPaymentsByStaffId(staffId);
-      setPayments(data);
+      setPayments(
+        data.map((payment) => ({
+          id: payment.id ?? "",
+          staffId: payment.staffId ?? staffId,
+          staffName: payment.staffName ?? staff?.fullName ?? "",
+          amount: payment.amount,
+          paymentType: payment.paymentType ?? "monthly",
+          paymentDate: payment.paymentDate,
+          status: payment.status ?? "pending",
+          notes: payment.notes ?? "",
+          createdAt: payment.createdAt,
+          updatedAt: payment.updatedAt,
+        }))
+      );
     } finally {
       setLoadingPayments(false);
     }
@@ -58,8 +85,24 @@ export default function PaymentGrantPage() {
   const onSubmit = async (data: PaymentFormData) => {
     try {
       setSubmitting(true);
-      await addPayment(data);
-      reset();
+      await createPayment({
+        staffId: data.staffId,
+        staffName: staff?.fullName ?? "",
+        amount: data.amount,
+        paymentType: data.paymentType,
+        paymentDate: normalizeToBsDate(data.paymentDate),
+        paymentMethod: "Cash",
+        notes: data.notes ?? "",
+        status: data.status,
+      } as any);
+      reset({
+        staffId: staffId || "",
+        status: "pending",
+        paymentDate: getCurrentBSDate(),
+        amount: 0,
+        paymentType: "monthly",
+        notes: "",
+      });
       await loadPayments();
     } catch (error) {
       console.error(error);
@@ -152,13 +195,16 @@ export default function PaymentGrantPage() {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium text-slate-700">Payment Date *</label>
-                <input
-                  type="date"
-                  {...register("paymentDate")}
-                  className="w-full rounded-lg border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                />
-                {errors.paymentDate && <p className="mt-1 text-sm text-red-600">{errors.paymentDate.message}</p>}
+                <label className="mb-2 block text-sm font-medium text-slate-700">Payment Date (BS) *</label>
+                <div className="rounded-xl border border-slate-200 bg-white p-3">
+                  <BsDateSelect
+                    label=""
+                    value={paymentDateValue}
+                    onChange={(value) => setValue("paymentDate", value, { shouldValidate: true })}
+                    helperText="Select payment date in BS"
+                    error={errors.paymentDate?.message?.toString()}
+                  />
+                </div>
               </div>
 
               <div>
@@ -218,7 +264,7 @@ export default function PaymentGrantPage() {
                         Rs. {payment.amount.toLocaleString()}
                       </p>
                       <p className="text-xs text-slate-500">
-                        {payment.paymentType.charAt(0).toUpperCase() + payment.paymentType.slice(1)} • {payment.paymentDate}
+                        {payment.paymentType.charAt(0).toUpperCase() + payment.paymentType.slice(1)} • {formatBSDate(normalizeToBsDate(payment.paymentDate), "full")}
                       </p>
                       <div className="mt-1 flex items-center gap-2">
                         <span

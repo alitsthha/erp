@@ -10,12 +10,18 @@ export interface Payment {
 
   paymentNumber: string;
 
-  invoiceId: string;
-  invoiceNumber: string;
+  invoiceId?: string;
+  invoiceNumber?: string;
 
-  studentId: string;
-  studentName: string;
-  studentCode: string;
+  studentId?: string;
+  studentName?: string;
+  studentCode?: string;
+
+  staffId?: string;
+  staffName?: string;
+  status?: "pending" | "paid" | "cancelled";
+
+  paymentType?: "monthly" | "bonus" | "advance" | "other";
 
   amount: number;
 

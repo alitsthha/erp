@@ -38,6 +38,9 @@ import { isActivityAllowedForRole } from "@/lib/rbac";
 
 type FilterStatus = "All" | "Present" | "Absent";
 type ViewMode = "daily" | "all";
+type GroupedAttendanceRow = Attendance & {
+  activityIds?: string[];
+};
 
 export default function AttendanceListPage() {
   const navigate = useNavigate();
@@ -166,15 +169,87 @@ export default function AttendanceListPage() {
     );
   }, [viewMode, dailyData, activeRecords]);
 
+  const groupedDailyRecords = useMemo(() => {
+    if (viewMode !== "daily") {
+      return activeRecords as GroupedAttendanceRow[];
+    }
+
+    const map = new Map<string, GroupedAttendanceRow>();
+
+    for (const record of activeRecords) {
+      const studentKey =
+        record.studentId || record.enrollmentId || `${record.studentName}-${record.studentCode}`;
+
+      const existing = map.get(studentKey);
+
+      const activityIds = [
+        ...(existing?.activityIds ?? []),
+        ...(record.activityId ? [record.activityId] : []),
+      ].filter((id, index, array) => id && array.indexOf(id) === index);
+
+      const mergedActivities = [
+        ...(existing?.activityName ? [existing.activityName] : []),
+        ...(record.activityName ? [record.activityName] : []),
+      ]
+        .filter(Boolean)
+        .filter((name, index, array) => array.indexOf(name) === index)
+        .join(", ");
+
+      const mergedCodes = [
+        ...(existing?.activityCode ? [existing.activityCode] : []),
+        ...(record.activityCode ? [record.activityCode] : []),
+      ]
+        .filter(Boolean)
+        .filter((code, index, array) => array.indexOf(code) === index)
+        .join(", ");
+
+      const mergedNotes = [existing?.notes, record.notes]
+        .filter(Boolean)
+        .filter((note, index, array) => array.indexOf(note) === index)
+        .join(" • ");
+
+      const mergedRecord: GroupedAttendanceRow = {
+        ...(existing ?? record),
+        id: existing?.id ?? record.id,
+        attendanceCode: existing?.attendanceCode || record.attendanceCode || "",
+        activityId: existing?.activityId || record.activityId,
+        activityName: mergedActivities,
+        activityCode: mergedCodes,
+        sessionFee: (Number(existing?.sessionFee) || 0) + (Number(record.sessionFee) || 0),
+        status:
+          existing?.status === "Present" || record.status === "Present"
+            ? "Present"
+            : "Absent",
+        notes: mergedNotes,
+        activityIds,
+      };
+
+      map.set(studentKey, mergedRecord);
+    }
+
+    return Array.from(map.values()).sort((a, b) =>
+      (a.studentName || "").localeCompare(b.studentName || "")
+    );
+  }, [viewMode, activeRecords, selectedDateBS]);
+
+  const listRecords = viewMode === "daily" ? groupedDailyRecords : activeRecords;
+
   // Filter records by activity, search, and status
   const filteredAttendances = useMemo(() => {
     const search = searchTerm.trim().toLowerCase();
 
-    return activeRecords.filter((record) => {
+    return listRecords.filter((record) => {
+      const grouped = record as GroupedAttendanceRow;
+      const recordActivityIds = grouped.activityIds && grouped.activityIds.length > 0
+        ? grouped.activityIds
+        : record.activityId
+          ? [record.activityId]
+          : [];
+
       // Activity filter
       if (
         selectedActivityId !== "all" &&
-        record.activityId !== selectedActivityId
+        !recordActivityIds.includes(selectedActivityId)
       ) {
         return false;
       }
@@ -196,7 +271,7 @@ export default function AttendanceListPage() {
 
       return matchesSearch && matchesStatus;
     });
-  }, [activeRecords, selectedActivityId, searchTerm, filterStatus]);
+  }, [listRecords, selectedActivityId, searchTerm, filterStatus]);
 
   // Statistics calculation for the current view
   const totalStudentsCount = activeRecords.length;
@@ -223,6 +298,15 @@ export default function AttendanceListPage() {
 
   // Handlers
   const handleEdit = (recordId: string) => {
+    const matchingRecord = activeRecords.find((record) => record.id === recordId);
+
+    if (matchingRecord?.studentId) {
+      navigate(
+        `/attendance/student/${encodeURIComponent(matchingRecord.studentId)}/${encodeURIComponent(matchingRecord.sessionDateBS || matchingRecord.sessionDate)}`
+      );
+      return;
+    }
+
     navigate(`/attendance/edit/${recordId}`);
   };
 

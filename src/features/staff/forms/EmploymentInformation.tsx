@@ -2,18 +2,23 @@ import type {
   FieldErrors,
   UseFormRegister,
 } from "react-hook-form";
-import { Calendar, Briefcase, CheckCircle } from "lucide-react";
+import { Briefcase, CheckCircle } from "lucide-react";
 
+import BsDateSelect from "@/components/forms/BsDateSelect";
 import type { StaffFormData } from "../schemas/staff.schema";
 
 type Props = {
   register: UseFormRegister<StaffFormData>;
   errors: FieldErrors<StaffFormData>;
+  value?: string;
+  onChange?: (value: string) => void;
 };
 
 export default function EmploymentInformation({
   register,
   errors,
+  value = "",
+  onChange,
 }: Props) {
   return (
     <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
@@ -26,21 +31,13 @@ export default function EmploymentInformation({
           Joining Date <span className="text-red-500">*</span>
         </label>
 
-        <div className="relative">
-          <Calendar
-            size={17}
-            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-          />
-
-          <input
-            id="joiningDate"
-            type="date"
-            {...register("joiningDate")}
-            className={`h-11 w-full rounded-xl border bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:ring-2 ${
-              errors.joiningDate
-                ? "border-red-300 focus:border-red-400 focus:ring-red-50"
-                : "border-slate-300 focus:border-blue-500 focus:ring-blue-50"
-            }`}
+        <div className="rounded-xl border border-slate-200 bg-white p-3">
+          <BsDateSelect
+            label=""
+            value={value}
+            onChange={(nextValue) => onChange?.(nextValue)}
+            helperText="Select joining date in BS"
+            error={errors.joiningDate?.message?.toString()}
           />
         </div>
 

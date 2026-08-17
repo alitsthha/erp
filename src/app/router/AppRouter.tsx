@@ -36,22 +36,28 @@ import EditEnrollmentPage from "@/features/enrollments/pages/EditEnrollmentPage"
 import AttendancePage from "@/features/attendance/pages/AttendancePage";
 import AddAttendancePage from "@/features/attendance/pages/AddAttendancePage";
 import EditAttendancePage from "@/features/attendance/pages/EditAttendancePage";
+import StudentAttendanceDetailPage from "@/features/attendance/pages/StudentAttendanceDetailPage";
 
 // ================= STAFF =================
 import StaffListPage from "@/features/staff/pages/StaffListPage";
 import AddStaffPage from "@/features/staff/pages/AddStaffPage";
 import EditStaffPage from "@/features/staff/pages/EditStaffPage";
-import PaymentGrantPage from "@/features/staff/pages/PaymentGrantPage";
 
 // ================= FINANCE =================
 import FinancePage from "@/features/finance/pages/FinancePage";
-import AccountsPage from "@/features/finance/pages/AccountsPage";
-import IncomePage from "@/features/finance/pages/IncomePage";
 import BillingPage from "@/features/finance/pages/BillingPage";
+import IncomePage from "@/features/finance/pages/IncomePage";
 import ExpensesPage from "@/features/finance/pages/ExpensesPage";
 import PayrollPage from "@/features/finance/pages/PayrollPage";
-import AccountingPage from "@/features/finance/pages/AccountingPage";
-import FinanceReportsPage from "@/features/finance/pages/FinanceReportsPage";
+
+// ================= ACCOUNTING =================
+import AccountingPage from "@/features/accounting/pages/AccountingPage";
+import SalaryConfigPage from "@/features/accounting/pages/SalaryConfigPage";
+import AddSalaryConfigPage from "@/features/accounting/pages/AddSalaryConfigPage";
+import EditSalaryConfigPage from "@/features/accounting/pages/EditSalaryConfigPage";
+
+// ================= STAFF =================
+import PaymentGrantPage from "@/features/staff/pages/PaymentGrantPage";
 
 // ================= REPORTS =================
 import ReportsPage from "@/features/reports/pages/ReportsPage";
@@ -206,6 +212,11 @@ export default function AppRouter() {
               element={<EditAttendancePage />}
             />
 
+            <Route
+              path="/attendance/student/:studentId/:dateBS"
+              element={<StudentAttendanceDetailPage />}
+            />
+
             {/* =================================================
                 STAFF
             ================================================= */}
@@ -234,56 +245,62 @@ export default function AppRouter() {
                 FINANCE
             ================================================= */}
 
-            {/* Finance Dashboard */}
             <Route
               path="/finance"
               element={<FinancePage />}
             />
 
-            {/* Chart of Accounts */}
-            <Route
-              path="/finance/accounts"
-              element={<AccountsPage />}
-            />
-
-            {/* Income */}
-            <Route
-              path="/finance/income"
-              element={<IncomePage />}
-            />
-
-            {/* Billing / Invoices / Payments */}
             <Route
               path="/finance/billing"
               element={<BillingPage />}
             />
 
-            {/* Expenses */}
+            <Route
+              path="/finance/income"
+              element={<IncomePage />}
+            />
+
             <Route
               path="/finance/expenses"
               element={<ExpensesPage />}
             />
 
-            {/* Payroll */}
-            <Route
-              path="/finance/payroll"
-              element={<PayrollPage />}
-            />
+            {/* =================================================
+                ACCOUNTING
+            ================================================= */}
 
-            {/* Accounting */}
             <Route
-              path="/finance/accounting"
+              path="/accounting"
               element={<AccountingPage />}
             />
 
-            {/* Finance Reports */}
             <Route
-              path="/finance/reports"
-              element={<FinanceReportsPage />}
+              path="/accounting/salary-config"
+              element={<SalaryConfigPage />}
+            />
+
+            <Route
+              path="/accounting/salary-config/add"
+              element={<AddSalaryConfigPage />}
+            />
+
+            <Route
+              path="/accounting/salary-config/edit/:configId"
+              element={<EditSalaryConfigPage />}
+            />
+
+            <Route
+              path="/accounting/payroll"
+              element={<PayrollPage />}
+            />
+
+            <Route
+              path="/accounting/payments/:staffId"
+              element={<PaymentGrantPage />}
             />
 
             {/* =================================================
-                GENERAL REPORTS
+                REPORTS
             ================================================= */}
 
             <Route

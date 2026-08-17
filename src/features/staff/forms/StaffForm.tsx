@@ -2,6 +2,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { User, Briefcase, CheckCircle2 } from "lucide-react";
 
+import { getCurrentBSDate } from "@/utils/nepali-date";
+
 import {
   staffSchema,
   type StaffFormData,
@@ -26,6 +28,8 @@ export default function StaffForm({
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: {
       errors,
       isSubmitting,
@@ -36,9 +40,12 @@ export default function StaffForm({
     defaultValues: {
       status: "Active",
       employmentType: "Full Time",
+      joiningDate: initialData?.joiningDate || getCurrentBSDate(),
       ...initialData,
     },
   });
+
+  const joiningDateValue = watch("joiningDate") || getCurrentBSDate();
 
   return (
     <form
@@ -131,6 +138,8 @@ export default function StaffForm({
           <EmploymentInformation
             register={register}
             errors={errors}
+            value={joiningDateValue}
+            onChange={(value) => setValue("joiningDate", value, { shouldValidate: true })}
           />
         </div>
       </section>

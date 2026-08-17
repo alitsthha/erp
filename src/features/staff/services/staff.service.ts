@@ -12,11 +12,23 @@ import {
 } from "firebase/firestore";
 
 import { db } from "@/firebase/config";
+import { convertADToBS } from "@/utils/nepali-date";
 
 import { generateStaffCode } from "./staff-code.service";
 
 import type { Staff } from "../types/staff.types";
 import type { StaffFormData } from "../schemas/staff.schema";
+
+function normalizeToBsDate(value?: string): string {
+  if (!value) return "";
+
+  const year = Number(value.slice(0, 4));
+  if (Number.isFinite(year) && year >= 2070 && year <= 2100) {
+    return value;
+  }
+
+  return convertADToBS(value);
+}
 
 export async function addStaff(
   data: StaffFormData
@@ -25,6 +37,7 @@ export async function addStaff(
 
   const docRef = await addDoc(collection(db, "staff"), {
     ...data,
+    joiningDate: normalizeToBsDate(data.joiningDate),
     staffCode,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
@@ -74,6 +87,7 @@ export async function updateStaff(
 ): Promise<void> {
   await updateDoc(doc(db, "staff", id), {
     ...data,
+    joiningDate: data.joiningDate ? normalizeToBsDate(data.joiningDate) : data.joiningDate,
     updatedAt: serverTimestamp(),
   });
 }

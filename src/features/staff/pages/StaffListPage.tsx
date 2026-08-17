@@ -2,9 +2,21 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, RotateCw, Search, Users, Briefcase, Mail, Phone } from "lucide-react";
 
+import { convertADToBS, formatBSDate } from "@/utils/nepali-date";
 import { useStaff } from "../hooks/useStaff";
 import StaffStatusBadge from "../components/StaffStatusBadge";
 import type { Staff } from "../types/staff.types";
+
+function normalizeToBsDate(value?: string): string {
+  if (!value) return "";
+
+  const year = Number(value.slice(0, 4));
+  if (Number.isFinite(year) && year >= 2070 && year <= 2100) {
+    return value;
+  }
+
+  return convertADToBS(value);
+}
 
 export default function StaffListPage() {
   const navigate = useNavigate();
@@ -196,7 +208,7 @@ export default function StaffListPage() {
                         <span className="text-slate-700">{staff.employmentType}</span>
                       </td>
                       <td className="px-5 py-4">
-                        <span className="text-slate-700">{staff.joiningDate}</span>
+                        <span className="text-slate-700">{formatBSDate(normalizeToBsDate(staff.joiningDate), "full")}</span>
                       </td>
                       <td className="px-5 py-4">
                         <StaffStatusBadge status={staff.status} />

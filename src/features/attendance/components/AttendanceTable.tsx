@@ -73,11 +73,22 @@ export default function AttendanceTable({
 
                 {/* Activity */}
                 <td className="px-5 py-4 align-middle">
-                  <div className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-800">
-                    <span>{record.activityName}</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {record.activityName
+                      .split(",")
+                      .map((activity) => activity.trim())
+                      .filter(Boolean)
+                      .map((activity) => (
+                        <span
+                          key={`${record.id}-${activity}`}
+                          className="inline-flex items-center rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-800"
+                        >
+                          {activity}
+                        </span>
+                      ))}
                   </div>
                   {record.activityCode && (
-                    <p className="mt-0.5 text-[11px] text-slate-400">
+                    <p className="mt-1 text-[11px] text-slate-400">
                       {record.activityCode}
                     </p>
                   )}

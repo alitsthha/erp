@@ -98,9 +98,19 @@ const menu: MenuItem[] = [
     moduleKey: "billing",
     children: [
       { title: "Overview", path: "/finance" },
-      { title: "Billing", path: "/finance/billing" },
+      { title: "Billing & Payments", path: "/finance/billing" },
       { title: "Income", path: "/finance/income" },
-      { title: "Payroll", path: "/finance/payroll" },
+      { title: "Expenses", path: "/finance/expenses" },
+    ],
+  },
+  {
+    title: "Accounting",
+    icon: BarChart3,
+    moduleKey: "billing",
+    children: [
+      { title: "Overview", path: "/accounting" },
+      { title: "Payroll", path: "/accounting/payroll" },
+      { title: "Salary Config", path: "/accounting/salary-config" },
     ],
   },
   {
