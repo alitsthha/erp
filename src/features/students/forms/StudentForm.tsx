@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -32,13 +33,13 @@ export default function StudentForm({
   const {
     register,
     handleSubmit,
+    reset,
     formState: {
       errors,
       isSubmitting,
     },
   } = useForm<StudentFormData>({
     resolver: zodResolver(studentSchema),
-
     defaultValues: {
       fullName: "",
       guardianName: "",
@@ -48,9 +49,37 @@ export default function StudentForm({
       address: "",
       joiningDateBS: "",
       note: "",
-      ...initialData,
+      parentName: "",
+      parentPhone: "",
+      parentEmail: "",
+      studentEmail: "",
+      gender: "Male",
+      dateOfBirth: "",
+      admissionDate: "",
     },
   });
+
+  useEffect(() => {
+    const safeInitialData: StudentFormData = {
+      fullName: initialData?.fullName ?? "",
+      guardianName: initialData?.guardianName ?? initialData?.parentName ?? "",
+      guardianPhone: initialData?.guardianPhone ?? initialData?.parentPhone ?? "",
+      guardianEmail: initialData?.guardianEmail ?? initialData?.parentEmail ?? "",
+      parentName: initialData?.parentName ?? "",
+      parentPhone: initialData?.parentPhone ?? "",
+      parentEmail: initialData?.parentEmail ?? "",
+      studentEmail: initialData?.studentEmail ?? "",
+      gender: initialData?.gender ?? "Male",
+      dateOfBirth: initialData?.dateOfBirth ?? "",
+      admissionDate: initialData?.admissionDate ?? "",
+      status: initialData?.status ?? "Active",
+      address: initialData?.address ?? "",
+      joiningDateBS: initialData?.joiningDateBS ?? "",
+      note: initialData?.note ?? "",
+    };
+
+    reset(safeInitialData);
+  }, [initialData, reset]);
 
   return (
     <form
@@ -96,9 +125,9 @@ export default function StudentForm({
           BASIC INFORMATION
       ====================================================== */}
       <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 px-5 py-5 sm:px-7">
+        <div className="border-b border-slate-100 bg-gradient-to-r from-blue-50 to-blue-25 px-5 py-5 sm:px-7">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
               <User size={18} />
             </div>
 
@@ -108,13 +137,13 @@ export default function StudentForm({
               </h2>
 
               <p className="mt-0.5 text-xs text-slate-500">
-                Basic identity and student status.
+                Student identity, joining date, and current status.
               </p>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-5 p-5 sm:p-7 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 p-5 sm:p-7 md:grid-cols-2 lg:gap-6">
           {/* Full Name */}
           <div className="md:col-span-2">
             <label
@@ -181,10 +210,9 @@ export default function StudentForm({
           <div>
             <label
               htmlFor="joiningDateBS"
-              className="mb-2 block text-sm font-medium text-slate-700"
+              className="mb-2 flex items-center gap-1 text-sm font-medium text-slate-700"
             >
-              Joining Date (BS){" "}
-              <span className="text-red-500">*</span>
+              Joining Date (BS) <span className="text-red-500">*</span>
             </label>
 
             <div className="relative">
@@ -206,13 +234,15 @@ export default function StudentForm({
               />
             </div>
 
-            <p className="mt-1.5 text-xs text-slate-400">
-              Enter the Nepali date in YYYY-MM-DD format.
-            </p>
-
             {errors.joiningDateBS && (
               <p className="mt-1.5 text-xs font-medium text-red-500">
                 {errors.joiningDateBS.message}
+              </p>
+            )}
+            
+            {!errors.joiningDateBS && (
+              <p className="mt-1.5 text-xs text-slate-500">
+                Nepali date in <span className="font-mono font-medium text-slate-600">YYYY-MM-DD</span> format (e.g., 2083-04-22)
               </p>
             )}
           </div>
@@ -223,9 +253,9 @@ export default function StudentForm({
           GUARDIAN INFORMATION
       ====================================================== */}
       <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 px-5 py-5 sm:px-7">
+        <div className="border-b border-slate-100 bg-gradient-to-r from-violet-50 to-violet-25 px-5 py-5 sm:px-7">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-violet-600">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-600">
               <Users size={18} />
             </div>
 
@@ -235,13 +265,13 @@ export default function StudentForm({
               </h2>
 
               <p className="mt-0.5 text-xs text-slate-500">
-                Primary contact person for the student.
+                Primary contact and parent/guardian details.
               </p>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-5 p-5 sm:p-7 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 p-5 sm:p-7 md:grid-cols-2 lg:gap-6">
           {/* Guardian Name */}
           <div>
             <label
@@ -360,9 +390,9 @@ export default function StudentForm({
           ADDRESS
       ====================================================== */}
       <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 px-5 py-5 sm:px-7">
+        <div className="border-b border-slate-100 bg-gradient-to-r from-amber-50 to-amber-25 px-5 py-5 sm:px-7">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-600">
               <MapPin size={18} />
             </div>
 
@@ -372,7 +402,7 @@ export default function StudentForm({
               </h2>
 
               <p className="mt-0.5 text-xs text-slate-500">
-                Student's current residential address.
+                Residential address for official records.
               </p>
             </div>
           </div>
@@ -418,19 +448,19 @@ export default function StudentForm({
           NOTE
       ====================================================== */}
       <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 px-5 py-5 sm:px-7">
+        <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-slate-25 px-5 py-5 sm:px-7">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-200 text-slate-700">
               <FileText size={18} />
             </div>
 
             <div>
               <h2 className="text-base font-semibold text-slate-900">
-                Note
+                Additional Notes
               </h2>
 
               <p className="mt-0.5 text-xs text-slate-500">
-                Add any additional information if needed.
+                Optional information about this student.
               </p>
             </div>
           </div>
@@ -467,12 +497,12 @@ export default function StudentForm({
       {/* =====================================================
           ACTION BAR
       ====================================================== */}
-      <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end">
+      <div className="flex flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50 px-5 py-5 sm:flex-row sm:items-center sm:justify-end sm:px-7">
         <button
           type="button"
           onClick={onCancel}
           disabled={isSubmitting}
-          className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-6 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+          className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-6 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:border-slate-400 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
         >
           Cancel
         </button>
@@ -480,7 +510,7 @@ export default function StudentForm({
         <button
           type="submit"
           disabled={isSubmitting}
-          className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-blue-600 px-7 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-7 text-sm font-medium text-white shadow-sm transition hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         >
           {isSubmitting ? "Saving..." : submitLabel}
         </button>

@@ -13,34 +13,12 @@ import {
 
 import { db } from "@/firebase/config";
 
+import { generateStudentCode } from "./student-code.service";
+
 import type { Student } from "../types/student.types";
 import type { StudentFormData } from "../schemas/student.schema";
 
 const studentsCollection = collection(db, "students");
-
-/* -----------------------------------------
-   Generate Student Code
------------------------------------------ */
-
-function generateStudentCode(): string {
-  const now = new Date();
-
-  const year = now.getFullYear();
-
-  const month = String(
-    now.getMonth() + 1
-  ).padStart(2, "0");
-
-  const day = String(
-    now.getDate()
-  ).padStart(2, "0");
-
-  const random = Math.floor(
-    1000 + Math.random() * 9000
-  );
-
-  return `STU-${year}${month}${day}-${random}`;
-}
 
 /* -----------------------------------------
    Clean undefined values
@@ -70,7 +48,7 @@ export async function addStudent(
     );
 
     const studentData = removeUndefined({
-      studentCode: generateStudentCode(),
+      studentCode: await generateStudentCode(),
 
       fullName:
         data.fullName?.trim() ?? "",

@@ -1,8 +1,11 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
+
+import jsPDF from "jspdf";
 
 import {
   AlertCircle,
@@ -12,6 +15,10 @@ import {
   Search,
   UserRound,
 } from "lucide-react";
+
+import yeaLogo from "/yea-logo.png";
+
+import { getCurrentBSDate } from "@/utils/nepali-date";
 
 import type { Student } from "@/features/students/types/student.types";
 
@@ -27,6 +34,10 @@ import {
   createInvoiceFromStudentFee,
   getInvoices,
 } from "../services/invoice.service";
+
+import {
+  getStudentById,
+} from "@/features/students/services/student.service";
 
 import {
   createPayment,
@@ -55,14 +66,17 @@ function formatCurrency(
 }
 
 function getCurrentBSMonth(): string {
-  /*
-   * Default month.
-   *
-   * Change this value to your current
-   * Nepali BS month when necessary.
-   */
-  return "2083-04";
+  return getCurrentBSDate().slice(0, 7);
 }
+
+const ORGANIZATION_DETAILS = {
+  name: "Young Explorers Academy",
+  tagline: "Quality Education • Holistic Growth",
+  address: "Baluwatar, Kathmandu, Nepal",
+  phone: "+977-1-4567890",
+  email: "info@youngexplorers.edu.np",
+  website: "www.youngexplorers.edu.np",
+};
 
 export default function BillingPage() {
   const [students, setStudents] =
@@ -74,10 +88,19 @@ export default function BillingPage() {
   const [month, setMonth] =
     useState(getCurrentBSMonth());
 
+  const [invoiceDate, setInvoiceDate] =
+    useState(getCurrentBSDate());
+
+  const [dueDate, setDueDate] =
+    useState(getCurrentBSDate());
+
   const [summary, setSummary] =
     useState<StudentFeeSummary | null>(
       null
     );
+
+  const [discount, setDiscount] =
+    useState(0);
 
   const [invoices, setInvoices] =
     useState<Invoice[]>([]);
@@ -102,6 +125,14 @@ export default function BillingPage() {
 
   const [isSubmittingPayment, setIsSubmittingPayment] =
     useState(false);
+
+  const [selectedInvoiceForPreview, setSelectedInvoiceForPreview] =
+    useState<Invoice | null>(null);
+
+  const [invoiceCustomer, setInvoiceCustomer] = useState<Student | null>(null);
+
+  const invoicePreviewRef = useRef<HTMLDivElement | null>(null);
+  const [exportingInvoicePdf, setExportingInvoicePdf] = useState(false);
 
   const [error, setError] =
     useState("");
@@ -168,6 +199,251 @@ export default function BillingPage() {
   }
 
   useEffect(() => {
+    if (!selectedInvoiceForPreview) {
+      setInvoiceCustomer(null);
+      return;
+    }
+
+    let mounted = true;
+
+    async function loadInvoiceCustomer() {
+      try {
+        const studentId = selectedInvoiceForPreview?.studentId;
+        if (!studentId) {
+          if (mounted) setInvoiceCustomer(null);
+          return;
+        }
+
+        const student = await getStudentById(studentId);
+
+        if (mounted) {
+          setInvoiceCustomer(student ?? null);
+        }
+      } catch (error) {
+        console.error("Failed to load invoice customer information:", error);
+
+        if (mounted) {
+          setInvoiceCustomer(null);
+        }
+      }
+    }
+
+    void loadInvoiceCustomer();
+
+    return () => {
+      mounted = false;
+    };
+  }, [selectedInvoiceForPreview]);
+
+  async function handleDownloadInvoicePdf() {
+    if (!selectedInvoiceForPreview) {
+      return;
+    }
+
+    try {
+      setExportingInvoicePdf(true);
+
+      const pdf = new jsPDF({ unit: "pt", format: "a4" });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 40;
+      const innerWidth = pageWidth - margin * 2;
+      const invoice = selectedInvoiceForPreview;
+      const parentName = invoiceCustomer?.guardianName || invoiceCustomer?.parentName || "Parent / Guardian";
+      const studentName = invoiceCustomer?.fullName || invoice.studentName;
+
+      const formatPDFDate = (value?: string) => {
+        if (!value) return "—";
+
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) {
+          return value;
+        }
+
+        return new Intl.DateTimeFormat("en-CA", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(parsed);
+      };
+
+      const logo = new Image();
+      logo.src = "/yea-logo.png";
+      await new Promise<void>((resolve, reject) => {
+        logo.onload = () => resolve();
+        logo.onerror = () => reject(new Error("Unable to load invoice logo."));
+      });
+
+      pdf.setFillColor(241, 245, 249);
+      pdf.rect(0, 0, pageWidth, 140, "F");
+      pdf.setDrawColor(203, 213, 225);
+      pdf.line(margin, 140, pageWidth - margin, 140);
+
+      pdf.addImage(logo, "PNG", margin, 22, 72, 72);
+
+      pdf.setTextColor(15, 23, 42);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(27);
+      pdf.text("Young Explorers Academy", margin + 90, 52);
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text("QUALITY EDUCATION • HOLISTIC GROWTH", margin + 90, 72);
+
+      pdf.setTextColor(15, 23, 42);
+      pdf.setFontSize(10);
+      pdf.text("Baluwatar, Kathmandu, Nepal", pageWidth - margin - 120, 34, { align: "right" });
+      pdf.text("+977-1-4567890", pageWidth - margin - 120, 50, { align: "right" });
+      pdf.text("info@youngexplorers.edu.np", pageWidth - margin - 120, 66, { align: "right" });
+      pdf.text("www.youngexplorers.edu.np", pageWidth - margin - 120, 82, { align: "right" });
+
+      pdf.setTextColor(15, 23, 42);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(30);
+      pdf.text("INVOICE", margin, 176);
+
+      pdf.setFillColor(224, 242, 254);
+      pdf.roundedRect(pageWidth - margin - 176, 150, 168, 88, 10, 10, "F");
+      pdf.setTextColor(51, 65, 85);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(9);
+      pdf.text("INVOICE #", pageWidth - margin - 158, 174);
+      pdf.text("ISSUE DATE", pageWidth - margin - 158, 194);
+      pdf.text("DUE DATE", pageWidth - margin - 158, 214);
+
+      pdf.setTextColor(15, 23, 42);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(12);
+      pdf.text(invoice.invoiceNumber, pageWidth - margin - 72, 174);
+      pdf.text(formatPDFDate(invoice.invoiceDate), pageWidth - margin - 72, 194);
+      pdf.text(formatPDFDate(invoice.dueDate || invoice.invoiceDate), pageWidth - margin - 72, 214);
+
+      pdf.setFillColor(248, 250, 252);
+      pdf.roundedRect(margin, 236, innerWidth, 94, 10, 10, "F");
+      pdf.setTextColor(100, 116, 139);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(10);
+      pdf.text("INVOICE TO", margin + 18, 264);
+
+      pdf.setTextColor(15, 23, 42);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(18);
+      pdf.text(parentName, margin + 18, 292);
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(11);
+      pdf.text("Parent / Guardian", margin + 18, 314);
+
+      pdf.setFillColor(224, 242, 254);
+      pdf.roundedRect(pageWidth - margin - 250, 252, 220, 64, 10, 10, "F");
+      pdf.setTextColor(51, 65, 85);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(9);
+      pdf.text("STUDENT", pageWidth - margin - 222, 272);
+      pdf.setTextColor(15, 23, 42);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(11);
+      pdf.text(studentName, pageWidth - margin - 222, 292);
+      pdf.text(`Code: ${invoice.studentCode}`, pageWidth - margin - 222, 308);
+
+      pdf.setFillColor(15, 23, 42);
+      pdf.roundedRect(margin, 352, innerWidth, 24, 6, 6, "F");
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(10);
+      pdf.text("ACTIVITY", margin + 16, 369);
+      pdf.text("SESSIONS", margin + 252, 369);
+      pdf.text("SESSION FEE", margin + 338, 369);
+      pdf.text("AMOUNT", margin + 450, 369);
+
+      let currentY = 378;
+      pdf.setTextColor(15, 23, 42);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(11);
+
+      invoice.lines.forEach((line) => {
+        if (currentY > 640) {
+          pdf.addPage();
+          currentY = 60;
+        }
+
+        pdf.setDrawColor(226, 232, 240);
+        pdf.line(margin, currentY, pageWidth - margin, currentY);
+
+        const rowY = currentY + 16;
+        pdf.text(line.activityName, margin + 16, rowY);
+        pdf.text(`${line.sessionCount} / ${line.expectedSessions}`, margin + 252, rowY);
+        pdf.text(`NPR ${formatCurrency(line.sessionFee)}`, margin + 338, rowY);
+        pdf.text(`NPR ${formatCurrency(line.amount)}`, margin + 450, rowY);
+
+        currentY += 32;
+      });
+
+      pdf.setDrawColor(203, 213, 225);
+      pdf.line(margin, currentY + 12, pageWidth - margin, currentY + 12);
+
+      pdf.setTextColor(51, 65, 85);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(10);
+      pdf.text("Payment Information", margin, currentY + 40);
+
+      pdf.setFillColor(241, 245, 249);
+      pdf.roundedRect(margin, currentY + 54, 230, 52, 8, 8, "F");
+      pdf.setTextColor(15, 23, 42);
+      pdf.setFont("helvetica", "normal");
+      pdf.text("Bank A/C No:", margin + 14, currentY + 76);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("1234567890123", margin + 110, currentY + 76);
+      pdf.setFont("helvetica", "normal");
+      pdf.text("Accepted Methods:", margin + 14, currentY + 92);
+      pdf.text("Online Banking, Wallet", margin + 110, currentY + 92);
+
+      pdf.setTextColor(51, 65, 85);
+      pdf.setFont("helvetica", "normal");
+      pdf.text("Subtotal", pageWidth - margin - 140, currentY + 40, { align: "right" });
+      pdf.text(`NPR ${formatCurrency(invoice.subtotal)}`, pageWidth - margin - 18, currentY + 40, { align: "right" });
+
+      if (invoice.discount > 0) {
+        pdf.setTextColor(239, 68, 68);
+        pdf.text("Discount", pageWidth - margin - 140, currentY + 58, { align: "right" });
+        pdf.text(`- NPR ${formatCurrency(invoice.discount)}`, pageWidth - margin - 18, currentY + 58, { align: "right" });
+      }
+
+      pdf.setFillColor(15, 23, 42);
+      pdf.roundedRect(pageWidth - margin - 196, currentY + 90, 188, 28, 6, 6, "F");
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(12);
+      pdf.text("TOTAL DUE", pageWidth - margin - 176, currentY + 109);
+      pdf.text(`NPR ${formatCurrency(invoice.totalAmount)}`, pageWidth - margin - 18, currentY + 109, { align: "right" });
+
+      pdf.setTextColor(100, 116, 139);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9);
+      pdf.text("Young Explorers Academy — Baluwatar, Kathmandu, Nepal", margin, pageHeight - 64);
+
+      pdf.setFillColor(241, 245, 249);
+      pdf.roundedRect(pageWidth - margin - 174, pageHeight - 82, 174, 30, 8, 8, "F");
+      pdf.setTextColor(15, 23, 42);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("THANK YOU FOR CHOOSING US!", pageWidth - margin - 158, pageHeight - 62);
+
+      pdf.setTextColor(100, 116, 139);
+      pdf.setFont("helvetica", "normal");
+      pdf.text("This is a computer-generated invoice. No signature required.", margin, pageHeight - 32);
+      pdf.text("info@youngexplorers.edu.np", pageWidth - margin - 150, pageHeight - 32, { align: "right" });
+      pdf.text("www.youngexplorers.edu.np", pageWidth - margin - 150, pageHeight - 18, { align: "right" });
+
+      pdf.save(`invoice-${invoice.invoiceNumber}.pdf`);
+    } catch (err) {
+      console.error("Failed to export invoice PDF:", err);
+    } finally {
+      setExportingInvoicePdf(false);
+    }
+  }
+
+  useEffect(() => {
     void loadInvoices();
   }, []);
 
@@ -228,10 +504,9 @@ export default function BillingPage() {
       setSuccess("");
 
       await createInvoiceFromStudentFee(selectedStudentId, month, {
-        invoiceDate: new Date().toISOString().slice(0, 10),
-        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-          .toISOString()
-          .slice(0, 10),
+        discount,
+        invoiceDate,
+        dueDate,
       });
 
       await loadInvoices();
@@ -401,7 +676,7 @@ export default function BillingPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_220px_auto]">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_220px_220px_180px]">
 
             {/* Student */}
             <div>
@@ -481,7 +756,7 @@ export default function BillingPage() {
                 htmlFor="billingMonth"
                 className="mb-2 block text-sm font-medium text-slate-700"
               >
-                Billing Month
+                Billing Month (BS)
               </label>
 
               <div className="relative">
@@ -504,8 +779,62 @@ export default function BillingPage() {
               </div>
 
               <p className="mt-2 text-xs text-slate-400">
-                Use your BS YYYY-MM value.
+                Nepali month format: YYYY-MM.
               </p>
+            </div>
+
+            <div>
+              <label
+                htmlFor="invoiceDate"
+                className="mb-2 block text-sm font-medium text-slate-700"
+              >
+                Invoice Date (BS)
+              </label>
+
+              <input
+                id="invoiceDate"
+                type="date"
+                value={invoiceDate}
+                onChange={(event) => setInvoiceDate(event.target.value)}
+                className="w-full rounded-xl border border-slate-300 bg-white py-3 px-4 text-sm text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="dueDate"
+                className="mb-2 block text-sm font-medium text-slate-700"
+              >
+                Due Date (BS)
+              </label>
+
+              <input
+                id="dueDate"
+                type="date"
+                value={dueDate}
+                onChange={(event) => setDueDate(event.target.value)}
+                className="w-full rounded-xl border border-slate-300 bg-white py-3 px-4 text-sm text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="discount"
+                className="mb-2 block text-sm font-medium text-slate-700"
+              >
+                Discount (Rs.)
+              </label>
+
+              <input
+                id="discount"
+                type="number"
+                min="0"
+                step="0.01"
+                value={discount}
+                onChange={(event) => setDiscount(Number(event.target.value) || 0)}
+                className="w-full rounded-xl border border-slate-300 bg-white py-3 px-4 text-sm text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                placeholder="0"
+              />
             </div>
 
             {/* Calculate */}
@@ -898,6 +1227,7 @@ export default function BillingPage() {
             <InvoiceTable
               invoices={invoices}
               isLoading={loadingInvoices}
+              onView={(invoice) => setSelectedInvoiceForPreview(invoice)}
               onRecordPayment={(invoice) => {
                 setSelectedInvoice(invoice);
                 setIsPaymentModalOpen(true);
@@ -928,6 +1258,114 @@ export default function BillingPage() {
           )}
 
       </div>
+
+      {selectedInvoiceForPreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
+          <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                Invoice Preview
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => void handleDownloadInvoicePdf()}
+                  disabled={exportingInvoicePdf}
+                  className="rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {exportingInvoicePdf ? "Preparing..." : "Download PDF"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedInvoiceForPreview(null)}
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+
+            <div ref={invoicePreviewRef} className="rounded-2xl border border-slate-200 bg-white p-6">
+              <div className="flex flex-col gap-5 border-b border-slate-200 pb-6 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex items-center gap-4">
+                  <img src={yeaLogo} alt="Young Explorers Academy" className="h-16 w-auto rounded-xl border border-slate-200 bg-slate-50 p-2" />
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900">{ORGANIZATION_DETAILS.name}</h3>
+                    <p className="text-xs uppercase tracking-[0.14em] text-slate-500">{ORGANIZATION_DETAILS.tagline}</p>
+                    <p className="mt-1 text-xs text-slate-500">{ORGANIZATION_DETAILS.address}</p>
+                  </div>
+                </div>
+
+                <div className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                  <p><span className="font-semibold text-slate-900">Phone:</span> {ORGANIZATION_DETAILS.phone}</p>
+                  <p><span className="font-semibold text-slate-900">Email:</span> {ORGANIZATION_DETAILS.email}</p>
+                  <p><span className="font-semibold text-slate-900">Website:</span> {ORGANIZATION_DETAILS.website}</p>
+                </div>
+              </div>
+
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Invoice To</p>
+                  <div className="mt-2 rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
+                    <p className="font-semibold text-slate-900">
+                      {invoiceCustomer?.guardianName || invoiceCustomer?.parentName || "Parent / Guardian"}
+                    </p>
+                    <p className="mt-1 text-slate-600">Student: {invoiceCustomer?.fullName || selectedInvoiceForPreview.studentName}</p>
+                    <p className="mt-1 text-slate-500">Student Code: {selectedInvoiceForPreview.studentCode}</p>
+                  </div>
+                </div>
+
+                <div className="text-left md:text-right">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Invoice Details</p>
+                  <div className="mt-2 space-y-1 text-sm text-slate-600">
+                    <p><span className="font-medium">Invoice #:</span> {selectedInvoiceForPreview.invoiceNumber}</p>
+                    <p><span className="font-medium">Issue Date:</span> {selectedInvoiceForPreview.invoiceDate}</p>
+                    <p><span className="font-medium">Due Date:</span> {selectedInvoiceForPreview.dueDate || "—"}</p>
+                    <p><span className="font-medium">Billing Month:</span> {selectedInvoiceForPreview.billingMonth}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 overflow-hidden rounded-xl border border-slate-200">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="bg-slate-50 text-slate-600">
+                    <tr>
+                      <th className="px-4 py-3 font-semibold">Activity</th>
+                      <th className="px-4 py-3 font-semibold">Sessions</th>
+                      <th className="px-4 py-3 font-semibold text-right">Session Fee</th>
+                      <th className="px-4 py-3 font-semibold text-right">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 bg-white">
+                    {selectedInvoiceForPreview.lines.map((line, index) => (
+                      <tr key={`${line.activityName}-${index}`}>
+                        <td className="px-4 py-3 text-slate-700">{line.activityName}</td>
+                        <td className="px-4 py-3 text-slate-700">{line.sessionCount} / {line.expectedSessions}</td>
+                        <td className="px-4 py-3 text-right text-slate-700">{formatCurrency(line.sessionFee)}</td>
+                        <td className="px-4 py-3 text-right font-semibold text-slate-900">{formatCurrency(line.amount)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="mt-6 ml-auto max-w-md space-y-2 text-sm text-slate-700">
+                <div className="flex justify-between"><span>Subtotal</span><span>{formatCurrency(selectedInvoiceForPreview.subtotal)}</span></div>
+                {selectedInvoiceForPreview.discount > 0 && (
+                  <div className="flex justify-between text-red-600"><span>Discount</span><span>-{formatCurrency(selectedInvoiceForPreview.discount)}</span></div>
+                )}
+                <div className="flex justify-between border-t border-slate-200 pt-2 text-base font-semibold text-slate-900"><span>Total Due</span><span>{formatCurrency(selectedInvoiceForPreview.totalAmount)}</span></div>
+              </div>
+
+              {selectedInvoiceForPreview.notes && (
+                <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                  <span className="font-semibold">Notes:</span> {selectedInvoiceForPreview.notes}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {isPaymentModalOpen && selectedInvoice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">

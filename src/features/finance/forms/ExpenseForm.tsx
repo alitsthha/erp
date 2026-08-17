@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import { getCurrentBSDate } from "@/utils/nepali-date";
 import type { Expense, ExpenseCategory, ExpenseFormData } from "../types/expense.types";
 
-const TODAY = new Date().toISOString().slice(0, 10);
+const TODAY = getCurrentBSDate();
 
 const CATEGORIES: ExpenseCategory[] = [
   "Rent",

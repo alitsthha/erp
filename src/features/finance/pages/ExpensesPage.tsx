@@ -9,6 +9,8 @@ import {
   TrendingDown,
 } from "lucide-react";
 
+import { getCurrentBSDate } from "@/utils/nepali-date";
+
 import { createExpense, getExpenses } from "../services/expense.service";
 import type { Expense, ExpenseCategory } from "../types/expense.types";
 
@@ -29,7 +31,7 @@ const initialForm = {
   category: "Other" as ExpenseCategory,
   description: "",
   amount: "",
-  expenseDate: new Date().toISOString().slice(0, 10),
+  expenseDate: getCurrentBSDate(),
   vendor: "",
   paymentMethod: "Cash",
   referenceNumber: "",

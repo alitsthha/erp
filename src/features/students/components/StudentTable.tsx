@@ -89,7 +89,7 @@ export default function StudentTable({
 
                 {/* Guardian */}
                 <td className="px-5 py-4 text-sm text-slate-600">
-                  {student.guardianName || "-"}
+                  {student.guardianName || student.parentName || "-"}
                 </td>
 
                 {/* Guardian Phone */}

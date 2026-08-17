@@ -11,7 +11,10 @@ import {
 import { db } from "@/firebase/config";
 
 function extractNumericCode(activityCode: string) {
-  const match = activityCode.match(/^AC(\d+)$/);
+  const match = String(activityCode)
+    .trim()
+    .match(/(?:ACT-|AC|Act-)?(\d+)/i);
+
   return match ? Number(match[1]) : 0;
 }
 
@@ -40,7 +43,7 @@ export async function generateActivityCode() {
 
     transaction.set(counterRef, { lastNumber: next }, { merge: true });
 
-    return `AC${String(next).padStart(4, "0")}`;
+    return `Act-${String(next).padStart(3, "0")}`;
   });
 
   return activityCode;

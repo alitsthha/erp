@@ -92,7 +92,7 @@ export default function StudentListPage() {
       const name = student.fullName ?? "";
       const code = student.studentCode ?? "";
 
-      const guardian = student.guardianName ?? "";
+      const guardian = student.guardianName ?? student.parentName ?? "";
 
       const matchesSearch =
         keyword === "" ||

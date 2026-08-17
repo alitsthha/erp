@@ -11,7 +11,10 @@ import {
 import { db } from "@/firebase/config";
 
 function extractNumericCode(studentCode: string) {
-  const match = studentCode.match(/^ST(\d+)$/);
+  const match = String(studentCode)
+    .trim()
+    .match(/(?:STU-|ST|Stu-)?(\d+)/i);
+
   return match ? Number(match[1]) : 0;
 }
 
@@ -46,7 +49,7 @@ export async function generateStudentCode() {
         { merge: true }
       );
 
-      return `ST${String(next).padStart(4, "0")}`;
+      return `Stu-${String(next).padStart(3, "0")}`;
     }
   );
 

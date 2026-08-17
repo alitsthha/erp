@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Loader2, Sparkles, Plus, Trash2 } from "lucide-react";
 import { formatCurrency } from "@/utils/currency";
+import { getCurrentBSDate } from "@/utils/nepali-date";
 import { calculateStudentMonthlyFee } from "../services/fee-calculation.service";
 import type { Invoice, InvoiceLine } from "../types/invoice.types";
 
@@ -17,7 +18,7 @@ interface InvoiceFormProps {
   isSubmitting?: boolean;
 }
 
-const TODAY = new Date().toISOString().slice(0, 10);
+const TODAY = getCurrentBSDate();
 
 export default function InvoiceForm({
   students,

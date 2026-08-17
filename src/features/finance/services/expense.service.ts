@@ -56,15 +56,26 @@ export async function createExpense(
     "EXP"
   );
 
-  const docRef = await addDoc(
-    collection(db, COLLECTION),
-    {
+  const cleanPayload = Object.fromEntries(
+    Object.entries({
       ...data,
       expenseNumber,
       amount: Number(data.amount),
+      category: data.category,
+      description: data.description?.trim(),
+      expenseDate: data.expenseDate,
+      vendor: data.vendor?.trim() || undefined,
+      paymentMethod: data.paymentMethod?.trim() || undefined,
+      referenceNumber: data.referenceNumber?.trim() || undefined,
+      notes: data.notes?.trim() || undefined,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-    }
+    }).filter(([, value]) => value !== undefined && value !== null && value !== "")
+  );
+
+  const docRef = await addDoc(
+    collection(db, COLLECTION),
+    cleanPayload
   );
 
   return docRef.id;
