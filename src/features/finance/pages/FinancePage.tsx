@@ -13,6 +13,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import jsPDF from "jspdf";
 import {
   Area,
   AreaChart,
@@ -64,9 +65,205 @@ function formatCurrency(value: number) {
   return `Rs. ${value.toLocaleString("en-IN")}`;
 }
 
+// ─── Pure jsPDF Finance Overview PDF Builder ─────────────────────────────────
+function buildFinanceOverviewPDF(
+  summary: FinanceSummary,
+  period: string,
+  recentTransactions: any[]
+): jsPDF {
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const marginL = 14;
+  const marginR = 14;
+  const contentW = pageW - marginL - marginR;
+  const bottomMargin = 18;
+
+  const now = new Date().toLocaleDateString("en-NP", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  let y = 0;
+
+  function checkPageBreak(neededHeight: number) {
+    if (y + neededHeight > pageH - bottomMargin) {
+      doc.addPage();
+      y = 16;
+      return true;
+    }
+    return false;
+  }
+
+  // ── Header band ──────────────────────────────────────────────────────────
+  doc.setFillColor(15, 23, 42); // slate-900
+  doc.rect(0, 0, pageW, 28, "F");
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(15);
+  doc.text("Financial Performance Overview", marginL, 12);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.5);
+  doc.setTextColor(148, 163, 184); // slate-400
+  doc.text(`Period: ${period.toUpperCase()}  ·  Generated on ${now}`, marginL, 20);
+
+  y = 35;
+
+  function sectionHeading(title: string) {
+    checkPageBreak(12);
+    doc.setFillColor(241, 245, 249);
+    doc.rect(marginL, y, contentW, 7.5, "F");
+    doc.setTextColor(30, 41, 59);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9.5);
+    doc.text(title, marginL + 3, y + 5.2);
+    y += 11;
+  }
+
+  function statBox(
+    x: number,
+    boxY: number,
+    w: number,
+    label: string,
+    val: string,
+    bgRgb: [number, number, number]
+  ) {
+    doc.setFillColor(...bgRgb);
+    doc.roundedRect(x, boxY, w, 17, 2, 2, "F");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text(label, x + 3.5, boxY + 6);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9.5);
+    doc.setTextColor(15, 23, 42);
+    doc.text(val, x + 3.5, boxY + 13);
+  }
+
+  function rowLine(
+    label: string,
+    value: string,
+    bgRgb: [number, number, number] | null = null
+  ) {
+    checkPageBreak(7.5);
+    if (bgRgb) {
+      doc.setFillColor(...bgRgb);
+      doc.rect(marginL, y - 1, contentW, 6.5, "F");
+    }
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text(label, marginL + 3, y + 3.8);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(15, 23, 42);
+    doc.text(value, pageW - marginR - 3, y + 3.8, { align: "right" });
+    y += 7.5;
+  }
+
+  // 1. Key Performance Indicators
+  sectionHeading("KEY FINANCIAL INDICATORS");
+  const boxW = (contentW - 6) / 3;
+  statBox(marginL, y, boxW, "Total Income", formatCurrency(summary.totalIncome), [240, 253, 244]);
+  statBox(marginL + boxW + 3, y, boxW, "Total Expenses", formatCurrency(summary.totalExpenses), [255, 241, 242]);
+  statBox(marginL + (boxW + 3) * 2, y, boxW, "Net Profit", formatCurrency(summary.netProfit), [239, 246, 255]);
+  y += 20;
+
+  statBox(marginL, y, boxW, "Outstanding Amount", formatCurrency(summary.outstandingAmount), [255, 251, 235]);
+  statBox(marginL + boxW + 3, y, boxW, "Cash Balance", formatCurrency(summary.cashBalance), [248, 250, 252]);
+  statBox(marginL + (boxW + 3) * 2, y, boxW, "Bank Balance", formatCurrency(summary.bankBalance), [245, 243, 255]);
+  y += 24;
+
+  // 2. Profit & Loss Statement
+  sectionHeading("PROFIT & LOSS SUMMARY");
+  rowLine("Gross Income", formatCurrency(summary.totalIncome));
+  rowLine("Total Operational Expenses", formatCurrency(summary.totalExpenses));
+  rowLine("Net Operating Profit", formatCurrency(summary.netProfit), [209, 250, 229]);
+  y += 4;
+
+  // 3. Accounts & Receivables
+  sectionHeading("ACCOUNTS & RECEIVABLES");
+  rowLine("Cash on Hand", formatCurrency(summary.cashBalance));
+  rowLine("Bank Account Balance", formatCurrency(summary.bankBalance));
+  rowLine("Outstanding Student Invoices", `${summary.outstandingInvoices} Unpaid Invoices`);
+  rowLine("Total Outstanding Receivables", formatCurrency(summary.outstandingAmount));
+  rowLine("Overdue Amount", formatCurrency(summary.overdueAmount));
+  y += 4;
+
+  // 4. Recent Financial Transactions Table
+  sectionHeading("RECENT FINANCIAL TRANSACTIONS");
+  checkPageBreak(12);
+  doc.setFillColor(15, 23, 42);
+  doc.rect(marginL, y, contentW, 7, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.text("Type", marginL + 3, y + 4.8);
+  doc.text("Description / Party", marginL + 45, y + 4.8);
+  doc.text("Amount", marginL + 130, y + 4.8, { align: "right" });
+  doc.text("Status", marginL + 155, y + 4.8);
+  doc.text("Time", marginL + 180, y + 4.8, { align: "right" });
+  y += 7;
+
+  recentTransactions.forEach((txn, idx) => {
+    checkPageBreak(7.5);
+    if (idx % 2 === 1) {
+      doc.setFillColor(248, 250, 252);
+      doc.rect(marginL, y, contentW, 7, "F");
+    }
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(30, 41, 59);
+
+    doc.text(String(txn.type), marginL + 3, y + 4.5);
+    doc.text(String(txn.description).slice(0, 32), marginL + 45, y + 4.5);
+
+    const sign = txn.positive ? "+" : "-";
+    const amtStr = `${sign}${formatCurrency(Math.abs(txn.amount))}`;
+    if (txn.positive) {
+      doc.setTextColor(6, 95, 70);
+    } else {
+      doc.setTextColor(159, 18, 57);
+    }
+    doc.setFont("helvetica", "bold");
+    doc.text(amtStr, marginL + 130, y + 4.5, { align: "right" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(30, 41, 59);
+    doc.text(String(txn.status), marginL + 155, y + 4.5);
+    doc.text(String(txn.time), marginL + 180, y + 4.5, { align: "right" });
+
+    y += 7;
+  });
+
+  if (recentTransactions.length === 0) {
+    rowLine("No recent transactions recorded", "");
+  }
+
+  // Footer on all pages
+  const totalPages = doc.getNumberOfPages();
+  for (let page = 1; page <= totalPages; page++) {
+    doc.setPage(page);
+    doc.setDrawColor(203, 213, 225);
+    doc.setLineWidth(0.3);
+    doc.line(marginL, pageH - 10, pageW - marginR, pageH - 10);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(148, 163, 184);
+    doc.text("Academy ERP  ·  Finance Overview Statement", marginL, pageH - 5.5);
+    doc.text(`Page ${page} of ${totalPages}`, pageW - marginR, pageH - 5.5, { align: "right" });
+  }
+
+  return doc;
+}
+
 export default function FinancePage() {
   const [summary, setSummary] = useState<FinanceSummary>(initialSummary);
   const [isLoading, setIsLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
   const [period, setPeriod] = useState<(typeof periodOptions)[number]["key"]>("monthly");
   const [invoices, setInvoices] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
@@ -280,6 +477,18 @@ export default function FinancePage() {
     return Number(((summary.netProfit / summary.totalIncome) * 100).toFixed(1));
   }, [summary]);
 
+  const handleExportReport = () => {
+    setIsExporting(true);
+    try {
+      const doc = buildFinanceOverviewPDF(summary, period, recentTransactions);
+      doc.save("finance-overview-report.pdf");
+    } catch (err) {
+      console.error("Failed to export finance overview report:", err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const summaryCards = [
     {
       title: "Total Income",
@@ -367,10 +576,12 @@ export default function FinancePage() {
 
           <button
             type="button"
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            onClick={handleExportReport}
+            disabled={isExporting || isLoading}
+            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 disabled:opacity-60"
           >
             <Download size={16} />
-            Export report
+            {isExporting ? "Generating..." : "Export report"}
           </button>
         </div>
       </div>

@@ -1,11 +1,147 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, BarChart3, CalendarRange, TrendingUp } from "lucide-react";
+import { ArrowLeft, BarChart3, CalendarRange, Download, TrendingUp } from "lucide-react";
+import jsPDF from "jspdf";
 
 import { getFinanceSummary } from "../services/finance.service";
 import type { FinanceSummary } from "../types/finance.types";
 
 const formatCurrency = (value: number) => `Rs. ${value.toLocaleString("en-IN")}`;
+
+// ─── Pure jsPDF Finance Report Builder ───────────────────────────────────────
+function buildFinanceReportPDF(
+  summary: FinanceSummary,
+  startDate?: string,
+  endDate?: string
+): jsPDF {
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const marginL = 14;
+  const marginR = 14;
+  const contentW = pageW - marginL - marginR;
+
+  const now = new Date().toLocaleDateString("en-NP", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  let y = 0;
+
+  // ── Header band ──────────────────────────────────────────────────────────
+  doc.setFillColor(15, 23, 42); // slate-900
+  doc.rect(0, 0, pageW, 28, "F");
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(15);
+  doc.text("Financial Health & Cashflow Report", marginL, 12);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.5);
+  doc.setTextColor(148, 163, 184); // slate-400
+  const dateRangeStr =
+    startDate || endDate
+      ? `Period: ${startDate || "Beginning"} to ${endDate || "Present"}`
+      : `Generated on ${now}`;
+  doc.text(dateRangeStr, marginL, 20);
+
+  y = 36;
+
+  // ── Section helper ───────────────────────────────────────────────────────
+  function sectionHeading(title: string) {
+    doc.setFillColor(241, 245, 249); // slate-100
+    doc.rect(marginL, y, contentW, 7.5, "F");
+    doc.setTextColor(30, 41, 59); // slate-800
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9.5);
+    doc.text(title, marginL + 3, y + 5.2);
+    y += 11;
+  }
+
+  function statBox(
+    x: number,
+    boxY: number,
+    w: number,
+    label: string,
+    val: string,
+    bgRgb: [number, number, number]
+  ) {
+    doc.setFillColor(...bgRgb);
+    doc.roundedRect(x, boxY, w, 18, 2, 2, "F");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text(label, x + 3.5, boxY + 6.5);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9.5);
+    doc.setTextColor(15, 23, 42);
+    doc.text(val, x + 3.5, boxY + 13.5);
+  }
+
+  function rowLine(
+    label: string,
+    value: string,
+    bgRgb: [number, number, number] | null = null
+  ) {
+    if (bgRgb) {
+      doc.setFillColor(...bgRgb);
+      doc.rect(marginL, y - 1, contentW, 7, "F");
+    }
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text(label, marginL + 3, y + 4.2);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(15, 23, 42);
+    doc.text(value, pageW - marginR - 3, y + 4.2, { align: "right" });
+    y += 8;
+  }
+
+  // ── 1. Financial Overview KPI Boxes ──────────────────────────────────────
+  sectionHeading("FINANCIAL OVERVIEW");
+  const boxW = (contentW - 9) / 4;
+  const finBoxes = [
+    { label: "Total Income", val: formatCurrency(summary.totalIncome), bg: [240, 253, 244] as [number, number, number] },
+    { label: "Total Expenses", val: formatCurrency(summary.totalExpenses), bg: [255, 241, 242] as [number, number, number] },
+    { label: "Net Profit / Loss", val: formatCurrency(summary.netProfit), bg: [239, 246, 255] as [number, number, number] },
+    { label: "Outstanding", val: formatCurrency(summary.outstandingAmount), bg: [255, 251, 235] as [number, number, number] },
+  ];
+  finBoxes.forEach((box, i) => {
+    statBox(marginL + i * (boxW + 3), y, boxW, box.label, box.val, box.bg);
+  });
+  y += 24;
+
+  // ── 2. Cash Flow Summary ─────────────────────────────────────────────────
+  sectionHeading("CASH FLOW & LIQUIDITY SUMMARY");
+  rowLine("Gross Income Recorded", formatCurrency(summary.totalIncome));
+  rowLine("Operating Expenses Recorded", formatCurrency(summary.totalExpenses));
+  rowLine("Net Profit / Loss", formatCurrency(summary.netProfit), [209, 250, 229]);
+  y += 4;
+
+  // ── 3. Account Balances & Receivables ────────────────────────────────────
+  sectionHeading("ACCOUNT BALANCES & RECEIVABLES");
+  rowLine("Cash Account Balance", formatCurrency(summary.cashBalance));
+  rowLine("Bank Account Balance", formatCurrency(summary.bankBalance));
+  rowLine("Outstanding Student Receivables", formatCurrency(summary.outstandingAmount));
+  rowLine("Overdue Amount", formatCurrency(summary.overdueAmount));
+  rowLine("Pending Invoices Count", `${summary.outstandingInvoices} Pending Invoices`);
+
+  const totalLiquidity = summary.cashBalance + summary.bankBalance;
+  rowLine("Total Liquid Assets (Cash + Bank)", formatCurrency(totalLiquidity), [237, 233, 254]);
+
+  // ── Footer ───────────────────────────────────────────────────────────────
+  doc.setDrawColor(226, 232, 240);
+  doc.line(marginL, pageH - 12, pageW - marginR, pageH - 12);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(148, 163, 184);
+  doc.text("Academy ERP  ·  Finance & Cash Flow Statement", marginL, pageH - 7);
+  doc.text("Page 1 of 1", pageW - marginR, pageH - 7, { align: "right" });
+
+  return doc;
+}
 
 export default function FinanceReportsPage() {
   const navigate = useNavigate();
@@ -22,6 +158,7 @@ export default function FinanceReportsPage() {
     bankBalance: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
   async function loadReport() {
     try {
@@ -67,23 +204,49 @@ export default function FinanceReportsPage() {
     ];
   }, [summary]);
 
+  const handleExportPdf = () => {
+    setExporting(true);
+    try {
+      const doc = buildFinanceReportPDF(summary, startDate, endDate);
+      doc.save("finance-report.pdf");
+    } catch (err) {
+      console.error("Failed to export finance PDF report:", err);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="min-h-full bg-slate-50">
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mb-6">
-          <button
-            type="button"
-            onClick={() => navigate("/finance")}
-            className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900"
-          >
-            <ArrowLeft size={16} />
-            Back to Finance
-          </button>
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <button
+              type="button"
+              onClick={() => navigate("/finance")}
+              className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900"
+            >
+              <ArrowLeft size={16} />
+              Back to Finance
+            </button>
 
-          <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">Finance Reports</h1>
-          <p className="mt-1 text-sm text-slate-500 sm:text-base">
-            Track student fee cash flow, expenses, profit, and account health by date.
-          </p>
+            <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">Finance Reports</h1>
+            <p className="mt-1 text-sm text-slate-500 sm:text-base">
+              Track student fee cash flow, expenses, profit, and account health by date.
+            </p>
+          </div>
+
+          <div>
+            <button
+              type="button"
+              onClick={handleExportPdf}
+              disabled={exporting || loading}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 disabled:opacity-60"
+            >
+              <Download size={16} />
+              {exporting ? "Generating..." : "Export PDF Report"}
+            </button>
+          </div>
         </div>
 
         <div className="mb-6 rounded-2xl border bg-white p-4 shadow-sm sm:p-5">
