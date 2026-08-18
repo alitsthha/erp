@@ -14,7 +14,6 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 
 import { getFinanceSummary } from "@/features/finance/services/finance.service";
@@ -71,11 +70,263 @@ function SummaryCard({
   );
 }
 
+// ─── Pure jsPDF Report Builder (Zero external table dependencies) ────────────
+function buildReportPDF(
+  report: ReportData,
+  finance: FinanceSummary
+): jsPDF {
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const marginL = 14;
+  const marginR = 14;
+  const contentW = pageW - marginL - marginR;
+  const bottomMargin = 18;
+
+  const now = new Date().toLocaleDateString("en-NP", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  let y = 0;
+
+  function checkPageBreak(neededHeight: number) {
+    if (y + neededHeight > pageH - bottomMargin) {
+      doc.addPage();
+      y = 16;
+      return true;
+    }
+    return false;
+  }
+
+  // ── Header band ──────────────────────────────────────────────────────────
+  doc.setFillColor(15, 23, 42); // slate-900
+  doc.rect(0, 0, pageW, 28, "F");
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(15);
+  doc.text("Financial & Academic Report", marginL, 12);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8.5);
+  doc.setTextColor(148, 163, 184); // slate-400
+  doc.text(`Generated on ${now}`, marginL, 20);
+
+  y = 35;
+
+  // ── Section heading ──────────────────────────────────────────────────────
+  function sectionHeading(title: string) {
+    checkPageBreak(12);
+    doc.setFillColor(241, 245, 249); // slate-100
+    doc.rect(marginL, y, contentW, 7.5, "F");
+    doc.setTextColor(30, 41, 59); // slate-800
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9.5);
+    doc.text(title, marginL + 3, y + 5.2);
+    y += 11;
+  }
+
+  function statBox(
+    x: number,
+    boxY: number,
+    w: number,
+    label: string,
+    val: string,
+    bgRgb: [number, number, number]
+  ) {
+    doc.setFillColor(...bgRgb);
+    doc.roundedRect(x, boxY, w, 17, 2, 2, "F");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text(label, x + 3.5, boxY + 6);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9.5);
+    doc.setTextColor(15, 23, 42);
+    doc.text(val, x + 3.5, boxY + 13);
+  }
+
+  function rowLine(
+    label: string,
+    value: string,
+    bgRgb: [number, number, number] | null = null
+  ) {
+    checkPageBreak(7.5);
+    if (bgRgb) {
+      doc.setFillColor(...bgRgb);
+      doc.rect(marginL, y - 1, contentW, 6.5, "F");
+    }
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text(label, marginL + 3, y + 3.8);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(15, 23, 42);
+    doc.text(value, pageW - marginR - 3, y + 3.8, { align: "right" });
+    y += 7.5;
+  }
+
+  // ── 1. Overview Summary ──────────────────────────────────────────────────
+  sectionHeading("ACADEMIC OVERVIEW");
+  const boxW = (contentW - 9) / 4;
+  const overviewBoxes = [
+    { label: "Total Students", val: String(report.summary.totalStudents), bg: [239, 246, 255] as [number, number, number] },
+    { label: "Activities", val: String(report.summary.totalActivities), bg: [240, 253, 244] as [number, number, number] },
+    { label: "Enrollments", val: String(report.summary.totalEnrollments), bg: [255, 251, 235] as [number, number, number] },
+    { label: "Active Students", val: String(report.summary.activeStudents), bg: [250, 245, 255] as [number, number, number] },
+  ];
+  overviewBoxes.forEach((box, i) => {
+    statBox(marginL + i * (boxW + 3), y, boxW, box.label, box.val, box.bg);
+  });
+  y += 22;
+
+  // ── 2. Financial Overview ────────────────────────────────────────────────
+  sectionHeading("FINANCIAL OVERVIEW");
+  const finBoxes = [
+    { label: "Total Income", val: formatCurrency(finance.totalIncome), bg: [240, 253, 244] as [number, number, number] },
+    { label: "Total Expenses", val: formatCurrency(finance.totalExpenses), bg: [255, 241, 242] as [number, number, number] },
+    { label: "Net Profit / Loss", val: formatCurrency(finance.netProfit), bg: [239, 246, 255] as [number, number, number] },
+    { label: "Outstanding", val: formatCurrency(finance.outstandingAmount), bg: [255, 251, 235] as [number, number, number] },
+  ];
+  finBoxes.forEach((box, i) => {
+    statBox(marginL + i * (boxW + 3), y, boxW, box.label, box.val, box.bg);
+  });
+  y += 22;
+
+  // ── 3. Income Statement ──────────────────────────────────────────────────
+  sectionHeading("INCOME STATEMENT");
+  rowLine("Gross Income", formatCurrency(finance.totalIncome));
+  rowLine("Operating Expenses", formatCurrency(finance.totalExpenses));
+  rowLine("Net Profit / Loss", formatCurrency(finance.netProfit), [209, 250, 229]);
+  y += 4;
+
+  // ── 4. Balance Sheet ─────────────────────────────────────────────────────
+  sectionHeading("BALANCE SHEET");
+  rowLine("Cash Balance", formatCurrency(finance.cashBalance));
+  rowLine("Bank Balance", formatCurrency(finance.bankBalance));
+  rowLine("Outstanding Receivables", formatCurrency(finance.outstandingAmount));
+  rowLine("Overdue Amount", formatCurrency(finance.overdueAmount));
+  const totalAssets = finance.cashBalance + finance.bankBalance + finance.outstandingAmount;
+  rowLine("Total Assets", formatCurrency(totalAssets), [237, 233, 254]);
+  y += 4;
+
+  // ── 5. Enrollment by Activity Table ──────────────────────────────────────
+  sectionHeading("ENROLLMENT BY ACTIVITY");
+
+  // Table header
+  checkPageBreak(12);
+  doc.setFillColor(15, 23, 42);
+  doc.rect(marginL, y, contentW, 7, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.text("Activity Name", marginL + 3, y + 4.8);
+  doc.text("Code", marginL + 80, y + 4.8);
+  doc.text("Total", marginL + 120, y + 4.8, { align: "center" });
+  doc.text("Active", marginL + 160, y + 4.8, { align: "center" });
+  y += 7;
+
+  report.activityEnrollments.forEach((act, idx) => {
+    checkPageBreak(7);
+    if (idx % 2 === 1) {
+      doc.setFillColor(248, 250, 252);
+      doc.rect(marginL, y, contentW, 6.5, "F");
+    }
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(30, 41, 59);
+    doc.text(act.activityName, marginL + 3, y + 4.2);
+    doc.text(act.activityCode, marginL + 80, y + 4.2);
+    doc.text(String(act.enrollmentCount), marginL + 120, y + 4.2, { align: "center" });
+    doc.text(String(act.activeEnrollmentCount), marginL + 160, y + 4.2, { align: "center" });
+    y += 6.5;
+  });
+  if (report.activityEnrollments.length === 0) {
+    rowLine("No activity data available", "");
+  }
+  y += 6;
+
+  // ── 6. Recent Enrollments Table ──────────────────────────────────────────
+  sectionHeading("RECENT ENROLLMENTS");
+
+  checkPageBreak(12);
+  doc.setFillColor(15, 23, 42);
+  doc.rect(marginL, y, contentW, 7, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  doc.text("Code", marginL + 3, y + 4.8);
+  doc.text("Student", marginL + 30, y + 4.8);
+  doc.text("Activity", marginL + 85, y + 4.8);
+  doc.text("Date", marginL + 130, y + 4.8);
+  doc.text("Fee", marginL + 155, y + 4.8, { align: "right" });
+  doc.text("Status", marginL + 175, y + 4.8, { align: "center" });
+  y += 7;
+
+  report.recentEnrollments.forEach((e, idx) => {
+    checkPageBreak(7.5);
+    if (idx % 2 === 1) {
+      doc.setFillColor(248, 250, 252);
+      doc.rect(marginL, y, contentW, 7, "F");
+    }
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(30, 41, 59);
+
+    doc.text(e.enrollmentCode, marginL + 3, y + 4.5);
+    doc.text(`${e.studentName} (${e.studentCode})`, marginL + 30, y + 4.5);
+    doc.text(`${e.activityName}`, marginL + 85, y + 4.5);
+    doc.text(e.enrollmentDate, marginL + 130, y + 4.5);
+
+    const feeStr = typeof e.sessionFee === "number" ? `Rs. ${e.sessionFee}` : "-";
+    doc.text(feeStr, marginL + 155, y + 4.5, { align: "right" });
+
+    // Status pill
+    if (e.status === "Active") {
+      doc.setFillColor(209, 250, 229);
+      doc.roundedRect(marginL + 167, y + 1.2, 16, 4.5, 1, 1, "F");
+      doc.setTextColor(6, 95, 70);
+    } else {
+      doc.setFillColor(241, 245, 249);
+      doc.roundedRect(marginL + 167, y + 1.2, 16, 4.5, 1, 1, "F");
+      doc.setTextColor(71, 85, 105);
+    }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.5);
+    doc.text(e.status, marginL + 175, y + 4.2, { align: "center" });
+
+    y += 7;
+  });
+
+  if (report.recentEnrollments.length === 0) {
+    rowLine("No recent enrollments found", "");
+  }
+
+  // ── Footer on all pages ───────────────────────────────────────────────────
+  const totalPages = doc.getNumberOfPages();
+  for (let page = 1; page <= totalPages; page++) {
+    doc.setPage(page);
+    doc.setDrawColor(226, 232, 240);
+    doc.line(marginL, pageH - 10, pageW - marginR, pageH - 10);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(148, 163, 184);
+    doc.text("Academy ERP  ·  Financial & Academic Report", marginL, pageH - 5.5);
+    doc.text(`Page ${page} of ${totalPages}`, pageW - marginR, pageH - 5.5, { align: "right" });
+  }
+
+  return doc;
+}
+
+// ─── Main page ───────────────────────────────────────────────────────────────
 export default function ReportsPage() {
   const [report, setReport] = useState<ReportData | null>(null);
   const [finance, setFinance] = useState<FinanceSummary>(initialFinanceSummary);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
   const loadReport = async () => {
@@ -115,43 +366,16 @@ export default function ReportsPage() {
     };
   }, [finance]);
 
-  const handleExportPdf = async () => {
-    if (!reportRef.current) {
-      return;
-    }
-
+  const handleExportPdf = () => {
+    if (!report) return;
+    setExporting(true);
     try {
-      const canvas = await html2canvas(reportRef.current, {
-        scale: 2,
-        backgroundColor: "#ffffff",
-        useCORS: true,
-      });
-
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("p", "pt", "a4");
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const imgProps = pdf.getImageProperties(imgData);
-      const margin = 28;
-      const imgWidth = pageWidth - margin * 2;
-      const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
-
-      let heightLeft = imgHeight;
-      let position = margin;
-
-      pdf.addImage(imgData, "PNG", margin, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight - margin * 2;
-
-      while (heightLeft > 0) {
-        position = margin - (heightLeft - pageHeight + margin * 2);
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", margin, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight - margin * 2;
-      }
-
-      pdf.save("overall-financial-report.pdf");
+      const doc = buildReportPDF(report, finance);
+      doc.save("academy-financial-report.pdf");
     } catch (err) {
       console.error("Failed to export PDF report:", err);
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -227,11 +451,12 @@ export default function ReportsPage() {
 
             <button
               type="button"
-              onClick={() => void handleExportPdf()}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800"
+              onClick={handleExportPdf}
+              disabled={exporting}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 disabled:opacity-60"
             >
               <Download size={16} />
-              Export PDF
+              {exporting ? "Generating..." : "Export PDF"}
             </button>
           </div>
         </div>
