@@ -235,213 +235,226 @@ export default function BillingPage() {
     };
   }, [selectedInvoiceForPreview]);
 
-  async function handleDownloadInvoicePdf() {
-    if (!selectedInvoiceForPreview) {
-      return;
+async function handleDownloadInvoicePdf() {
+  if (!selectedInvoiceForPreview) {
+    return;
+  }
+
+  try {
+    setExportingInvoicePdf(true);
+
+    const pdf = new jsPDF({ unit: "pt", format: "a4" });
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 40;
+    const innerWidth = pageWidth - margin * 2;
+    const invoice = selectedInvoiceForPreview;
+    const parentName = invoiceCustomer?.guardianName || invoiceCustomer?.parentName || "Parent / Guardian";
+    const studentName = invoiceCustomer?.fullName || invoice.studentName;
+
+    const formatPDFDate = (value?: string) => {
+      if (!value) return "—";
+      const parsed = new Date(value);
+      if (Number.isNaN(parsed.getTime())) {
+        return value;
+      }
+      return new Intl.DateTimeFormat("en-CA", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(parsed);
+    };
+
+    let hasLogo = false;
+    const logo = new Image();
+    logo.src = "/yea-logo.png";
+    await new Promise<void>((resolve) => {
+      logo.onload = () => {
+        hasLogo = true;
+        resolve();
+      };
+      logo.onerror = () => {
+        resolve();
+      };
+    });
+
+    // ---- Header background ----
+    pdf.setFillColor(241, 245, 249);
+    pdf.rect(0, 0, pageWidth, 140, "F");
+    pdf.setDrawColor(203, 213, 225);
+    pdf.line(margin, 140, pageWidth - margin, 140);
+
+    // ---- Logo (width increased to 100, height stays 72) ----
+    if (hasLogo) {
+      //                    width ↑   height ↓
+      pdf.addImage(logo, "PNG", margin, 22, 200, 72);
     }
 
-    try {
-      setExportingInvoicePdf(true);
+    // ---- Organisation details beside logo ----
+    pdf.setTextColor(51, 65, 85);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(10);
+    const textX = margin + 350; // logo width (100) + 15pt gap
+    // Vertical center of logo is at y = 22 + 36 = 58.
+    // 4 lines, line height ~14pt → top line starts at 58 - 21 = 37
+    const startY = 37;
+    pdf.text("Baluwatar, Kathmandu, Nepal", textX, startY);
+    pdf.text("+977-1-4567890", textX, startY + 14);
+    pdf.text("info@youngexplorers.edu.np", textX, startY + 28);
+    pdf.text("www.youngexplorers.edu.np", textX, startY + 42);
 
-      const pdf = new jsPDF({ unit: "pt", format: "a4" });
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 40;
-      const innerWidth = pageWidth - margin * 2;
-      const invoice = selectedInvoiceForPreview;
-      const parentName = invoiceCustomer?.guardianName || invoiceCustomer?.parentName || "Parent / Guardian";
-      const studentName = invoiceCustomer?.fullName || invoice.studentName;
+  // ---- Big title: Student Fee Invoice ----
+    pdf.setTextColor(15, 23, 42);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(26);
+    pdf.text("Student Fee Invoice", margin, 176);
 
-      const formatPDFDate = (value?: string) => {
-        if (!value) return "—";
+    // ---- Invoice summary box (now below the title, on the left) ----
+    const summaryBoxY = 196; // 20pt gap after title
+    pdf.setFillColor(224, 242, 254);
+    pdf.roundedRect(margin, summaryBoxY, 260, 88, 10, 10, "F");
+    pdf.setTextColor(51, 65, 85);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(9);
+    pdf.text("INVOICE #", margin + 18, summaryBoxY + 24);
+    pdf.text("ISSUE DATE", margin + 18, summaryBoxY + 44);
+    pdf.text("DUE DATE", margin + 18, summaryBoxY + 64);
 
-        const parsed = new Date(value);
-        if (Number.isNaN(parsed.getTime())) {
-          return value;
-        }
+    pdf.setTextColor(15, 23, 42);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(12);
+    pdf.text(invoice.invoiceNumber, margin + 110, summaryBoxY + 24);
+    pdf.text(formatPDFDate(invoice.invoiceDate), margin + 110, summaryBoxY + 44);
+    pdf.text(formatPDFDate(invoice.dueDate || invoice.invoiceDate), margin + 110, summaryBoxY + 64);
 
-        return new Intl.DateTimeFormat("en-CA", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-        }).format(parsed);
-      };
+    // ---- Invoice To & Student details (moved down) ----
+    const detailsBottom = summaryBoxY + 88;
+    const nextY = detailsBottom + 20; // gap
 
-      const logo = new Image();
-      logo.src = "/yea-logo.png";
-      await new Promise<void>((resolve, reject) => {
-        logo.onload = () => resolve();
-        logo.onerror = () => reject(new Error("Unable to load invoice logo."));
-      });
+    pdf.setFillColor(248, 250, 252);
+    pdf.roundedRect(margin, nextY, innerWidth, 94, 10, 10, "F");
+    pdf.setTextColor(100, 116, 139);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(10);
+    pdf.text("INVOICE TO", margin + 18, nextY + 28);
 
-      pdf.setFillColor(241, 245, 249);
-      pdf.rect(0, 0, pageWidth, 140, "F");
-      pdf.setDrawColor(203, 213, 225);
-      pdf.line(margin, 140, pageWidth - margin, 140);
+    pdf.setTextColor(15, 23, 42);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(18);
+    pdf.text(parentName, margin + 18, nextY + 56);
 
-      pdf.addImage(logo, "PNG", margin, 22, 72, 72);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(11);
+    pdf.text("Parent / Guardian", margin + 18, nextY + 78);
 
-      pdf.setTextColor(15, 23, 42);
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(27);
-      pdf.text("Young Explorers Academy", margin + 90, 52);
+    pdf.setFillColor(224, 242, 254);
+    pdf.roundedRect(pageWidth - margin - 250, nextY + 16, 220, 64, 10, 10, "F");
+    pdf.setTextColor(51, 65, 85);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(9);
+    pdf.text("STUDENT", pageWidth - margin - 222, nextY + 36);
+    pdf.setTextColor(15, 23, 42);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(11);
+    pdf.text(studentName, pageWidth - margin - 222, nextY + 56);
+    pdf.text(`Code: ${invoice.studentCode}`, pageWidth - margin - 222, nextY + 72);
 
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(9);
-      pdf.setTextColor(100, 116, 139);
-      pdf.text("QUALITY EDUCATION • HOLISTIC GROWTH", margin + 90, 72);
+    // ---- Invoice lines table (moved down) ----
+    const tableY = nextY + 94 + 20; // after Invoice To box + gap
+    pdf.setFillColor(15, 23, 42);
+    pdf.roundedRect(margin, tableY, innerWidth, 24, 6, 6, "F");
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(10);
+    pdf.text("ACTIVITY", margin + 16, tableY + 17);
+    pdf.text("SESSIONS", margin + 252, tableY + 17);
+    pdf.text("SESSION FEE", margin + 338, tableY + 17);
+    pdf.text("AMOUNT", margin + 450, tableY + 17);
 
-      pdf.setTextColor(15, 23, 42);
-      pdf.setFontSize(10);
-      pdf.text("Baluwatar, Kathmandu, Nepal", pageWidth - margin - 120, 34, { align: "right" });
-      pdf.text("+977-1-4567890", pageWidth - margin - 120, 50, { align: "right" });
-      pdf.text("info@youngexplorers.edu.np", pageWidth - margin - 120, 66, { align: "right" });
-      pdf.text("www.youngexplorers.edu.np", pageWidth - margin - 120, 82, { align: "right" });
+    let currentY = tableY + 26;
+    pdf.setTextColor(15, 23, 42);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(11);
 
-      pdf.setTextColor(15, 23, 42);
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(30);
-      pdf.text("INVOICE", margin, 176);
-
-      pdf.setFillColor(224, 242, 254);
-      pdf.roundedRect(pageWidth - margin - 176, 150, 168, 88, 10, 10, "F");
-      pdf.setTextColor(51, 65, 85);
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(9);
-      pdf.text("INVOICE #", pageWidth - margin - 158, 174);
-      pdf.text("ISSUE DATE", pageWidth - margin - 158, 194);
-      pdf.text("DUE DATE", pageWidth - margin - 158, 214);
-
-      pdf.setTextColor(15, 23, 42);
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(12);
-      pdf.text(invoice.invoiceNumber, pageWidth - margin - 72, 174);
-      pdf.text(formatPDFDate(invoice.invoiceDate), pageWidth - margin - 72, 194);
-      pdf.text(formatPDFDate(invoice.dueDate || invoice.invoiceDate), pageWidth - margin - 72, 214);
-
-      pdf.setFillColor(248, 250, 252);
-      pdf.roundedRect(margin, 236, innerWidth, 94, 10, 10, "F");
-      pdf.setTextColor(100, 116, 139);
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(10);
-      pdf.text("INVOICE TO", margin + 18, 264);
-
-      pdf.setTextColor(15, 23, 42);
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(18);
-      pdf.text(parentName, margin + 18, 292);
-
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(11);
-      pdf.text("Parent / Guardian", margin + 18, 314);
-
-      pdf.setFillColor(224, 242, 254);
-      pdf.roundedRect(pageWidth - margin - 250, 252, 220, 64, 10, 10, "F");
-      pdf.setTextColor(51, 65, 85);
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(9);
-      pdf.text("STUDENT", pageWidth - margin - 222, 272);
-      pdf.setTextColor(15, 23, 42);
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(11);
-      pdf.text(studentName, pageWidth - margin - 222, 292);
-      pdf.text(`Code: ${invoice.studentCode}`, pageWidth - margin - 222, 308);
-
-      pdf.setFillColor(15, 23, 42);
-      pdf.roundedRect(margin, 352, innerWidth, 24, 6, 6, "F");
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(10);
-      pdf.text("ACTIVITY", margin + 16, 369);
-      pdf.text("SESSIONS", margin + 252, 369);
-      pdf.text("SESSION FEE", margin + 338, 369);
-      pdf.text("AMOUNT", margin + 450, 369);
-
-      let currentY = 378;
-      pdf.setTextColor(15, 23, 42);
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(11);
-
-      invoice.lines.forEach((line) => {
-        if (currentY > 640) {
-          pdf.addPage();
-          currentY = 60;
-        }
-
-        pdf.setDrawColor(226, 232, 240);
-        pdf.line(margin, currentY, pageWidth - margin, currentY);
-
-        const rowY = currentY + 16;
-        pdf.text(line.activityName, margin + 16, rowY);
-        pdf.text(`${line.sessionCount} / ${line.expectedSessions}`, margin + 252, rowY);
-        pdf.text(`NPR ${formatCurrency(line.sessionFee)}`, margin + 338, rowY);
-        pdf.text(`NPR ${formatCurrency(line.amount)}`, margin + 450, rowY);
-
-        currentY += 32;
-      });
-
-      pdf.setDrawColor(203, 213, 225);
-      pdf.line(margin, currentY + 12, pageWidth - margin, currentY + 12);
-
-      pdf.setTextColor(51, 65, 85);
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(10);
-      pdf.text("Payment Information", margin, currentY + 40);
-
-      pdf.setFillColor(241, 245, 249);
-      pdf.roundedRect(margin, currentY + 54, 230, 52, 8, 8, "F");
-      pdf.setTextColor(15, 23, 42);
-      pdf.setFont("helvetica", "normal");
-      pdf.text("Bank A/C No:", margin + 14, currentY + 76);
-      pdf.setFont("helvetica", "bold");
-      pdf.text("1234567890123", margin + 110, currentY + 76);
-      pdf.setFont("helvetica", "normal");
-      pdf.text("Accepted Methods:", margin + 14, currentY + 92);
-      pdf.text("Online Banking, Wallet", margin + 110, currentY + 92);
-
-      pdf.setTextColor(51, 65, 85);
-      pdf.setFont("helvetica", "normal");
-      pdf.text("Subtotal", pageWidth - margin - 140, currentY + 40, { align: "right" });
-      pdf.text(`NPR ${formatCurrency(invoice.subtotal)}`, pageWidth - margin - 18, currentY + 40, { align: "right" });
-
-      if (invoice.discount > 0) {
-        pdf.setTextColor(239, 68, 68);
-        pdf.text("Discount", pageWidth - margin - 140, currentY + 58, { align: "right" });
-        pdf.text(`- NPR ${formatCurrency(invoice.discount)}`, pageWidth - margin - 18, currentY + 58, { align: "right" });
+    invoice.lines.forEach((line) => {
+      if (currentY > 640) {
+        pdf.addPage();
+        currentY = 60;
       }
 
-      pdf.setFillColor(15, 23, 42);
-      pdf.roundedRect(pageWidth - margin - 196, currentY + 90, 188, 28, 6, 6, "F");
-      pdf.setTextColor(255, 255, 255);
-      pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(12);
-      pdf.text("TOTAL DUE", pageWidth - margin - 176, currentY + 109);
-      pdf.text(`NPR ${formatCurrency(invoice.totalAmount)}`, pageWidth - margin - 18, currentY + 109, { align: "right" });
+      pdf.setDrawColor(226, 232, 240);
+      pdf.line(margin, currentY, pageWidth - margin, currentY);
 
-      pdf.setTextColor(100, 116, 139);
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(9);
-      pdf.text("Young Explorers Academy — Baluwatar, Kathmandu, Nepal", margin, pageHeight - 64);
+      const rowY = currentY + 16;
+      pdf.text(line.activityName, margin + 16, rowY);
+      pdf.text(`${line.sessionCount} / ${line.expectedSessions}`, margin + 252, rowY);
+      pdf.text(`NPR ${formatCurrency(line.sessionFee)}`, margin + 338, rowY);
+      pdf.text(`NPR ${formatCurrency(line.amount)}`, margin + 450, rowY);
 
-      pdf.setFillColor(241, 245, 249);
-      pdf.roundedRect(pageWidth - margin - 174, pageHeight - 82, 174, 30, 8, 8, "F");
-      pdf.setTextColor(15, 23, 42);
-      pdf.setFont("helvetica", "bold");
-      pdf.text("THANK YOU FOR CHOOSING US!", pageWidth - margin - 158, pageHeight - 62);
+      currentY += 32;
+    });
 
-      pdf.setTextColor(100, 116, 139);
-      pdf.setFont("helvetica", "normal");
-      pdf.text("This is a computer-generated invoice. No signature required.", margin, pageHeight - 32);
-      pdf.text("info@youngexplorers.edu.np", pageWidth - margin - 150, pageHeight - 32, { align: "right" });
-      pdf.text("www.youngexplorers.edu.np", pageWidth - margin - 150, pageHeight - 18, { align: "right" });
+    // ---- Totals and payment info ----
+    pdf.setDrawColor(203, 213, 225);
+    pdf.line(margin, currentY + 12, pageWidth - margin, currentY + 12);
 
-      pdf.save(`invoice-${invoice.invoiceNumber}.pdf`);
-    } catch (err) {
-      console.error("Failed to export invoice PDF:", err);
-    } finally {
-      setExportingInvoicePdf(false);
+    pdf.setTextColor(51, 65, 85);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(10);
+    pdf.text("Payment Information", margin, currentY + 40);
+
+    pdf.setFillColor(241, 245, 249);
+    pdf.roundedRect(margin, currentY + 54, 230, 52, 8, 8, "F");
+    pdf.setTextColor(15, 23, 42);
+    pdf.setFont("helvetica", "normal");
+    pdf.text("Bank A/C No:", margin + 14, currentY + 76);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("1234567890123", margin + 110, currentY + 76);
+    pdf.setFont("helvetica", "normal");
+    pdf.text("Accepted Methods:", margin + 14, currentY + 92);
+    pdf.text("Online Banking, Wallet", margin + 110, currentY + 92);
+
+    pdf.setTextColor(51, 65, 85);
+    pdf.setFont("helvetica", "normal");
+    pdf.text("Subtotal", pageWidth - margin - 140, currentY + 40, { align: "right" });
+    pdf.text(`NPR ${formatCurrency(invoice.subtotal)}`, pageWidth - margin - 18, currentY + 40, { align: "right" });
+
+    if (invoice.discount > 0) {
+      pdf.setTextColor(239, 68, 68);
+      pdf.text("Discount", pageWidth - margin - 140, currentY + 58, { align: "right" });
+      pdf.text(`- NPR ${formatCurrency(invoice.discount)}`, pageWidth - margin - 18, currentY + 58, { align: "right" });
     }
+
+    pdf.setFillColor(15, 23, 42);
+    pdf.roundedRect(pageWidth - margin - 196, currentY + 90, 188, 28, 6, 6, "F");
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(12);
+    pdf.text("TOTAL DUE", pageWidth - margin - 176, currentY + 109);
+    pdf.text(`NPR ${formatCurrency(invoice.totalAmount)}`, pageWidth - margin - 18, currentY + 109, { align: "right" });
+
+    // ---- Page numbering ----
+    const totalInvoicePages = pdf.getNumberOfPages();
+    for (let p = 1; p <= totalInvoicePages; p++) {
+      pdf.setPage(p);
+      pdf.setDrawColor(203, 213, 225);
+      pdf.setLineWidth(0.75);
+      pdf.line(margin, pageHeight - 36, pageWidth - margin, pageHeight - 36);
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8.5);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text("Official Student Fee Invoice — Computer Generated (No Signature Required)", margin, pageHeight - 20);
+      pdf.text(`Page ${p} of ${totalInvoicePages}`, pageWidth - margin, pageHeight - 20, { align: "right" });
+    }
+
+    pdf.save(`invoice-${invoice.invoiceNumber}.pdf`);
+  } catch (err) {
+    console.error("Failed to export invoice PDF:", err);
+  } finally {
+    setExportingInvoicePdf(false);
   }
+}
 
   useEffect(() => {
     void loadInvoices();
