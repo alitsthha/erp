@@ -49,6 +49,7 @@ import BillingPage from "@/features/finance/pages/BillingPage";
 import IncomePage from "@/features/finance/pages/IncomePage";
 import ExpensesPage from "@/features/finance/pages/ExpensesPage";
 import PayrollPage from "@/features/finance/pages/PayrollPage";
+import AccountsPage from "@/features/finance/pages/AccountsPage";
 
 // ================= ACCOUNTING =================
 import AccountingPage from "@/features/accounting/pages/AccountingPage";
@@ -272,6 +273,11 @@ export default function AppRouter() {
             <Route
               path="/accounting"
               element={<AccountingPage />}
+            />
+
+            <Route
+              path="/accounting/accounts"
+              element={<AccountsPage />}
             />
 
             <Route

@@ -1,239 +1,68 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Briefcase, DollarSign, Users, BarChart3, Loader2, TrendingUp, TrendingDown } from "lucide-react";
+import { ArrowLeft, Check, Lock, Plus, RefreshCw } from "lucide-react";
+import { getAccounts } from "@/features/finance/services/account.service";
+import { getInvoices } from "@/features/finance/services/invoice.service";
+import { getFinanceSummary } from "@/features/finance/services/finance.service";
+import { convertBSToAD, getCurrentBSDate, formatBSDate } from "@/utils/nepali-date";
+import type { Account } from "@/features/finance/types/account.types";
+import type { Invoice } from "@/features/finance/types/invoice.types";
+import type { FinanceSummary } from "@/features/finance/types/finance.types";
+import type { BankTransaction, CategoryRule, FinancialPeriod, JournalEntry } from "../types/operational.types";
+import { createBankTransaction, createCategoryRule, createFinancialPeriod, createJournalEntry, getBankTransactions, getCategoryRules, getFinancialPeriods, getJournalEntries, lockFinancialPeriod, reconcileBankTransaction } from "../services/operational.service";
 
-import { getStaff } from "@/features/staff/services/staff.service";
-import { getPayments } from "@/features/finance/services/payment.service";
-import type { Payment } from "@/features/finance/types/payment.types";
-
-function formatCurrency(value: number) {
-  return `Rs. ${value.toLocaleString("en-IN")}`;
-}
+type Tab = "overview" | "journals" | "rules" | "periods" | "bank" | "aging";
+const emptySummary: FinanceSummary = { totalIncome: 0, totalExpenses: 0, netProfit: 0, outstandingAmount: 0, outstandingInvoices: 0, overdueAmount: 0, cashBalance: 0, bankBalance: 0 };
+const inputClass = "rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500";
 
 export default function AccountingPage() {
   const navigate = useNavigate();
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    totalStaff: 0,
-    activeStaff: 0,
-    totalPayments: 0,
-    paidAmount: 0,
-    pendingAmount: 0,
-  });
+  const [tab, setTab] = useState<Tab>("overview");
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [summary, setSummary] = useState(emptySummary);
+  const [journals, setJournals] = useState<JournalEntry[]>([]);
+  const [rules, setRules] = useState<CategoryRule[]>([]);
+  const [periods, setPeriods] = useState<FinancialPeriod[]>([]);
+  const [bank, setBank] = useState<BankTransaction[]>([]);
+  const [message, setMessage] = useState("");
+  const [journalDescription, setJournalDescription] = useState("");
+  const [journalAmount, setJournalAmount] = useState("");
+  const [journalDate, setJournalDate] = useState(getCurrentBSDate());
+  const [debitAccountId, setDebitAccountId] = useState("");
+  const [creditAccountId, setCreditAccountId] = useState("");
+  const [ruleName, setRuleName] = useState("");
+  const [ruleType, setRuleType] = useState<CategoryRule["type"]>("Expense");
+  const [period, setPeriod] = useState(getCurrentBSDate().slice(0, 7));
+  const [bankDescription, setBankDescription] = useState("");
+  const [bankAmount, setBankAmount] = useState("");
+  const [bankAccountId, setBankAccountId] = useState("");
+  const [bankType, setBankType] = useState<BankTransaction["type"]>("Deposit");
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        setLoading(true);
-        const staff = await getStaff();
-        const allPayments = await getPayments();
+  async function load() {
+    const [accountList, invoiceList, financeSummary, journalList, ruleList, periodList, bankList] = await Promise.all([getAccounts(), getInvoices(), getFinanceSummary(), getJournalEntries(), getCategoryRules(), getFinancialPeriods(), getBankTransactions()]);
+    setAccounts(accountList); setInvoices(invoiceList); setSummary(financeSummary); setJournals(journalList); setRules(ruleList); setPeriods(periodList); setBank(bankList);
+  }
+  useEffect(() => { void load(); }, []);
 
-        const staffPayments = allPayments.filter((p) => p.staffId);
-
-        setPayments(staffPayments);
-
-        const activeCount = staff.filter((s) => s.status === "Active").length;
-        const totalPaid = staffPayments
-          .filter((p) => p.status === "paid")
-          .reduce((sum, p) => sum + (p.amount || 0), 0);
-        const totalPending = staffPayments
-          .filter((p) => p.status === "pending")
-          .reduce((sum, p) => sum + (p.amount || 0), 0);
-
-        setStats({
-          totalStaff: staff.length,
-          activeStaff: activeCount,
-          totalPayments: staffPayments.length,
-          paidAmount: totalPaid,
-          pendingAmount: totalPending,
-        });
-      } catch (error) {
-        console.error("Failed to load accounting data:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadData();
-  }, []);
-
-  return (
-    <div className="min-h-full bg-slate-50">
-      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-6 flex items-center justify-between gap-3">
-          <div>
-            <button
-              type="button"
-              onClick={() => navigate("/dashboard")}
-              className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900"
-            >
-              <ArrowLeft size={16} />
-              Back to Dashboard
-            </button>
-            <h1 className="text-3xl font-bold text-slate-900">Accounting & Payroll</h1>
-            <p className="mt-1 text-sm text-slate-500">Manage staff payments, salary configurations, and accounting records</p>
-          </div>
-        </div>
-
-        {/* Summary Stats */}
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="mr-2 animate-spin" size={20} />
-            <span className="text-slate-600">Loading accounting data...</span>
-          </div>
-        ) : (
-          <>
-            <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-              <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-500">Total Staff</p>
-                    <p className="mt-2 text-2xl font-bold text-slate-900">{stats.totalStaff}</p>
-                  </div>
-                  <div className="rounded-lg bg-blue-100 p-3 text-blue-600">
-                    <Users size={20} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-500">Active Staff</p>
-                    <p className="mt-2 text-2xl font-bold text-emerald-600">{stats.activeStaff}</p>
-                  </div>
-                  <div className="rounded-lg bg-emerald-100 p-3 text-emerald-600">
-                    <Briefcase size={20} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-500">Total Paid</p>
-                    <p className="mt-2 text-xl font-bold text-green-600">{formatCurrency(stats.paidAmount)}</p>
-                  </div>
-                  <div className="rounded-lg bg-green-100 p-3 text-green-600">
-                    <TrendingUp size={20} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-500">Pending Amount</p>
-                    <p className="mt-2 text-xl font-bold text-orange-600">{formatCurrency(stats.pendingAmount)}</p>
-                  </div>
-                  <div className="rounded-lg bg-orange-100 p-3 text-orange-600">
-                    <TrendingDown size={20} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-500">Total Payments</p>
-                    <p className="mt-2 text-2xl font-bold text-violet-600">{stats.totalPayments}</p>
-                  </div>
-                  <div className="rounded-lg bg-violet-100 p-3 text-violet-600">
-                    <DollarSign size={20} />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="mb-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
-                <BarChart3 size={20} />
-                Quick Actions
-              </h2>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <button
-                  onClick={() => navigate("/accounting/payroll")}
-                  className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:border-blue-300"
-                >
-                  View Payroll
-                </button>
-                <button
-                  onClick={() => navigate("/accounting/salary-config")}
-                  className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:border-blue-300"
-                >
-                  Salary Configurations
-                </button>
-                <button
-                  onClick={() => navigate("/accounting/salary-config/add")}
-                  className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:border-blue-300"
-                >
-                  Add Salary Config
-                </button>
-                <button
-                  onClick={() => navigate("/staff")}
-                  className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:border-blue-300"
-                >
-                  Manage Staff
-                </button>
-              </div>
-            </div>
-
-            {/* Recent Payments */}
-            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="mb-4 text-lg font-semibold text-slate-900">Recent Staff Payments</h2>
-              {payments.length === 0 ? (
-                <div className="py-8 text-center text-sm text-slate-500">
-                  <p>No payment records found</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-slate-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left font-medium text-slate-600">Staff Name</th>
-                        <th className="px-4 py-3 text-left font-medium text-slate-600">Amount</th>
-                        <th className="px-4 py-3 text-left font-medium text-slate-600">Type</th>
-                        <th className="px-4 py-3 text-left font-medium text-slate-600">Status</th>
-                        <th className="px-4 py-3 text-left font-medium text-slate-600">Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {payments.slice(0, 10).map((payment) => (
-                        <tr key={payment.id} className="border-t border-slate-200 hover:bg-slate-50">
-                          <td className="px-4 py-3 text-slate-900">{payment.staffName || "—"}</td>
-                          <td className="px-4 py-3 font-medium text-slate-900">{formatCurrency(payment.amount)}</td>
-                          <td className="px-4 py-3 text-slate-600">
-                            <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium">
-                              {payment.paymentType || "—"}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span
-                              className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                                payment.status === "paid"
-                                  ? "bg-green-100 text-green-700"
-                                  : payment.status === "pending"
-                                    ? "bg-yellow-100 text-yellow-700"
-                                    : "bg-red-100 text-red-700"
-                              }`}
-                            >
-                              {payment.status || "—"}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-slate-600">{payment.paymentDate || "—"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
+  const aging = useMemo(() => invoices.filter((invoice) => invoice.dueAmount > 0).map((invoice) => {
+    const days = Math.max(0, Math.floor((Date.now() - new Date(convertBSToAD(invoice.invoiceDate || getCurrentBSDate())).getTime()) / 86400000));
+    return { invoice, bucket: days > 90 ? "90+ days" : days > 60 ? "61-90 days" : days > 30 ? "31-60 days" : "0-30 days" };
+  }), [invoices]);
+  async function run(action: () => Promise<unknown>, success: string) {
+    try { await action(); setMessage(success); await load(); } catch (error) { setMessage(error instanceof Error ? error.message : "Operation failed."); }
+  }
+  const tabs: Tab[] = ["overview", "journals", "rules", "periods", "bank", "aging"];
+  return <div className="min-h-full bg-slate-50"><div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><button type="button" onClick={() => navigate("/finance")} className="mb-3 inline-flex items-center gap-2 text-sm text-slate-600"><ArrowLeft size={16} /> Back to Finance</button><h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">Accounting Operations</h1><p className="mt-1 text-sm text-slate-500">Post, reconcile, close, and review the financial ledger.</p></div><button type="button" onClick={() => void run(load, "Ledger refreshed.")} className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm"><RefreshCw size={16} /> Refresh</button></div>
+    {message && <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">{message}</div>}
+    <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[["Net profit", summary.netProfit], ["Outstanding", summary.outstandingAmount], ["Cash", summary.cashBalance], ["Bank", summary.bankBalance]].map(([label, value]) => <div key={String(label)} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"><p className="text-sm text-slate-500">{label}</p><p className="mt-2 text-xl font-bold text-slate-900">Rs. {Number(value).toLocaleString("en-IN")}</p></div>)}</div>
+    <div className="mb-5 flex gap-2 overflow-x-auto border-b border-slate-200">{tabs.map((item) => <button key={item} type="button" onClick={() => setTab(item)} className={`whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium capitalize ${tab === item ? "border-blue-600 text-blue-700" : "border-transparent text-slate-500"}`}>{item === "aging" ? "Invoice Aging" : item === "bank" ? "Bank Reconciliation" : item}</button>)}</div>
+    {tab === "overview" && <div className="grid gap-5 lg:grid-cols-2"><section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><div className="mb-4 flex justify-between"><h2 className="font-semibold">Chart of Accounts</h2><button type="button" onClick={() => navigate("/accounting/accounts")} className="text-sm text-blue-600">Manage</button></div>{accounts.slice(0, 6).map((account) => <div key={account.id} className="flex justify-between border-b border-slate-100 py-2 text-sm"><span>{account.accountCode} {account.accountName}</span><span>Rs. {Number(account.currentBalance).toLocaleString("en-IN")}</span></div>)}{accounts.length === 0 && <p className="text-sm text-slate-500">No accounts configured yet.</p>}</section><section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="mb-4 font-semibold">Recent Journal Entries</h2>{journals.slice(0, 6).map((entry) => <div key={entry.id} className="flex justify-between border-b border-slate-100 py-2 text-sm"><span>{entry.entryNumber} · {entry.description}</span><span>Rs. {entry.totalDebit.toLocaleString("en-IN")}</span></div>)}{journals.length === 0 && <p className="text-sm text-slate-500">No journal entries posted.</p>}</section></div>}
+    {tab === "journals" && <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="mb-4 font-semibold">Post Journal Entry</h2><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5"><input className={inputClass} placeholder="Description" value={journalDescription} onChange={(e) => setJournalDescription(e.target.value)} /><input className={inputClass} type="number" placeholder="Amount" value={journalAmount} onChange={(e) => setJournalAmount(e.target.value)} /><input className={inputClass} value={journalDate} onChange={(e) => setJournalDate(e.target.value)} /><select className={inputClass} value={debitAccountId} onChange={(e) => setDebitAccountId(e.target.value)}><option value="">Debit account</option>{accounts.map((account) => <option key={account.id} value={account.id}>{account.accountCode} {account.accountName}</option>)}</select><select className={inputClass} value={creditAccountId} onChange={(e) => setCreditAccountId(e.target.value)}><option value="">Credit account</option>{accounts.map((account) => <option key={account.id} value={account.id}>{account.accountCode} {account.accountName}</option>)}</select></div><button type="button" className="mt-4 inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm text-white" onClick={() => void run(() => { const debit = accounts.find((account) => account.id === debitAccountId); const credit = accounts.find((account) => account.id === creditAccountId); if (!debit || !credit || debit.id === credit.id) throw new Error("Select different debit and credit accounts."); return createJournalEntry({ entryDate: journalDate, description: journalDescription, lines: [{ accountId: debit.id || "", accountName: debit.accountName, debit: Number(journalAmount), credit: 0 }, { accountId: credit.id || "", accountName: credit.accountName, debit: 0, credit: Number(journalAmount) }], totalDebit: Number(journalAmount), totalCredit: Number(journalAmount), status: "Posted" }); }, "Journal entry posted.")}><Plus size={16} /> Post balanced entry</button><div className="mt-6 divide-y">{journals.map((entry) => <div key={entry.id} className="flex justify-between py-3 text-sm"><span>{entry.entryNumber} · {entry.description} · {formatBSDate(entry.entryDate)}</span><span>Rs. {entry.totalDebit.toLocaleString("en-IN")}</span></div>)}</div></section>}
+    {tab === "rules" && <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="mb-4 font-semibold">Income and Expense Rules</h2><div className="flex flex-wrap gap-3"><input className={inputClass} placeholder="Category name" value={ruleName} onChange={(e) => setRuleName(e.target.value)} /><select className={inputClass} value={ruleType} onChange={(e) => setRuleType(e.target.value as CategoryRule["type"])}><option>Expense</option><option>Income</option></select><select className={inputClass} value={debitAccountId} onChange={(e) => setDebitAccountId(e.target.value)}><option value="">Default account</option>{accounts.map((account) => <option key={account.id} value={account.id}>{account.accountCode} {account.accountName}</option>)}</select><button type="button" onClick={() => void run(() => { const account = accounts.find((item) => item.id === debitAccountId); if (!account) throw new Error("Select a default account."); return createCategoryRule({ name: ruleName, type: ruleType, defaultAccountId: account.id || "", defaultAccountName: account.accountName, taxRate: 0, active: true }); }, "Category rule created.")} className="rounded-lg bg-slate-900 px-4 py-2 text-sm text-white">Add Rule</button></div><div className="mt-5 grid gap-3 sm:grid-cols-2">{rules.map((rule) => <div key={rule.id} className="rounded-lg border border-slate-200 p-3 text-sm"><strong>{rule.name}</strong><span className="ml-2 text-slate-500">{rule.type} · {rule.defaultAccountName || "Unassigned"}</span></div>)}</div></section>}
+    {tab === "periods" && <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="mb-4 font-semibold">Financial Periods</h2><div className="flex gap-3"><input className={inputClass} value={period} onChange={(e) => setPeriod(e.target.value)} placeholder="2083-04" /><button type="button" onClick={() => void run(() => createFinancialPeriod({ period, startDate: `${period}-01`, endDate: `${period}-32`, status: "Open" }), "Period opened.")} className="rounded-lg bg-slate-900 px-4 py-2 text-sm text-white"><Plus size={15} className="mr-1 inline" /> Open Period</button></div><div className="mt-5 divide-y">{periods.map((item) => <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm"><span>{item.period} · {item.startDate} to {item.endDate}</span><span className={item.status === "Locked" ? "text-red-600" : "text-emerald-600"}>{item.status}</span>{item.status === "Open" && <button type="button" onClick={() => void run(() => lockFinancialPeriod(item.id || ""), "Period locked.")} className="inline-flex items-center gap-1 rounded border px-2 py-1"><Lock size={14} /> Lock</button>}</div>)}</div></section>}
+    {tab === "bank" && <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="mb-4 font-semibold">Bank Reconciliation</h2><div className="flex flex-wrap gap-3"><select className={inputClass} value={bankAccountId} onChange={(e) => setBankAccountId(e.target.value)}><option value="">Bank account</option>{accounts.filter((account) => account.isBankAccount).map((account) => <option key={account.id} value={account.id}>{account.accountName}</option>)}</select><select className={inputClass} value={bankType} onChange={(e) => setBankType(e.target.value as BankTransaction["type"])}><option>Deposit</option><option>Withdrawal</option></select><input className={inputClass} placeholder="Statement description" value={bankDescription} onChange={(e) => setBankDescription(e.target.value)} /><input className={inputClass} type="number" placeholder="Amount" value={bankAmount} onChange={(e) => setBankAmount(e.target.value)} /><button type="button" onClick={() => void run(() => { const account = accounts.find((item) => item.id === bankAccountId); if (!account) throw new Error("Select a bank account."); return createBankTransaction({ bankAccountId: account.id || "", bankAccountName: account.accountName, transactionDate: getCurrentBSDate(), description: bankDescription, amount: Number(bankAmount), type: bankType, reconciled: false }); }, "Bank transaction added.")} className="rounded-lg bg-slate-900 px-4 py-2 text-sm text-white">Add Statement Item</button></div><div className="mt-5 divide-y">{bank.map((item) => <div key={item.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm"><span>{item.description} · {formatBSDate(item.transactionDate)}</span><span>{item.type === "Withdrawal" ? "-" : "+"} Rs. {item.amount.toLocaleString("en-IN")}</span>{item.reconciled ? <span className="text-emerald-600">Reconciled</span> : <button type="button" onClick={() => void run(() => reconcileBankTransaction(item.id || ""), "Transaction reconciled.")} className="inline-flex items-center gap-1 rounded border px-2 py-1"><Check size={14} /> Reconcile</button>}</div>)}</div></section>}
+    {tab === "aging" && <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="mb-4 font-semibold">Outstanding Invoice Aging</h2><div className="grid gap-3 sm:grid-cols-4">{["0-30 days", "31-60 days", "61-90 days", "90+ days"].map((bucket) => <div key={bucket} className="rounded-lg bg-slate-50 p-4"><p className="text-sm text-slate-500">{bucket}</p><p className="mt-1 text-xl font-bold">Rs. {aging.filter((item) => item.bucket === bucket).reduce((total, item) => total + item.invoice.dueAmount, 0).toLocaleString("en-IN")}</p></div>)}</div><div className="mt-5 divide-y">{aging.map(({ invoice, bucket }) => <div key={invoice.id} className="flex justify-between py-3 text-sm"><span>{invoice.invoiceNumber} · {invoice.studentName} · {bucket}</span><strong>Rs. {invoice.dueAmount.toLocaleString("en-IN")}</strong></div>)}</div></section>}
+  </div></div>;
 }

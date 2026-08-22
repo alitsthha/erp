@@ -1,9 +1,11 @@
-import { useFormContext } from "react-hook-form";
+import { Controller, useFormContext } from "react-hook-form";
+import NepaliDatePickerInput from "@/components/forms/NepaliDatePickerInput";
 import type { StudentFormData } from "../../schemas/student.schema";
 
 export default function StudentInformation() {
   const {
     register,
+    control,
     formState: { errors },
   } = useFormContext<StudentFormData>();
 
@@ -58,11 +60,7 @@ export default function StudentInformation() {
             Date of Birth
           </label>
 
-          <input
-            type="date"
-            {...register("dateOfBirth")}
-            className="w-full rounded-xl border border-gray-300 px-4 py-3 transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-          />
+          <Controller name="dateOfBirth" control={control} render={({ field }) => <NepaliDatePickerInput value={field.value ?? ""} onChange={field.onChange} />} />
 
           {errors.dateOfBirth && (
             <p className="mt-2 text-sm text-red-500">
@@ -78,11 +76,7 @@ export default function StudentInformation() {
             Admission Date
           </label>
 
-          <input
-            type="date"
-            {...register("admissionDate")}
-            className="w-full rounded-xl border border-gray-300 px-4 py-3 transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-          />
+          <Controller name="admissionDate" control={control} render={({ field }) => <NepaliDatePickerInput value={field.value ?? ""} onChange={field.onChange} />} />
 
           {errors.admissionDate && (
             <p className="mt-2 text-sm text-red-500">

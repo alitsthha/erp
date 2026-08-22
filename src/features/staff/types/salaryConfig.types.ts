@@ -1,5 +1,7 @@
 export interface SalaryConfig {
   id: string;
+  staffId: string;
+  staffName: string;
   role: string;
   salaryType: "Monthly" | "Hourly" | "Per Class";
   basicSalary: number;

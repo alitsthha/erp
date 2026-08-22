@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { getCurrentBSDate } from "@/utils/nepali-date";
+import NepaliDatePickerInput from "@/components/forms/NepaliDatePickerInput";
 import type { Expense, ExpenseCategory, ExpenseFormData } from "../types/expense.types";
 
 const TODAY = getCurrentBSDate();
@@ -80,18 +81,7 @@ export default function ExpenseForm({
           </select>
         </div>
 
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-700">
-            Date <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="date"
-            value={expenseDate}
-            onChange={(e) => setExpenseDate(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            required
-          />
-        </div>
+        <NepaliDatePickerInput label="Date" value={expenseDate} onChange={setExpenseDate} required />
       </div>
 
       {/* Description */}

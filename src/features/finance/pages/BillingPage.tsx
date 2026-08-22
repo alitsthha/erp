@@ -9,7 +9,6 @@ import jsPDF from "jspdf";
 
 import {
   AlertCircle,
-  CalendarDays,
   FileText,
   Loader2,
   Search,
@@ -18,7 +17,10 @@ import {
 
 import yeaLogo from "/yea-logo.png";
 
-import { getCurrentBSDate } from "@/utils/nepali-date";
+import {
+  formatBSDate,
+  getCurrentBSDate,
+} from "@/utils/nepali-date";
 
 import type { Student } from "@/features/students/types/student.types";
 
@@ -45,6 +47,7 @@ import {
 
 import InvoiceTable from "../components/InvoiceTable";
 import PaymentForm from "../forms/PaymentForm";
+import NepaliDatePickerInput from "@/components/forms/NepaliDatePickerInput";
 
 import type {
   Invoice,
@@ -65,10 +68,6 @@ function formatCurrency(
   ).format(amount);
 }
 
-function getCurrentBSMonth(): string {
-  return getCurrentBSDate().slice(0, 7);
-}
-
 const ORGANIZATION_DETAILS = {
   name: "Young Explorers Academy",
   tagline: "Quality Education • Holistic Growth",
@@ -85,14 +84,10 @@ export default function BillingPage() {
   const [selectedStudentId, setSelectedStudentId] =
     useState("");
 
-  const [month, setMonth] =
-    useState(getCurrentBSMonth());
-
-  const [invoiceDate, setInvoiceDate] =
+  const [billingDate, setBillingDate] =
     useState(getCurrentBSDate());
 
-  const [dueDate, setDueDate] =
-    useState(getCurrentBSDate());
+  const month = billingDate.slice(0, 7);
 
   const [summary, setSummary] =
     useState<StudentFeeSummary | null>(
@@ -252,19 +247,6 @@ async function handleDownloadInvoicePdf() {
     const parentName = invoiceCustomer?.guardianName || invoiceCustomer?.parentName || "Parent / Guardian";
     const studentName = invoiceCustomer?.fullName || invoice.studentName;
 
-    const formatPDFDate = (value?: string) => {
-      if (!value) return "—";
-      const parsed = new Date(value);
-      if (Number.isNaN(parsed.getTime())) {
-        return value;
-      }
-      return new Intl.DateTimeFormat("en-CA", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      }).format(parsed);
-    };
-
     let hasLogo = false;
     const logo = new Image();
     logo.src = "/yea-logo.png";
@@ -312,23 +294,21 @@ async function handleDownloadInvoicePdf() {
     // ---- Invoice summary box (now below the title, on the left) ----
     const summaryBoxY = 196; // 20pt gap after title
     pdf.setFillColor(224, 242, 254);
-    pdf.roundedRect(margin, summaryBoxY, 260, 88, 10, 10, "F");
+    pdf.roundedRect(margin, summaryBoxY, 260, 68, 10, 10, "F");
     pdf.setTextColor(51, 65, 85);
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(9);
     pdf.text("INVOICE #", margin + 18, summaryBoxY + 24);
     pdf.text("ISSUE DATE", margin + 18, summaryBoxY + 44);
-    pdf.text("DUE DATE", margin + 18, summaryBoxY + 64);
 
     pdf.setTextColor(15, 23, 42);
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(12);
     pdf.text(invoice.invoiceNumber, margin + 110, summaryBoxY + 24);
-    pdf.text(formatPDFDate(invoice.invoiceDate), margin + 110, summaryBoxY + 44);
-    pdf.text(formatPDFDate(invoice.dueDate || invoice.invoiceDate), margin + 110, summaryBoxY + 64);
+    pdf.text(formatBSDate(invoice.invoiceDate), margin + 110, summaryBoxY + 44);
 
     // ---- Invoice To & Student details (moved down) ----
-    const detailsBottom = summaryBoxY + 88;
+    const detailsBottom = summaryBoxY + 68;
     const nextY = detailsBottom + 20; // gap
 
     pdf.setFillColor(248, 250, 252);
@@ -518,8 +498,7 @@ async function handleDownloadInvoicePdf() {
 
       await createInvoiceFromStudentFee(selectedStudentId, month, {
         discount,
-        invoiceDate,
-        dueDate,
+        invoiceDate: billingDate,
       });
 
       await loadInvoices();
@@ -580,7 +559,7 @@ async function handleDownloadInvoicePdf() {
 
     if (!month) {
       setError(
-        "Please select a billing month."
+        "The current Nepali month is not available."
       );
 
       return;
@@ -685,11 +664,11 @@ async function handleDownloadInvoicePdf() {
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              Select a student and billing month to calculate the current amount.
+              Select a student to calculate the current amount for the current Nepali month.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_220px_220px_180px]">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_180px_auto]">
 
             {/* Student */}
             <div>
@@ -763,72 +742,12 @@ async function handleDownloadInvoicePdf() {
               </div>
             </div>
 
-            {/* Month */}
-            <div>
-              <label
-                htmlFor="billingMonth"
-                className="mb-2 block text-sm font-medium text-slate-700"
-              >
-                Billing Month (BS)
-              </label>
-
-              <div className="relative">
-                <CalendarDays
-                  size={18}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                />
-
-                <input
-                  id="billingMonth"
-                  type="month"
-                  value={month}
-                  onChange={(event) =>
-                    setMonth(
-                      event.target.value
-                    )
-                  }
-                  className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-10 pr-3 text-sm text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-
-              <p className="mt-2 text-xs text-slate-400">
-                Nepali month format: YYYY-MM.
-              </p>
-            </div>
-
-            <div>
-              <label
-                htmlFor="invoiceDate"
-                className="mb-2 block text-sm font-medium text-slate-700"
-              >
-                Invoice Date (BS)
-              </label>
-
-              <input
-                id="invoiceDate"
-                type="date"
-                value={invoiceDate}
-                onChange={(event) => setInvoiceDate(event.target.value)}
-                className="w-full rounded-xl border border-slate-300 bg-white py-3 px-4 text-sm text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="dueDate"
-                className="mb-2 block text-sm font-medium text-slate-700"
-              >
-                Due Date (BS)
-              </label>
-
-              <input
-                id="dueDate"
-                type="date"
-                value={dueDate}
-                onChange={(event) => setDueDate(event.target.value)}
-                className="w-full rounded-xl border border-slate-300 bg-white py-3 px-4 text-sm text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-              />
-            </div>
+            <NepaliDatePickerInput
+              label="Billing Date (BS)"
+              value={billingDate}
+              onChange={setBillingDate}
+              helperText="Select a Nepali year, month, and day"
+            />
 
             <div>
               <label
@@ -982,11 +901,11 @@ async function handleDownloadInvoicePdf() {
 
                 <div className="text-left sm:text-right">
                   <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                    Billing Month
+                    Date
                   </p>
 
                   <p className="mt-1 font-semibold text-slate-900">
-                    {summary.month}
+                    {formatBSDate(billingDate)}
                   </p>
                 </div>
               </div>
@@ -1265,7 +1184,7 @@ async function handleDownloadInvoicePdf() {
               </h3>
 
               <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">
-                Select a student and billing month, then calculate the bill to see attendance-based fees.
+                Select a student, then calculate the bill to see attendance-based fees for the current Nepali month.
               </p>
             </div>
           )}
@@ -1332,9 +1251,7 @@ async function handleDownloadInvoicePdf() {
                   <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Invoice Details</p>
                   <div className="mt-2 space-y-1 text-sm text-slate-600">
                     <p><span className="font-medium">Invoice #:</span> {selectedInvoiceForPreview.invoiceNumber}</p>
-                    <p><span className="font-medium">Issue Date:</span> {selectedInvoiceForPreview.invoiceDate}</p>
-                    <p><span className="font-medium">Due Date:</span> {selectedInvoiceForPreview.dueDate || "—"}</p>
-                    <p><span className="font-medium">Billing Month:</span> {selectedInvoiceForPreview.billingMonth}</p>
+                    <p><span className="font-medium">Issue Date:</span> {formatBSDate(selectedInvoiceForPreview.invoiceDate)}</p>
                   </div>
                 </div>
               </div>

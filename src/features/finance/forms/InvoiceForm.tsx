@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Loader2, Sparkles, Plus, Trash2 } from "lucide-react";
 import { formatCurrency } from "@/utils/currency";
 import { getCurrentBSDate } from "@/utils/nepali-date";
+import NepaliDatePickerInput from "@/components/forms/NepaliDatePickerInput";
 import { calculateStudentMonthlyFee } from "../services/fee-calculation.service";
 import type { Invoice, InvoiceLine } from "../types/invoice.types";
 
@@ -175,13 +176,7 @@ export default function InvoiceForm({
           <label className="mb-1.5 block text-sm font-medium text-slate-700">
             Billing Month <span className="text-red-500">*</span>
           </label>
-          <input
-            type="month"
-            value={billingMonth}
-            onChange={(e) => setBillingMonth(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            required
-          />
+          <NepaliDatePickerInput value={`${billingMonth}-01`} onChange={(value) => setBillingMonth(value.slice(0, 7))} required />
         </div>
       </div>
 
@@ -223,25 +218,14 @@ export default function InvoiceForm({
           <label className="mb-1.5 block text-sm font-medium text-slate-700">
             Invoice Date <span className="text-red-500">*</span>
           </label>
-          <input
-            type="date"
-            value={invoiceDate}
-            onChange={(e) => setInvoiceDate(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            required
-          />
+          <NepaliDatePickerInput value={invoiceDate} onChange={setInvoiceDate} required />
         </div>
 
         <div>
           <label className="mb-1.5 block text-sm font-medium text-slate-700">
             Due Date
           </label>
-          <input
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-          />
+          <NepaliDatePickerInput value={dueDate} onChange={setDueDate} />
         </div>
       </div>
 

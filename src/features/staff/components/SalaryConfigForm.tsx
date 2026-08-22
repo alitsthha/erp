@@ -1,5 +1,8 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useState } from "react";
+import { getStaff } from "../services/staff.service";
+import type { Staff } from "../types/staff.types";
 
 import {
   salaryConfigSchema,
@@ -19,6 +22,7 @@ export default function SalaryConfigForm({
 }: SalaryConfigFormProps) {
   const {
     register,
+    setValue,
     handleSubmit,
     watch,
     formState: {
@@ -29,6 +33,8 @@ export default function SalaryConfigForm({
     resolver: zodResolver(salaryConfigSchema) as any,
 
     defaultValues: {
+      staffId: "",
+      staffName: "",
       role: "",
       salaryType: "Monthly",
       basicSalary: 0,
@@ -41,6 +47,10 @@ export default function SalaryConfigForm({
       ...initialData,
     },
   });
+  const [staff, setStaff] = useState<Staff[]>([]);
+  useEffect(() => {
+    void getStaff().then((items) => setStaff(items.filter((item) => item.status !== "Inactive")));
+  }, []);
 
   const basic = watch("basicSalary") || 0;
   const allowance = watch("allowance") || 0;
@@ -64,17 +74,13 @@ export default function SalaryConfigForm({
 
           <div>
             <label className="mb-2 block font-medium">
-              Role
+              Staff Member
             </label>
-
-            <input
-              {...register("role")}
-              className="w-full rounded-xl border px-4 py-3"
-            />
-
-            <p className="text-sm text-red-500">
-              {errors.role?.message}
-            </p>
+            <select {...register("staffId", { onChange: (event) => { const selected = staff.find((item) => item.id === event.target.value); setValue("staffName", selected?.fullName ?? ""); setValue("role", selected?.designation ?? ""); } })} className="w-full rounded-xl border px-4 py-3" required>
+              <option value="">Select staff member</option>
+              {staff.map((item) => <option key={item.id} value={item.id}>{item.fullName} ({item.staffCode})</option>)}
+            </select>
+            <p className="text-sm text-red-500">{errors.staffId?.message}</p>
           </div>
 
           <div>

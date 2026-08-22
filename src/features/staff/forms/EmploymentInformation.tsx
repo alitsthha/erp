@@ -4,7 +4,7 @@ import type {
 } from "react-hook-form";
 import { Briefcase, CheckCircle } from "lucide-react";
 
-import BsDateSelect from "@/components/forms/BsDateSelect";
+import NepaliDatePickerInput from "@/components/forms/NepaliDatePickerInput";
 import type { StaffFormData } from "../schemas/staff.schema";
 
 type Props = {
@@ -32,7 +32,7 @@ export default function EmploymentInformation({
         </label>
 
         <div className="rounded-xl border border-slate-200 bg-white p-3">
-          <BsDateSelect
+          <NepaliDatePickerInput
             label=""
             value={value}
             onChange={(nextValue) => onChange?.(nextValue)}

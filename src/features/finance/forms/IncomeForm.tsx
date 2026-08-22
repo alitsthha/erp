@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import NepaliDatePickerInput from "@/components/forms/NepaliDatePickerInput";
+import { getCurrentBSDate } from "@/utils/nepali-date";
 
 import type {
   Income,
   IncomeFormData,
 } from "../types/income.types";
 
-const TODAY = new Date().toISOString().slice(0, 10);
+const TODAY = getCurrentBSDate();
 
 const CATEGORIES = ["Student Fee"] as const;
 
@@ -67,19 +69,7 @@ export default function IncomeForm({
             ))}
           </select>
         </div>
-
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-700">
-            Income Date <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="date"
-            value={incomeDate}
-            onChange={(event) => setIncomeDate(event.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            required
-          />
-        </div>
+        <NepaliDatePickerInput label="Income Date" value={incomeDate} onChange={setIncomeDate} required />
       </div>
 
       <div>

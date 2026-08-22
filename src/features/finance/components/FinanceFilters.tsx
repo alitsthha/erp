@@ -1,4 +1,5 @@
-import { CalendarDays, Filter } from "lucide-react";
+import { Filter } from "lucide-react";
+import NepaliDatePickerInput from "@/components/forms/NepaliDatePickerInput";
 
 interface FinanceFiltersProps {
   fromDate: string;
@@ -41,19 +42,7 @@ export default function FinanceFilters({
             From Date
           </label>
 
-          <div className="relative">
-            <CalendarDays
-              size={17}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-            />
-
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(e) => onFromDateChange(e.target.value)}
-              className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
-            />
-          </div>
+          <NepaliDatePickerInput value={fromDate} onChange={onFromDateChange} />
         </div>
 
         <div>
@@ -61,19 +50,7 @@ export default function FinanceFilters({
             To Date
           </label>
 
-          <div className="relative">
-            <CalendarDays
-              size={17}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-            />
-
-            <input
-              type="date"
-              value={toDate}
-              onChange={(e) => onToDateChange(e.target.value)}
-              className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
-            />
-          </div>
+          <NepaliDatePickerInput value={toDate} onChange={onToDateChange} />
         </div>
 
         <button

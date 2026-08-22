@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, BarChart3, CalendarRange, Download, TrendingUp } from "lucide-react";
 import jsPDF from "jspdf";
+import NepaliDatePickerInput from "@/components/forms/NepaliDatePickerInput";
 
 import { getFinanceSummary } from "../services/finance.service";
 import type { FinanceSummary } from "../types/finance.types";
@@ -258,21 +259,11 @@ export default function FinanceReportsPage() {
           <div className="grid gap-4 md:grid-cols-3">
             <div>
               <label className="mb-2 block text-sm font-medium text-slate-700">From</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(event) => setStartDate(event.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              />
+              <NepaliDatePickerInput value={startDate} onChange={setStartDate} />
             </div>
             <div>
               <label className="mb-2 block text-sm font-medium text-slate-700">To</label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(event) => setEndDate(event.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              />
+              <NepaliDatePickerInput value={endDate} onChange={setEndDate} />
             </div>
             <div className="flex items-end">
               <button

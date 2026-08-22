@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, BookOpen, Loader2, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, BookOpen, Plus, Trash2 } from "lucide-react";
+
+import ConfirmDialog from "@/components/common/ConfirmDialog";
+import EmptyState from "@/components/common/EmptyState";
+import ListSkeleton from "@/components/common/ListSkeleton";
+import ListToolbar from "@/components/common/ListToolbar";
 
 import AccountForm from "../forms/AccountForm";
 import { createAccount, deleteAccount, getAccounts } from "../services/account.service";
@@ -14,6 +19,11 @@ export default function AccountsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [deleteTarget, setDeleteTarget] = useState<Account | "bulk" | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   async function loadData() {
     try {
@@ -30,6 +40,15 @@ export default function AccountsPage() {
   useEffect(() => {
     void loadData();
   }, []);
+
+  const filteredAccounts = useMemo(() => {
+    const keyword = search.trim().toLowerCase();
+    return accounts.filter((account) => {
+      const matchesSearch = !keyword || `${account.accountCode} ${account.accountName}`.toLowerCase().includes(keyword);
+      const matchesType = typeFilter === "all" || account.accountType === typeFilter;
+      return matchesSearch && matchesType;
+    });
+  }, [accounts, search, typeFilter]);
 
   const assetTotal = useMemo(
     () => accounts.filter((item) => item.accountType === "Asset").reduce((sum, item) => sum + Number(item.currentBalance ?? 0), 0),
@@ -53,21 +72,30 @@ export default function AccountsPage() {
     }
   }
 
-  async function handleDelete(id?: string) {
+  function handleDelete(id?: string) {
     if (!id) return;
+    setDeleteTarget(accounts.find((account) => account.id === id) ?? null);
+  }
 
+  async function confirmDelete() {
+    if (!deleteTarget) return;
     try {
-      const confirmed = window.confirm("Delete this account?");
-      if (!confirmed) return;
-
-      await deleteAccount(id);
+      setIsDeleting(true);
+      const ids = deleteTarget === "bulk" ? selectedIds : deleteTarget.id ? [deleteTarget.id] : [];
+      await Promise.all(ids.map((accountId) => deleteAccount(accountId)));
+      setAccounts((prev) => prev.filter((account) => !ids.includes(account.id ?? "")));
+      setSelectedIds([]);
+      setDeleteTarget(null);
       setSuccess("Account deleted.");
-      await loadData();
     } catch (err) {
       console.error("Failed to delete account:", err);
       setError(err instanceof Error ? err.message : "Unable to delete account.");
+    } finally {
+      setIsDeleting(false);
     }
   }
+
+  const allVisibleSelected = filteredAccounts.length > 0 && filteredAccounts.every((account) => account.id && selectedIds.includes(account.id));
 
   return (
     <div className="min-h-full bg-slate-50">
@@ -135,23 +163,28 @@ export default function AccountsPage() {
           </div>
         )}
 
+        <ListToolbar
+          search={search}
+          onSearchChange={setSearch}
+          placeholder="Search by account code or name..."
+          resultCount={filteredAccounts.length}
+          onClear={() => { setSearch(""); setTypeFilter("all"); }}
+          filter={<select aria-label="Filter accounts by type" value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="all">All account types</option>{["Asset", "Liability", "Equity", "Income", "Expense"].map((type) => <option key={type}>{type}</option>)}</select>}
+        />
+
+        {selectedIds.length > 0 && <div className="mb-4 flex flex-col gap-2 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between"><span className="font-medium text-blue-900">{selectedIds.length} accounts selected</span><button type="button" onClick={() => setDeleteTarget("bulk")} className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-xs font-medium text-white"><Trash2 size={14} /> Delete selected</button></div>}
+
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
           {loading ? (
-            <div className="flex min-h-[220px] items-center justify-center text-sm text-slate-500">
-              <Loader2 className="mr-2 animate-spin" size={18} />
-              Loading accounts...
-            </div>
-          ) : accounts.length === 0 ? (
-            <div className="flex min-h-[220px] flex-col items-center justify-center text-center">
-              <BookOpen size={32} className="mb-4 text-slate-400" />
-              <h2 className="text-lg font-semibold text-slate-900">No accounts yet</h2>
-              <p className="mt-2 text-sm text-slate-500">Create your chart of accounts to organize the finance ledger.</p>
-            </div>
+            <ListSkeleton rows={6} columns={6} />
+          ) : filteredAccounts.length === 0 ? (
+            <EmptyState icon={BookOpen} title={accounts.length === 0 ? "Your chart of accounts is empty" : "No matching accounts"} description={accounts.length === 0 ? "Add your first account to organize balances and journal postings." : "Try a different account name, code, or type."} action={accounts.length === 0 ? { label: "Add Account", onClick: () => setShowForm(true) } : undefined} />
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm">
                 <thead className="bg-slate-50 text-slate-600">
                   <tr>
+                    <th className="w-12 px-3 py-3"><input type="checkbox" aria-label="Select all visible accounts" checked={allVisibleSelected} onChange={() => setSelectedIds(allVisibleSelected ? [] : filteredAccounts.flatMap((account) => account.id ? [account.id] : []))} /></th>
                     <th className="px-3 py-3 font-medium">Code</th>
                     <th className="px-3 py-3 font-medium">Name</th>
                     <th className="px-3 py-3 font-medium">Type</th>
@@ -161,8 +194,9 @@ export default function AccountsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {accounts.map((account) => (
+                  {filteredAccounts.map((account) => (
                     <tr key={account.id} className="border-t border-slate-200">
+                      <td className="px-3 py-3"><input type="checkbox" aria-label={`Select ${account.accountName}`} checked={Boolean(account.id && selectedIds.includes(account.id))} onChange={() => account.id && setSelectedIds((current) => current.includes(account.id!) ? current.filter((id) => id !== account.id) : [...current, account.id!])} /></td>
                       <td className="px-3 py-3 text-slate-700">{account.accountCode}</td>
                       <td className="px-3 py-3 text-slate-700">{account.accountName}</td>
                       <td className="px-3 py-3 text-slate-700">{account.accountType}</td>
@@ -190,6 +224,7 @@ export default function AccountsPage() {
           )}
         </div>
       </div>
+      <ConfirmDialog open={Boolean(deleteTarget)} title={deleteTarget === "bulk" ? "Delete selected accounts?" : "Delete this account?"} description={deleteTarget === "bulk" ? `This will permanently remove ${selectedIds.length} selected accounts.` : `This will permanently remove ${(deleteTarget as Account | null)?.accountName ?? "this account"}.`} confirmLabel="Delete" isLoading={isDeleting} onConfirm={() => void confirmDelete()} onCancel={() => setDeleteTarget(null)} />
     </div>
   );
 }

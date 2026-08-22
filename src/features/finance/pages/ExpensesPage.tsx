@@ -2,14 +2,17 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
-  CalendarDays,
   Plus,
   Receipt,
-  Search,
   TrendingDown,
 } from "lucide-react";
 
+import EmptyState from "@/components/common/EmptyState";
+import ListSkeleton from "@/components/common/ListSkeleton";
+import ListToolbar from "@/components/common/ListToolbar";
+
 import { getCurrentBSDate } from "@/utils/nepali-date";
+import NepaliDatePickerInput from "@/components/forms/NepaliDatePickerInput";
 
 import { createExpense, getExpenses } from "../services/expense.service";
 import type { Expense, ExpenseCategory } from "../types/expense.types";
@@ -48,6 +51,7 @@ export default function ExpensesPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [form, setForm] = useState(initialForm);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -84,8 +88,8 @@ export default function ExpensesPage() {
         .toLowerCase();
 
       return haystack.includes(value);
-    });
-  }, [expenses, search]);
+    }).filter((expense) => categoryFilter === "all" || expense.category === categoryFilter);
+  }, [expenses, search, categoryFilter]);
 
   const totalExpenses = expenses.reduce((total, item) => total + (item.amount ?? 0), 0);
   const thisMonthExpenses = expenses.filter((item) => {
@@ -199,19 +203,7 @@ export default function ExpensesPage() {
             </div>
 
             <div className="space-y-4">
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-700">Date</label>
-                <div className="relative">
-                  <CalendarDays size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="date"
-                    value={form.expenseDate}
-                    onChange={(event) => setForm((current) => ({ ...current, expenseDate: event.target.value }))}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:bg-white"
-                    required
-                  />
-                </div>
-              </div>
+              <NepaliDatePickerInput label="Date" value={form.expenseDate} onChange={(value) => setForm((current) => ({ ...current, expenseDate: value }))} required />
 
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">Category</label>
@@ -317,27 +309,14 @@ export default function ExpensesPage() {
                 <p className="text-sm text-slate-500">Recent daily expenses</p>
               </div>
 
-              <div className="relative w-full sm:w-64">
-                <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Search expense"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-3 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:bg-white"
-                />
-              </div>
             </div>
 
+            <ListToolbar search={search} onSearchChange={setSearch} placeholder="Search description, vendor, or reference..." resultCount={filteredExpenses.length} onClear={() => { setSearch(""); setCategoryFilter("all"); }} filter={<select aria-label="Filter expenses by category" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="all">All categories</option>{expenseCategories.map((category) => <option key={category}>{category}</option>)}</select>} />
+
             {loading ? (
-              <div className="flex min-h-[220px] items-center justify-center text-sm text-slate-500">
-                Loading expenses...
-              </div>
+              <ListSkeleton rows={5} columns={4} />
             ) : filteredExpenses.length === 0 ? (
-              <div className="flex min-h-[220px] flex-col items-center justify-center text-center">
-                <Receipt size={32} className="mb-4 text-slate-400" />
-                <h3 className="text-lg font-semibold text-slate-900">No expense records</h3>
-                <p className="mt-2 text-sm text-slate-500">Your recorded expenses will appear here.</p>
-              </div>
+              <EmptyState icon={Receipt} title={expenses.length === 0 ? "No expense records yet" : "No matching expenses"} description={expenses.length === 0 ? "Record the first operating expense using the form." : "Try a different search term or category."} />
             ) : (
               <div className="overflow-hidden rounded-xl border border-slate-200">
                 <div className="overflow-x-auto">

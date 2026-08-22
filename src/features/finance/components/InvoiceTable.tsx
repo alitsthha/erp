@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import { formatCurrency } from "@/utils/currency";
+import { formatBSDate } from "@/utils/nepali-date";
 import type { Invoice } from "../types/invoice.types";
 
 const STATUS_STYLES: Record<
@@ -97,9 +98,6 @@ export default function InvoiceTable({
                 <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Student
                 </th>
-                <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Month
-                </th>
                 <th className="px-5 py-4 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Total
                 </th>
@@ -130,7 +128,7 @@ export default function InvoiceTable({
                       <p className="font-mono text-sm font-semibold text-slate-900">
                         {invoice.invoiceNumber}
                       </p>
-                      <p className="text-xs text-slate-400">{invoice.invoiceDate}</p>
+                      <p className="text-xs text-slate-400">{formatBSDate(invoice.invoiceDate)}</p>
                     </td>
 
                     <td className="px-5 py-4">
@@ -140,12 +138,6 @@ export default function InvoiceTable({
                       <p className="font-mono text-xs text-slate-400">
                         {invoice.studentCode}
                       </p>
-                    </td>
-
-                    <td className="px-5 py-4">
-                      <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
-                        {invoice.billingMonth}
-                      </span>
                     </td>
 
                     <td className="px-5 py-4 text-right">
@@ -253,7 +245,7 @@ export default function InvoiceTable({
                   <p className="mt-0.5 text-sm text-slate-700">
                     {invoice.studentName}
                   </p>
-                  <p className="text-xs text-slate-400">{invoice.billingMonth}</p>
+                  <p className="text-xs text-slate-400">{formatBSDate(invoice.invoiceDate)}</p>
                 </div>
                 <span
                   className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${style.className}`}

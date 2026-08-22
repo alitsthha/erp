@@ -3,8 +3,10 @@ import { Loader2 } from "lucide-react";
 import type { Payment } from "../types/payment.types";
 import type { Invoice } from "../types/invoice.types";
 import { formatCurrency } from "@/utils/currency";
+import { getCurrentBSDate } from "@/utils/nepali-date";
+import NepaliDatePickerInput from "@/components/forms/NepaliDatePickerInput";
 
-const TODAY = new Date().toISOString().slice(0, 10);
+const TODAY = getCurrentBSDate();
 
 interface PaymentFormProps {
   invoice: Invoice;
@@ -91,18 +93,7 @@ export default function PaymentForm({
 
       {/* Date + Method */}
       <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label className="mb-1.5 block text-sm font-medium text-slate-700">
-            Payment Date <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="date"
-            value={paymentDate}
-            onChange={(e) => setPaymentDate(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            required
-          />
-        </div>
+        <NepaliDatePickerInput label="Payment Date" value={paymentDate} onChange={setPaymentDate} required />
 
         <div>
           <label className="mb-1.5 block text-sm font-medium text-slate-700">

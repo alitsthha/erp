@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -8,17 +9,26 @@ import {
   type SalaryConfigFormData,
 } from "@/features/staff/schemas/salaryConfig.schema";
 import { addSalaryConfig } from "@/features/staff/services/salaryConfig.service";
+import { getStaff } from "@/features/staff/services/staff.service";
+import type { Staff } from "@/features/staff/types/staff.types";
 import PageHeader from "@/components/common/AddPageHeader";
 
 export default function AddSalaryConfigPage() {
   const navigate = useNavigate();
+  const [staff, setStaff] = useState<Staff[]>([]);
+  useEffect(() => {
+    void getStaff().then((items) => setStaff(items.filter((item) => item.status !== "Inactive")));
+  }, []);
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(salaryConfigSchema),
     defaultValues: {
+      staffId: "",
+      staffName: "",
       role: "",
       salaryType: "Monthly",
       basicSalary: 0,
@@ -46,7 +56,7 @@ export default function AddSalaryConfigPage() {
     <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
       <PageHeader
         title="Add Salary Configuration"
-        description="Create a new salary structure for a staff role."
+        description="Assign a salary structure to a specific staff member."
       />
 
       <form
@@ -61,37 +71,39 @@ export default function AddSalaryConfigPage() {
             </div>
             <div>
               <h2 className="text-base font-semibold text-slate-900">
-                Role Information
+                Staff Salary Information
               </h2>
               <p className="mt-0.5 text-xs text-slate-500">
-                Specify the role and employment type.
+                Assign a salary structure to one staff member.
               </p>
             </div>
           </div>
 
           <div className="grid gap-5 md:grid-cols-2">
-            {/* Role */}
+            {/* Staff Member */}
             <div className="md:col-span-2">
               <label
-                htmlFor="role"
+                htmlFor="staffId"
                 className="mb-2 block text-sm font-medium text-slate-700"
               >
-                Role <span className="text-red-500">*</span>
+                Staff Member <span className="text-red-500">*</span>
               </label>
-              <input
-                id="role"
-                type="text"
-                placeholder="e.g., Senior Teacher, Principal, Admin"
-                {...register("role")}
+              <select
+                id="staffId"
+                {...register("staffId", { onChange: (event) => { const selected = staff.find((item) => item.id === event.target.value); setValue("staffName", selected?.fullName ?? ""); setValue("role", selected?.designation ?? ""); } })}
                 className={`w-full rounded-lg border px-4 py-2.5 text-sm outline-none transition ${
-                  errors.role
+                  errors.staffId
                     ? "border-red-300 focus:ring-red-50"
                     : "border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-50"
                 }`}
-              />
-              {errors.role && (
+                required
+              >
+                <option value="">Select staff member</option>
+                {staff.map((member) => <option key={member.id} value={member.id}>{member.fullName} ({member.staffCode})</option>)}
+              </select>
+              {errors.staffId && (
                 <p className="mt-1.5 text-xs font-medium text-red-500">
-                  {errors.role.message}
+                  {errors.staffId.message}
                 </p>
               )}
             </div>

@@ -22,7 +22,7 @@ import {
 } from "../services/attendance.service";
 
 import { getCurrentBSDate } from "@/utils/nepali-date";
-import BsDateSelect from "@/components/forms/BsDateSelect";
+import NepaliDatePickerInput from "@/components/forms/NepaliDatePickerInput";
 import { useAuth } from "@/app/providers/AuthProvider";
 import { isActivityAllowedForRole } from "@/lib/rbac";
 
@@ -581,7 +581,7 @@ export default function AttendanceForm({
           </div>
 
           <div className="w-full max-w-md">
-            <BsDateSelect
+            <NepaliDatePickerInput
               label="Session Date"
               value={sessionDate}
               onChange={setSessionDate}

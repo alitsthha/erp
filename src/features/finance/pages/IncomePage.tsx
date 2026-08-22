@@ -2,6 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, TrendingUp, Wallet } from "lucide-react";
 
+import EmptyState from "@/components/common/EmptyState";
+import ListSkeleton from "@/components/common/ListSkeleton";
+import ListToolbar from "@/components/common/ListToolbar";
+
 import IncomeForm from "../forms/IncomeForm";
 import { createIncome, getIncomes } from "../services/income.service";
 import type { Income, IncomeFormData } from "../types/income.types";
@@ -16,6 +20,8 @@ export default function IncomePage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
 
   async function loadData() {
     try {
@@ -45,6 +51,14 @@ export default function IncomePage() {
         .reduce((sum, item) => sum + Number(item.amount ?? 0), 0),
     [records],
   );
+
+  const filteredRecords = useMemo(() => {
+    const keyword = search.trim().toLowerCase();
+    return records.filter((record) => {
+      const matchesSearch = !keyword || `${record.description} ${record.source ?? ""} ${record.incomeNumber}`.toLowerCase().includes(keyword);
+      return matchesSearch && (categoryFilter === "all" || record.category === categoryFilter);
+    });
+  }, [records, search, categoryFilter]);
 
 
   async function handleSubmit(data: IncomeFormData) {
@@ -144,16 +158,11 @@ export default function IncomePage() {
         )}
 
         <div className="rounded-2xl border bg-white p-4 shadow-sm sm:p-6">
+          <ListToolbar search={search} onSearchChange={setSearch} placeholder="Search description, source, or reference..." resultCount={filteredRecords.length} onClear={() => { setSearch(""); setCategoryFilter("all"); }} filter={<select aria-label="Filter income by category" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="all">All categories</option><option value="Student Fee">Student Fee</option></select>} />
           {loading ? (
-            <div className="flex min-h-[220px] items-center justify-center text-sm text-slate-500">
-              Loading income records...
-            </div>
-          ) : records.length === 0 ? (
-            <div className="flex min-h-[220px] flex-col items-center justify-center text-center">
-              <TrendingUp size={32} className="mb-4 text-slate-400" />
-              <h2 className="text-lg font-semibold text-slate-900">No income records</h2>
-              <p className="mt-2 text-sm text-slate-500">Income transactions will appear here once added.</p>
-            </div>
+            <ListSkeleton rows={5} columns={5} />
+          ) : filteredRecords.length === 0 ? (
+            <EmptyState icon={TrendingUp} title={records.length === 0 ? "No income records yet" : "No matching income records"} description={records.length === 0 ? "Add the first income entry to begin tracking receipts." : "Try a different search term or category."} />
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm">
@@ -167,7 +176,7 @@ export default function IncomePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {records.map((record) => (
+                  {filteredRecords.map((record) => (
                     <tr key={record.id ?? record.incomeNumber} className="border-t border-slate-200">
                       <td className="px-3 py-3 text-slate-700">{record.incomeDate}</td>
                       <td className="px-3 py-3 text-slate-700">{record.category}</td>

@@ -1,6 +1,4 @@
-import { useState, useRef, useEffect } from "react";
 import {
-  Calendar,
   ChevronLeft,
   ChevronRight,
   RotateCcw,
@@ -12,8 +10,8 @@ import {
   getNextBSDate,
   formatBSDate,
   isTodayBS,
-  BS_MONTHS,
 } from "@/utils/nepali-date";
+import NepaliDatePickerInput from "@/components/forms/NepaliDatePickerInput";
 
 interface AttendanceDateNavigatorProps {
   selectedDateBS: string;
@@ -22,44 +20,15 @@ interface AttendanceDateNavigatorProps {
   totalRecordsCount?: number;
 }
 
-const YEAR_OPTIONS = Array.from({ length: 15 }, (_, index) => 2075 + index); // 2075 to 2089
-const DAY_OPTIONS = Array.from({ length: 32 }, (_, index) =>
-  String(index + 1).padStart(2, "0")
-);
-
 export default function AttendanceDateNavigator({
   selectedDateBS,
   onDateChange,
   recordedDates = [],
   totalRecordsCount = 0,
 }: AttendanceDateNavigatorProps) {
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const calendarRef = useRef<HTMLDivElement>(null);
-
   const todayBS = getCurrentBSDate();
   const isCurrentDay = isTodayBS(selectedDateBS);
   const hasRecordedData = recordedDates.includes(selectedDateBS) || totalRecordsCount > 0;
-
-  const [year = "", month = "", day = ""] = selectedDateBS.split("-");
-
-  // Close calendar popup on outside click
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        calendarRef.current &&
-        !calendarRef.current.contains(event.target as Node)
-      ) {
-        setIsCalendarOpen(false);
-      }
-    }
-
-    if (isCalendarOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isCalendarOpen]);
 
   const handlePreviousDay = () => {
     onDateChange(getPreviousBSDate(selectedDateBS));
@@ -72,23 +41,6 @@ export default function AttendanceDateNavigator({
   const handleToday = () => {
     onDateChange(todayBS);
   };
-
-  const handleYearChange = (newYear: string) => {
-    if (!newYear) return;
-    onDateChange(`${newYear}-${month || "01"}-${day || "01"}`);
-  };
-
-  const handleMonthChange = (newMonth: string) => {
-    if (!newMonth) return;
-    onDateChange(`${year || "2081"}-${newMonth}-${day || "01"}`);
-  };
-
-  const handleDayChange = (newDay: string) => {
-    if (!newDay) return;
-    onDateChange(`${year || "2081"}-${month || "01"}-${newDay}`);
-  };
-
-  const selectedMonthObj = BS_MONTHS.find((m) => m.value === month);
 
   return (
     <div className="relative rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
@@ -177,103 +129,8 @@ export default function AttendanceDateNavigator({
             <ChevronRight size={16} />
           </button>
 
-          {/* Select BS Date Dropdown Toggle */}
-          <div className="relative" ref={calendarRef}>
-            <button
-              type="button"
-              onClick={() => setIsCalendarOpen(!isCalendarOpen)}
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-blue-200 bg-blue-50/70 px-3.5 text-xs font-semibold text-blue-700 shadow-sm transition hover:bg-blue-100"
-            >
-              <Calendar size={15} />
-              <span>Choose BS Date</span>
-            </button>
-
-            {/* Calendar Popup Dropdown */}
-            {isCalendarOpen && (
-              <div className="absolute right-0 top-12 z-50 w-80 rounded-2xl border border-slate-200 bg-white p-4 shadow-xl ring-1 ring-black/5">
-                <div className="mb-3 flex items-center justify-between border-b border-slate-100 pb-2">
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                    Jump to Nepali Date (BS)
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleToday();
-                      setIsCalendarOpen(false);
-                    }}
-                    className="text-xs font-semibold text-blue-600 hover:underline"
-                  >
-                    Reset to Today
-                  </button>
-                </div>
-
-                <div className="space-y-3">
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-600">
-                      BS Year
-                    </label>
-                    <select
-                      value={year}
-                      onChange={(e) => handleYearChange(e.target.value)}
-                      className="h-9 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 text-xs font-medium text-slate-800 outline-none focus:border-blue-500 focus:bg-white"
-                    >
-                      {YEAR_OPTIONS.map((y) => (
-                        <option key={y} value={y}>
-                          {y} BS
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-600">
-                      BS Month
-                    </label>
-                    <select
-                      value={month}
-                      onChange={(e) => handleMonthChange(e.target.value)}
-                      className="h-9 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 text-xs font-medium text-slate-800 outline-none focus:border-blue-500 focus:bg-white"
-                    >
-                      {BS_MONTHS.map((m) => (
-                        <option key={m.value} value={m.value}>
-                          {m.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-600">
-                      BS Day
-                    </label>
-                    <select
-                      value={day}
-                      onChange={(e) => handleDayChange(e.target.value)}
-                      className="h-9 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 text-xs font-medium text-slate-800 outline-none focus:border-blue-500 focus:bg-white"
-                    >
-                      {DAY_OPTIONS.map((d) => (
-                        <option key={d} value={d}>
-                          {d}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
-                  <span className="text-[11px] text-slate-500">
-                    Selected: {day} {selectedMonthObj?.name} {year}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setIsCalendarOpen(false)}
-                    className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow transition hover:bg-slate-800"
-                  >
-                    Done
-                  </button>
-                </div>
-              </div>
-            )}
+          <div className="w-full min-w-64 sm:w-72">
+            <NepaliDatePickerInput value={selectedDateBS} onChange={onDateChange} />
           </div>
 
         </div>

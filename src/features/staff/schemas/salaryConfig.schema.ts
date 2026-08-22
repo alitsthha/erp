@@ -2,7 +2,9 @@ import { z } from "zod";
 
 export const salaryConfigSchema = z
   .object({
-    role: z.string().min(1, "Role is required"),
+    staffId: z.string().min(1, "Staff member is required"),
+    staffName: z.string().min(1, "Staff member is required"),
+    role: z.string().default(""),
 
     salaryType: z.enum(["Monthly", "Hourly", "Per Class"]),
 

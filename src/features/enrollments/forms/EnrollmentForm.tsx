@@ -27,7 +27,7 @@ import type { Activity } from "@/features/activities/types/activity.types";
 import type { Student } from "@/features/students/types/student.types";
 
 import { convertADToBS, getCurrentBSDate } from "@/utils/nepali-date";
-import BsDateSelect from "@/components/forms/BsDateSelect";
+import NepaliDatePickerInput from "@/components/forms/NepaliDatePickerInput";
 
 import { formatCurrency } from "@/utils/currency";
 
@@ -257,7 +257,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
           MAIN INFORMATION
       ======================================================= */}
 
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <section className="relative overflow-visible rounded-2xl border border-slate-200 bg-white shadow-sm">
         {/* Section Header */}
 
         <div className="border-b border-slate-200 px-6 py-5 sm:px-8">
@@ -408,12 +408,12 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
 
           {/* Enrollment Date */}
 
-          <div>
+          <div className="relative z-30">
             <Controller
               name="enrollmentDate"
               control={control}
               render={({ field }) => (
-                <BsDateSelect
+                <NepaliDatePickerInput
                   label="Enrollment Date (BS)"
                   value={field.value ?? getCurrentBSDate()}
                   onChange={field.onChange}

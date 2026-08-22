@@ -4,12 +4,13 @@ import {
   AlertCircle,
   Briefcase,
   Edit2,
-  Loader2,
   Plus,
-  RotateCw,
-  Search,
   Trash2,
 } from "lucide-react";
+
+import ConfirmDialog from "@/components/common/ConfirmDialog";
+import ListSkeleton from "@/components/common/ListSkeleton";
+import ListToolbar from "@/components/common/ListToolbar";
 
 import {
   getSalaryConfigs,
@@ -28,6 +29,9 @@ export default function SalaryConfigPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [deleteTarget, setDeleteTarget] = useState<SalaryConfig | "bulk" | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Load salary configs
   useEffect(() => {
@@ -55,7 +59,7 @@ export default function SalaryConfigPage() {
     return configs.filter((config) => {
       const matchesSearch =
         keyword === "" ||
-        config.role.toLowerCase().includes(keyword) ||
+        `${config.staffName} ${config.role}`.toLowerCase().includes(keyword) ||
         config.salaryType.toLowerCase().includes(keyword);
 
       const matchesFilter =
@@ -68,20 +72,35 @@ export default function SalaryConfigPage() {
   // Delete config
   async function handleDelete(config: SalaryConfig) {
     if (!config.id) return;
+    setDeleteTarget(config);
+  }
 
-    const confirmed = window.confirm(
-      `Are you sure you want to delete the salary config for ${config.role}?`
-    );
-    if (!confirmed) return;
-
+  async function confirmDelete() {
+    if (!deleteTarget) return;
     try {
-      await deleteSalaryConfig(config.id);
-      setConfigs((prev) => prev.filter((c) => c.id !== config.id));
+      setIsDeleting(true);
+      const ids = deleteTarget === "bulk"
+        ? selectedIds
+        : deleteTarget.id
+          ? [deleteTarget.id]
+          : [];
+      await Promise.all(ids.map((id) => deleteSalaryConfig(id)));
+      setConfigs((prev) => prev.filter((config) => !ids.includes(config.id)));
+      setSelectedIds([]);
+      setDeleteTarget(null);
     } catch (error) {
       console.error("Failed to delete config:", error);
-      alert("Failed to delete salary configuration.");
+      setError("Failed to delete salary configuration.");
+    } finally {
+      setIsDeleting(false);
     }
   }
+
+  function toggleSelected(id: string) {
+    setSelectedIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  }
+
+  const allVisibleSelected = filteredConfigs.length > 0 && filteredConfigs.every((config) => config.id && selectedIds.includes(config.id));
 
   // Clear filters
   function clearFilters() {
@@ -138,56 +157,25 @@ export default function SalaryConfigPage() {
             </div>
           )}
 
-          {/* SEARCH & FILTERS */}
-          <div className="border-b border-slate-200 p-5">
-            <div className="flex flex-col gap-3 lg:flex-row">
-              {/* Search */}
-              <div className="relative min-w-0 flex-1">
-                <Search
-                  size={18}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search by role or salary type..."
-                  className="w-full rounded-lg border border-slate-300 bg-white pl-10 pr-4 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                />
-              </div>
+          <ListToolbar
+            search={search}
+            onSearchChange={setSearch}
+            placeholder="Search by role or salary type..."
+            resultCount={filteredConfigs.length}
+            onClear={clearFilters}
+            filter={<select aria-label="Filter salary configurations by status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-blue-500"><option value="all">All statuses</option><option value="Active">Active</option><option value="Inactive">Inactive</option></select>}
+          />
 
-              {/* Status Filter */}
-              <div className="w-full lg:w-40">
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                >
-                  <option value="all">All Status</option>
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
-                </select>
-              </div>
-
-              {/* Clear Filters */}
-              {(search || statusFilter !== "all") && (
-                <button
-                  onClick={clearFilters}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                >
-                  <RotateCw size={16} />
-                  Clear
-                </button>
-              )}
+          {selectedIds.length > 0 && (
+            <div className="flex flex-col gap-2 border-b border-blue-100 bg-blue-50 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between sm:px-5">
+              <span className="font-medium text-blue-900">{selectedIds.length} configurations selected</span>
+              <button type="button" onClick={() => setDeleteTarget("bulk")} className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-xs font-medium text-white hover:bg-red-700"><Trash2 size={14} /> Delete selected</button>
             </div>
-          </div>
+          )}
 
           {/* LOADING STATE */}
           {loading && (
-            <div className="flex min-h-[200px] items-center justify-center p-6 text-slate-500">
-              <Loader2 className="mr-2 animate-spin" size={18} />
-              Loading salary configurations...
-            </div>
+            <ListSkeleton rows={6} columns={6} />
           )}
 
           {/* EMPTY STATE */}
@@ -213,7 +201,8 @@ export default function SalaryConfigPage() {
               <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
                 <thead className="bg-slate-50 text-slate-600">
                   <tr>
-                    <th className="px-5 py-3 font-medium">Role</th>
+                    <th className="w-12 px-5 py-3"><input type="checkbox" aria-label="Select all visible configurations" checked={allVisibleSelected} onChange={() => setSelectedIds(allVisibleSelected ? [] : filteredConfigs.flatMap((config) => config.id ? [config.id] : []))} /></th>
+                    <th className="px-5 py-3 font-medium">Staff Member</th>
                     <th className="px-5 py-3 font-medium">Salary Type</th>
                     <th className="px-5 py-3 font-medium text-right">Basic Salary</th>
                     <th className="px-5 py-3 font-medium text-right">Allowance</th>
@@ -225,8 +214,9 @@ export default function SalaryConfigPage() {
                 <tbody className="divide-y divide-slate-200 bg-white">
                   {filteredConfigs.map((config) => (
                     <tr key={config.id} className="hover:bg-slate-50">
+                      <td className="px-5 py-3"><input type="checkbox" aria-label={`Select ${config.role}`} checked={Boolean(config.id && selectedIds.includes(config.id))} onChange={() => config.id && toggleSelected(config.id)} /></td>
                       <td className="px-5 py-3 font-medium text-slate-900">
-                        {config.role}
+                        {config.staffName || config.role}
                       </td>
                       <td className="px-5 py-3 text-slate-600">
                         <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
@@ -283,6 +273,15 @@ export default function SalaryConfigPage() {
           )}
         </div>
       </div>
+      <ConfirmDialog
+        open={Boolean(deleteTarget)}
+        title={deleteTarget === "bulk" ? "Delete selected configurations?" : "Delete salary configuration?"}
+        description={deleteTarget === "bulk" ? `This will permanently remove ${selectedIds.length} selected salary configurations.` : `This will permanently remove the salary configuration for ${(deleteTarget as SalaryConfig | null)?.role ?? "this role"}.`}
+        confirmLabel="Delete"
+        isLoading={isDeleting}
+        onConfirm={() => void confirmDelete()}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

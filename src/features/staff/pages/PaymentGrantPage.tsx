@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Briefcase, ChevronLeft, Plus, Trash2 } from "lucide-react";
 
-import BsDateSelect from "@/components/forms/BsDateSelect";
+import NepaliDatePickerInput from "@/components/forms/NepaliDatePickerInput";
 import PageContainer from "@/components/common/PageContainer";
 import LoadingSpinner from "@/components/common/LoadingSpinner";
 import { convertADToBS, formatBSDate, getCurrentBSDate } from "@/utils/nepali-date";
@@ -197,7 +197,7 @@ export default function PaymentGrantPage() {
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-700">Payment Date (BS) *</label>
                 <div className="rounded-xl border border-slate-200 bg-white p-3">
-                  <BsDateSelect
+                  <NepaliDatePickerInput
                     label=""
                     value={paymentDateValue}
                     onChange={(value) => setValue("paymentDate", value, { shouldValidate: true })}

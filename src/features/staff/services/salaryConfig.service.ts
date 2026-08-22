@@ -46,6 +46,8 @@ export async function getSalaryConfigs(): Promise<
       SalaryConfig,
       "id"
     >),
+    staffId: String(docSnap.data().staffId ?? ""),
+    staffName: String(docSnap.data().staffName ?? ""),
     id: docSnap.id,
   }));
 }

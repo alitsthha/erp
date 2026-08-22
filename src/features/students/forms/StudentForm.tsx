@@ -1,8 +1,7 @@
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  CalendarDays,
   CheckCircle2,
   FileText,
   Mail,
@@ -16,6 +15,7 @@ import {
   studentSchema,
   type StudentFormData,
 } from "../schemas/student.schema";
+import NepaliDatePickerInput from "@/components/forms/NepaliDatePickerInput";
 
 type StudentFormProps = {
   initialData?: Partial<StudentFormData>;
@@ -32,6 +32,7 @@ export default function StudentForm({
 }: StudentFormProps) {
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: {
@@ -215,24 +216,19 @@ export default function StudentForm({
               Joining Date (BS) <span className="text-red-500">*</span>
             </label>
 
-            <div className="relative">
-              <CalendarDays
-                size={17}
-                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-              />
-
-              <input
-                id="joiningDateBS"
-                type="text"
-                placeholder="2083-04-22"
-                {...register("joiningDateBS")}
-                className={`h-11 w-full rounded-xl border bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
-                  errors.joiningDateBS
-                    ? "border-red-300 focus:border-red-400 focus:ring-red-50"
-                    : "border-slate-300 focus:border-blue-500 focus:ring-blue-50"
-                }`}
-              />
-            </div>
+            <Controller
+              name="joiningDateBS"
+              control={control}
+              render={({ field }) => (
+                <NepaliDatePickerInput
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  required
+                  error={errors.joiningDateBS?.message}
+                  helperText="Select the student's joining date in BS."
+                />
+              )}
+            />
 
             {errors.joiningDateBS && (
               <p className="mt-1.5 text-xs font-medium text-red-500">
