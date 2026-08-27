@@ -12,6 +12,11 @@ export const salaryConfigSchema = z
       .number()
       .min(0, "Basic salary must be at least 0"),
 
+    expectedWorkingDays: z.coerce
+      .number()
+      .int()
+      .min(1, "Expected working days must be at least 1"),
+
     allowance: z.coerce
       .number()
       .min(0, "Allowance must be at least 0"),

@@ -1,3 +1,17 @@
+# Email delivery
+
+Invoice emails and attendance alerts are written to the Firestore `mail` collection. Invoice emails include the generated PDF as a base64 attachment.
+
+To enable delivery for the configured Firebase project:
+
+```sh
+firebase login
+firebase ext:install firestore-send-email
+```
+
+During setup, use `mail` as the Firestore mail collection, set the default sender to the academy email, and configure Gmail SMTP with a Google app password. Do not commit the SMTP password. Deploy the extension after setup with `firebase deploy --only extensions`.
+
+The app uses `guardianEmail`, then `parentEmail`, as the parent contact; invoices fall back to `studentEmail` when no parent address is saved.
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.

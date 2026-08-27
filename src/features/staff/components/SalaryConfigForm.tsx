@@ -38,6 +38,7 @@ export default function SalaryConfigForm({
       role: "",
       salaryType: "Monthly",
       basicSalary: 0,
+      expectedWorkingDays: 26,
       allowance: 0,
       overtimeRate: 0,
       bonus: 0,
@@ -56,6 +57,12 @@ export default function SalaryConfigForm({
   const allowance = watch("allowance") || 0;
   const bonus = watch("bonus") || 0;
   const deduction = watch("deduction") || 0;
+  const salaryType = watch("salaryType");
+  const rateLabel = salaryType === "Hourly"
+    ? "Hourly Rate"
+    : salaryType === "Per Class"
+      ? "Rate per Session"
+      : "Monthly Salary";
 
   const total = basic + allowance + bonus - deduction;
 
@@ -100,7 +107,7 @@ export default function SalaryConfigForm({
 
           <div>
             <label className="mb-2 block font-medium">
-              Basic Salary
+              {rateLabel}
             </label>
 
             <input
@@ -110,6 +117,19 @@ export default function SalaryConfigForm({
               })}
               className="w-full rounded-xl border px-4 py-3"
             />
+          </div>
+
+          <div>
+            <label className="mb-2 block font-medium">
+              Expected Working Days / Month
+            </label>
+            <input
+              type="number"
+              min="1"
+              {...register("expectedWorkingDays", { valueAsNumber: true })}
+              className="w-full rounded-xl border px-4 py-3"
+            />
+            <p className="mt-1 text-xs text-slate-500">Used to prorate monthly salary.</p>
           </div>
 
           <div>

@@ -55,6 +55,7 @@ export interface BankTransaction {
 
 export interface PayrollRun {
   id?: string;
+  payrollExpenseId?: string;
   period: string;
   paymentDate: string;
   staffCount: number;
@@ -76,4 +77,9 @@ export interface Payslip {
   deduction: number;
   tax: number;
   netPay: number;
+  grossPay?: number;
+  presentDays?: number;
+  workingDays?: number;
+  hoursWorked?: number;
+  classesCompleted?: number;
 }

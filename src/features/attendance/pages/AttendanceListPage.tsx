@@ -10,6 +10,7 @@ import {
   Edit3,
   Wallet,
   ListFilter,
+  Send,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -35,6 +36,8 @@ import AttendanceTable from "@/features/attendance/components/AttendanceTable";
 
 import { useAuth } from "@/app/providers/AuthProvider";
 import { isActivityAllowedForRole } from "@/lib/rbac";
+import { getStudentById } from "@/features/students/services/student.service";
+import { queueEmail } from "@/features/finance/services/email.service";
 
 type FilterStatus = "All" | "Present" | "Absent";
 type ViewMode = "daily" | "all";
@@ -61,6 +64,8 @@ export default function AttendanceListPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("All");
   const [isLoading, setIsLoading] = useState(true);
+  const [sendingAlerts, setSendingAlerts] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("");
 
   // Load recorded dates list on mount
   useEffect(() => {
@@ -357,6 +362,35 @@ export default function AttendanceListPage() {
     selectedActivityId !== "all";
 
   const isToday = isTodayBS(selectedDateBS);
+
+  async function handleSendAbsenceAlerts() {
+    const absentRecords = activeRecords.filter((record) => record.status === "Absent");
+    if (absentRecords.length === 0) return;
+
+    try {
+      setSendingAlerts(true);
+      const results = await Promise.all(absentRecords.map(async (record) => {
+        const student = await getStudentById(record.studentId);
+        const recipient = student?.guardianEmail || student?.parentEmail || "";
+        if (!recipient) return false;
+
+        await queueEmail({
+          to: recipient,
+          subject: `Attendance alert for ${record.studentName}`,
+          text: `Dear Parent / Guardian,\n\n${record.studentName} was marked absent on ${record.sessionDateBS || selectedDateBS} BS for ${record.activityName}.\n\nPlease contact the academy if you need more information.`,
+          html: `<p>Dear Parent / Guardian,</p><p><strong>${record.studentName}</strong> was marked absent on <strong>${record.sessionDateBS || selectedDateBS} BS</strong> for ${record.activityName}.</p><p>Please contact the academy if you need more information.</p>`,
+        });
+        return true;
+      }));
+      const sentCount = results.filter(Boolean).length;
+      setAlertMessage(`Queued ${sentCount} attendance alert${sentCount === 1 ? "" : "s"}. ${absentRecords.length - sentCount} student${absentRecords.length - sentCount === 1 ? "" : "s"} have no parent email.`);
+    } catch (error) {
+      console.error("Error sending attendance alerts:", error);
+      setAlertMessage("Unable to queue attendance alerts.");
+    } finally {
+      setSendingAlerts(false);
+    }
+  }
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
@@ -699,6 +733,18 @@ export default function AttendanceListPage() {
 
           <div className="flex items-center gap-2">
             {viewMode === "daily" && (
+              <>
+                {absentCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => void handleSendAbsenceAlerts()}
+                    disabled={sendingAlerts}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Send size={13} />
+                    {sendingAlerts ? "Sending alerts..." : `Alert ${absentCount} absent`}
+                  </button>
+                )}
               <button
                 type="button"
                 onClick={() =>
@@ -715,9 +761,16 @@ export default function AttendanceListPage() {
                 <Edit3 size={13} />
                 Edit Date Roster
               </button>
+              </>
             )}
           </div>
         </div>
+
+        {alertMessage && (
+          <div className="border-b border-amber-100 bg-amber-50 px-5 py-3 text-sm text-amber-800 sm:px-6">
+            {alertMessage}
+          </div>
+        )}
 
         {/* Table / Content */}
         <div className="p-4 sm:p-5">

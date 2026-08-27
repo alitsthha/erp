@@ -70,6 +70,8 @@ export async function addActivity(
     category:
       data.category.trim(),
 
+    coachStaffId: data.coachStaffId?.trim() || "",
+
     coachName:
       data.coachName?.trim() || "",
 
@@ -111,6 +113,8 @@ export async function updateActivity(
 
     category:
       data.category.trim(),
+
+    coachStaffId: data.coachStaffId?.trim() || "",
 
     coachName:
       data.coachName?.trim() || "",

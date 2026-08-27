@@ -5,6 +5,7 @@ export interface Activity {
   activityCode: string;
   activityName: string;
   category: string;
+  coachStaffId?: string;
   coachName?: string;
   feePerSession?: number;
   fee?: number;

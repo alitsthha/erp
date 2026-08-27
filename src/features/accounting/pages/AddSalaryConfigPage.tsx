@@ -23,6 +23,7 @@ export default function AddSalaryConfigPage() {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(salaryConfigSchema),
@@ -32,6 +33,7 @@ export default function AddSalaryConfigPage() {
       role: "",
       salaryType: "Monthly",
       basicSalary: 0,
+      expectedWorkingDays: 26,
       allowance: 0,
       overtimeRate: 0,
       bonus: 0,
@@ -40,6 +42,12 @@ export default function AddSalaryConfigPage() {
       status: "Active",
     },
   });
+  const salaryType = watch("salaryType");
+  const rateLabel = salaryType === "Hourly"
+    ? "Hourly Rate"
+    : salaryType === "Per Class"
+      ? "Rate per Session"
+      : "Monthly Salary";
 
   async function onSubmit(data: unknown) {
     const formData = data as SalaryConfigFormData;
@@ -170,7 +178,7 @@ export default function AddSalaryConfigPage() {
                 htmlFor="basicSalary"
                 className="mb-2 block text-sm font-medium text-slate-700"
               >
-                Basic Salary <span className="text-red-500">*</span>
+                {rateLabel} <span className="text-red-500">*</span>
               </label>
               <input
                 id="basicSalary"

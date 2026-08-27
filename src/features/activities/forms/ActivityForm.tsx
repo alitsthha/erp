@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,6 +24,8 @@ import {
 } from "../services/activity.service";
 
 import { formatCurrency } from "@/utils/currency";
+import { getStaff } from "@/features/staff/services/staff.service";
+import type { Staff } from "@/features/staff/types/staff.types";
 
 type Props = {
   activityId?: string;
@@ -33,6 +35,7 @@ const defaultValues: ActivityFormData = {
   activityCode: "",
   activityName: "",
   category: "",
+  coachStaffId: "",
   coachName: "",
   feePerSession: "",
   description: "",
@@ -41,11 +44,13 @@ const defaultValues: ActivityFormData = {
 
 export default function ActivityForm({ activityId }: Props) {
   const navigate = useNavigate();
+  const [staff, setStaff] = useState<Staff[]>([]);
 
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
     watch,
     formState: {
       errors,
@@ -56,6 +61,10 @@ export default function ActivityForm({ activityId }: Props) {
 
     defaultValues,
   });
+
+  useEffect(() => {
+    void getStaff().then((items) => setStaff(items.filter((item) => item.status !== "Inactive")));
+  }, []);
 
   const activityName = watch("activityName");
   const category = watch("category");
@@ -94,6 +103,7 @@ export default function ActivityForm({ activityId }: Props) {
           activityCode: activity.activityCode ?? "",
           activityName: activity.activityName ?? "",
           category: activity.category ?? "",
+          coachStaffId: activity.coachStaffId ?? "",
           coachName: activity.coachName ?? "",
 
           feePerSession:
@@ -316,13 +326,17 @@ export default function ActivityForm({ activityId }: Props) {
                 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
               />
 
-              <input
-                id="coachName"
-                type="text"
-                placeholder="Enter instructor name"
-                {...register("coachName")}
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-50"
-              />
+              <select
+                id="coachStaffId"
+                {...register("coachStaffId", { onChange: (event) => {
+                  const selected = staff.find((item) => item.id === event.target.value);
+                  setValue("coachName", selected?.fullName ?? "");
+                } })}
+                className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-50"
+              >
+                <option value="">Select instructor</option>
+                {staff.map((member) => <option key={member.id} value={member.id}>{member.fullName} ({member.staffCode})</option>)}
+              </select>
             </div>
           </div>
 

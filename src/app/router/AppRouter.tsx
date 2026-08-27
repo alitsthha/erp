@@ -58,7 +58,6 @@ import AddSalaryConfigPage from "@/features/accounting/pages/AddSalaryConfigPage
 import EditSalaryConfigPage from "@/features/accounting/pages/EditSalaryConfigPage";
 
 // ================= STAFF =================
-import PaymentGrantPage from "@/features/staff/pages/PaymentGrantPage";
 
 // ================= REPORTS =================
 import ReportsPage from "@/features/reports/pages/ReportsPage";
@@ -237,11 +236,6 @@ export default function AppRouter() {
               element={<EditStaffPage />}
             />
 
-            <Route
-              path="/staff/payment/:staffId"
-              element={<PaymentGrantPage />}
-            />
-
             {/* =================================================
                 FINANCE
             ================================================= */}
@@ -298,11 +292,6 @@ export default function AppRouter() {
             <Route
               path="/accounting/payroll"
               element={<PayrollPage />}
-            />
-
-            <Route
-              path="/accounting/payments/:staffId"
-              element={<PaymentGrantPage />}
             />
 
             {/* =================================================

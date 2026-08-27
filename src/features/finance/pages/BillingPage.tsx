@@ -11,6 +11,7 @@ import {
   AlertCircle,
   FileText,
   Loader2,
+  Send,
   Search,
   UserRound,
 } from "lucide-react";
@@ -44,6 +45,7 @@ import {
 import {
   createPayment,
 } from "../services/payment.service";
+import { queueEmail } from "../services/email.service";
 
 import InvoiceTable from "../components/InvoiceTable";
 import PaymentForm from "../forms/PaymentForm";
@@ -128,6 +130,7 @@ export default function BillingPage() {
 
   const invoicePreviewRef = useRef<HTMLDivElement | null>(null);
   const [exportingInvoicePdf, setExportingInvoicePdf] = useState(false);
+  const [sendingInvoice, setSendingInvoice] = useState(false);
 
   const [error, setError] =
     useState("");
@@ -230,14 +233,12 @@ export default function BillingPage() {
     };
   }, [selectedInvoiceForPreview]);
 
-async function handleDownloadInvoicePdf() {
+async function createInvoicePdf(): Promise<jsPDF | null> {
   if (!selectedInvoiceForPreview) {
-    return;
+    return null;
   }
 
   try {
-    setExportingInvoicePdf(true);
-
     const pdf = new jsPDF({ unit: "pt", format: "a4" });
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
@@ -428,11 +429,62 @@ async function handleDownloadInvoicePdf() {
       pdf.text(`Page ${p} of ${totalInvoicePages}`, pageWidth - margin, pageHeight - 20, { align: "right" });
     }
 
-    pdf.save(`invoice-${invoice.invoiceNumber}.pdf`);
+    return pdf;
   } catch (err) {
     console.error("Failed to export invoice PDF:", err);
+    return null;
+  }
+}
+
+async function handleDownloadInvoicePdf() {
+  setExportingInvoicePdf(true);
+  try {
+    const pdf = await createInvoicePdf();
+    if (pdf && selectedInvoiceForPreview) {
+      pdf.save(`invoice-${selectedInvoiceForPreview.invoiceNumber}.pdf`);
+    }
   } finally {
     setExportingInvoicePdf(false);
+  }
+}
+
+async function handleSendInvoice() {
+  const invoice = selectedInvoiceForPreview;
+  if (!invoice) return;
+
+  const recipient = invoiceCustomer?.guardianEmail || invoiceCustomer?.parentEmail || invoiceCustomer?.studentEmail || "";
+  if (!recipient) {
+    setError("No parent or student email is saved for this student.");
+    return;
+  }
+
+  try {
+    setSendingInvoice(true);
+    setError("");
+    const pdf = await createInvoicePdf();
+    if (!pdf) {
+      throw new Error("Unable to prepare the invoice PDF.");
+    }
+    const dataUri = pdf.output("datauristring");
+    const base64Content = dataUri.split(",")[1];
+    await queueEmail({
+      to: recipient,
+      subject: `Invoice ${invoice.invoiceNumber} for ${invoice.studentName}`,
+      text: `Dear Parent / Guardian,\n\nThe invoice for ${invoice.studentName} (${invoice.billingMonth}) is ready.\nInvoice: ${invoice.invoiceNumber}\nTotal due: Rs. ${formatCurrency(invoice.totalAmount)}\n\nPlease contact ${ORGANIZATION_DETAILS.email} if you have any questions.`,
+      html: `<p>Dear Parent / Guardian,</p><p>The invoice for <strong>${invoice.studentName}</strong> (${invoice.billingMonth}) is ready.</p><p><strong>Invoice:</strong> ${invoice.invoiceNumber}<br /><strong>Total due:</strong> Rs. ${formatCurrency(invoice.totalAmount)}</p><p>Please contact ${ORGANIZATION_DETAILS.email} if you have any questions.</p>`,
+      attachments: [{
+        filename: `invoice-${invoice.invoiceNumber}.pdf`,
+        content: base64Content,
+        encoding: "base64",
+        contentType: "application/pdf",
+      }],
+    });
+    setSuccess(`Invoice queued for delivery to ${recipient}.`);
+  } catch (err) {
+    console.error("Failed to send invoice email:", err);
+    setError(err instanceof Error ? err.message : "Unable to send invoice email.");
+  } finally {
+    setSendingInvoice(false);
   }
 }
 
@@ -1206,6 +1258,15 @@ async function handleDownloadInvoicePdf() {
                   className="rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {exportingInvoicePdf ? "Preparing..." : "Download PDF"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleSendInvoice()}
+                  disabled={sendingInvoice || !invoiceCustomer}
+                  className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Send size={15} />
+                  {sendingInvoice ? "Sending..." : "Send to Parent"}
                 </button>
                 <button
                   type="button"

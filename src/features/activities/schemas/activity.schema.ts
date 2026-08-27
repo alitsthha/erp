@@ -13,6 +13,8 @@ export const activitySchema = z.object({
     .trim()
     .min(2, "Category is required"),
 
+  coachStaffId: z.string().optional(),
+
   coachName: z
     .string()
     .trim()

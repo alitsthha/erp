@@ -5,6 +5,7 @@ export interface SalaryConfig {
   role: string;
   salaryType: "Monthly" | "Hourly" | "Per Class";
   basicSalary: number;
+  expectedWorkingDays: number;
   allowance: number;
   overtimeRate: number;
   bonus: number;

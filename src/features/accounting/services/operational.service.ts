@@ -2,13 +2,17 @@ import {
   addDoc,
   collection,
   doc,
+  getDoc,
   getDocs,
   serverTimestamp,
   updateDoc,
+  query,
+  where,
 } from "firebase/firestore";
 
 import { db } from "@/firebase/config";
 import { generateCode } from "@/lib/generateCode";
+import { createExpense } from "@/features/finance/services/expense.service";
 import type {
   BankTransaction,
   CategoryRule,
@@ -106,7 +110,34 @@ export async function createPayrollRun(data: Omit<PayrollRun, "id" | "createdAt"
 }
 
 export async function disbursePayrollRun(runId: string): Promise<void> {
-  await updateDoc(doc(db, "payrollRuns", runId), { status: "Disbursed", disbursedAt: serverTimestamp() });
+  if (!runId) throw new Error("Payroll run is required.");
+
+  const runReference = doc(db, "payrollRuns", runId);
+  const runSnapshot = await getDoc(runReference);
+  if (!runSnapshot.exists()) throw new Error("Payroll run not found.");
+
+  const run = runSnapshot.data() as PayrollRun;
+  if (run.status === "Disbursed") return;
+
+  const expenseReference = `PAYROLL-${runId}`;
+  const existingExpense = await getDocs(
+    query(collection(db, "financeExpenses"), where("referenceNumber", "==", expenseReference))
+  );
+  const payrollExpenseId = existingExpense.docs[0]?.id ?? await createExpense({
+    category: "Salaries",
+    description: `Salary payroll for ${run.period}`,
+    amount: Number(run.netAmount),
+    expenseDate: run.paymentDate,
+    paymentMethod: "Cash",
+    referenceNumber: expenseReference,
+    notes: `${run.staffCount} staff member${run.staffCount === 1 ? "" : "s"}`,
+  });
+
+  await updateDoc(runReference, {
+    status: "Disbursed",
+    payrollExpenseId,
+    disbursedAt: serverTimestamp(),
+  });
 }
 
 async function assertPeriodOpen(date: string): Promise<void> {

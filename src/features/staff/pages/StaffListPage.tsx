@@ -75,7 +75,7 @@ export default function StaffListPage() {
               Staff Management
             </h1>
             <p className="mt-1 text-sm text-slate-500">
-              Manage academy staff members, assign roles and payment grants.
+              Manage academy staff members, roles, and employment details.
             </p>
           </div>
 
@@ -220,12 +220,6 @@ export default function StaffListPage() {
                             className="rounded px-3 py-1.5 text-xs font-medium text-blue-600 transition hover:bg-blue-50"
                           >
                             Edit
-                          </button>
-                          <button
-                            onClick={() => navigate(`/staff/payment/${staff.id}`)}
-                            className="rounded px-3 py-1.5 text-xs font-medium text-green-600 transition hover:bg-green-50"
-                          >
-                            Payment
                           </button>
                           <button
                             onClick={() => handleDelete(staff)}
