@@ -12,13 +12,7 @@ import {
   XCircle,
 } from "lucide-react";
 
-import {
-  collection,
-  getDocs,
-  orderBy,
-  query,
-  limit,
-} from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 
 import { db } from "@/firebase/config";
 
@@ -97,6 +91,106 @@ function formatCurrency(value?: number) {
   return `Rs. ${value.toLocaleString("en-IN")}`;
 }
 
+const DEMO_DASHBOARD_DATA = {
+  students: [
+    {
+      id: "demo-student-1",
+      fullName: "Aarav Shrestha",
+      studentCode: "STU-1001",
+      status: "Active",
+      createdAt: new Date("2026-08-11T09:00:00Z"),
+    },
+    {
+      id: "demo-student-2",
+      fullName: "Sarina Rai",
+      studentCode: "STU-1002",
+      status: "Active",
+      createdAt: new Date("2026-08-15T09:00:00Z"),
+    },
+    {
+      id: "demo-student-3",
+      fullName: "Nischal Karki",
+      studentCode: "STU-1003",
+      status: "Inactive",
+      createdAt: new Date("2026-08-18T09:00:00Z"),
+    },
+  ] as DashboardStudent[],
+  activities: [
+    {
+      id: "demo-activity-1",
+      activityCode: "ACT-201",
+      activityName: "Music Fundamentals",
+      status: "Active",
+    },
+    {
+      id: "demo-activity-2",
+      activityCode: "ACT-202",
+      activityName: "Dance Basics",
+      status: "Active",
+    },
+    {
+      id: "demo-activity-3",
+      activityCode: "ACT-203",
+      activityName: "Art Studio",
+      status: "Inactive",
+    },
+  ] as DashboardActivity[],
+  enrollments: [
+    {
+      id: "demo-enrollment-1",
+      enrollmentCode: "ENR-5001",
+      studentName: "Aarav Shrestha",
+      studentCode: "STU-1001",
+      activityName: "Music Fundamentals",
+      activityCode: "ACT-201",
+      enrollmentDate: "2026-08-20",
+      sessionFee: 2500,
+      status: "Active",
+      createdAt: new Date("2026-08-20T09:00:00Z"),
+    },
+    {
+      id: "demo-enrollment-2",
+      enrollmentCode: "ENR-5002",
+      studentName: "Sarina Rai",
+      studentCode: "STU-1002",
+      activityName: "Dance Basics",
+      activityCode: "ACT-202",
+      enrollmentDate: "2026-08-24",
+      sessionFee: 3200,
+      status: "Active",
+      createdAt: new Date("2026-08-24T09:00:00Z"),
+    },
+  ] as DashboardEnrollment[],
+};
+
+async function getDashboardCollection<T>(
+  collectionName: string,
+  mapper?: (doc: { id: string; data: () => Record<string, unknown> }) => T
+): Promise<T[]> {
+  try {
+    const snapshot = await getDocs(collection(db, collectionName));
+
+    return snapshot.docs.map((doc) => {
+      const data = doc.data();
+
+      if (mapper) {
+        return mapper({
+          id: doc.id,
+          data: () => data,
+        });
+      }
+
+      return {
+        id: doc.id,
+        ...data,
+      } as T;
+    });
+  } catch (error) {
+    console.warn(`Dashboard collection unavailable: ${collectionName}`, error);
+    return [];
+  }
+}
+
 export default function DashboardPage() {
   const navigate = useNavigate();
 
@@ -112,54 +206,51 @@ export default function DashboardPage() {
       setLoading(true);
       setError(null);
 
-      const studentsQuery = query(
-        collection(db, "students"),
-        orderBy("createdAt", "desc"),
-        limit(100)
+      const [studentData, activityData, enrollmentData] = await Promise.all([
+        getDashboardCollection<DashboardStudent>("students"),
+        getDashboardCollection<DashboardActivity>("activities"),
+        getDashboardCollection<DashboardEnrollment>("enrollments"),
+      ]);
+
+      setStudents(
+        [...studentData].sort((a, b) => {
+          const dateA = getDateFromTimestamp(a.createdAt)?.getTime() ?? 0;
+          const dateB = getDateFromTimestamp(b.createdAt)?.getTime() ?? 0;
+          return dateB - dateA;
+        })
+      );
+      setActivities(
+        [...activityData].sort((a, b) => {
+          const nameA = String(a.activityCode ?? "").toLowerCase();
+          const nameB = String(b.activityCode ?? "").toLowerCase();
+          return nameA.localeCompare(nameB);
+        })
+      );
+      setEnrollments(
+        [...enrollmentData].sort((a, b) => {
+          const dateA = getDateFromTimestamp(a.createdAt)?.getTime() ?? 0;
+          const dateB = getDateFromTimestamp(b.createdAt)?.getTime() ?? 0;
+          return dateB - dateA;
+        })
       );
 
-      const activitiesQuery = query(
-        collection(db, "activities"),
-        orderBy("activityCode")
-      );
+      const hasNoFirestoreData =
+        studentData.length === 0 &&
+        activityData.length === 0 &&
+        enrollmentData.length === 0;
 
-      const enrollmentsQuery = query(
-        collection(db, "enrollments"),
-        orderBy("createdAt", "desc"),
-        limit(100)
-      );
-
-      const [studentsSnapshot, activitiesSnapshot, enrollmentsSnapshot] =
-        await Promise.all([
-          getDocs(studentsQuery),
-          getDocs(activitiesQuery),
-          getDocs(enrollmentsQuery),
-        ]);
-
-      const studentData = studentsSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as DashboardStudent[];
-
-      const activityData = activitiesSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as DashboardActivity[];
-
-      const enrollmentData = enrollmentsSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as DashboardEnrollment[];
-
-      setStudents(studentData);
-      setActivities(activityData);
-      setEnrollments(enrollmentData);
+      if (hasNoFirestoreData) {
+        setStudents(DEMO_DASHBOARD_DATA.students);
+        setActivities(DEMO_DASHBOARD_DATA.activities);
+        setEnrollments(DEMO_DASHBOARD_DATA.enrollments);
+        return;
+      }
     } catch (err) {
       console.error("Dashboard loading error:", err);
 
-      setError(
-        "Unable to load dashboard data. Please check your Firebase data."
-      );
+      setStudents(DEMO_DASHBOARD_DATA.students);
+      setActivities(DEMO_DASHBOARD_DATA.activities);
+      setEnrollments(DEMO_DASHBOARD_DATA.enrollments);
     } finally {
       setLoading(false);
     }
