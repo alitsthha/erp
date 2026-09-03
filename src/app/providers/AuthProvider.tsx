@@ -38,32 +38,6 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-function getDemoSession(): { uid: string; email: string; role: AppRole } | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const raw = window.localStorage.getItem("erp_demo_session");
-  if (!raw) {
-    return null;
-  }
-
-  try {
-    const parsed = JSON.parse(raw) as { uid?: string; email?: string; role?: AppRole };
-    if (!parsed.email || !parsed.uid || !parsed.role) {
-      return null;
-    }
-
-    return {
-      uid: parsed.uid,
-      email: parsed.email,
-      role: parsed.role,
-    };
-  } catch {
-    return null;
-  }
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
@@ -73,23 +47,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const demoSession = getDemoSession();
-
-    if (demoSession) {
-      setUser({
-        uid: demoSession.uid,
-        email: demoSession.email,
-      } as User);
-      setRole(demoSession.role);
-      setPermissions(
-        demoSession.role === "admin"
-          ? createDefaultPermissions("admin")
-          : normalizePermissions(createDefaultPermissions(demoSession.role))
-      );
-      setLoading(false);
-      return;
-    }
-
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (!currentUser) {
         setUser(null);
@@ -132,39 +89,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     passwordInput: string
   ): Promise<{ success: boolean; role?: AppRole; error?: string }> => {
     setLoading(true);
-    const normalizedEmail = emailInput.trim().toLowerCase();
 
-    // 1. Check Demo Admin Session
-    if (
-      normalizedEmail === "alitshrestha74@gmail.com" &&
-      passwordInput === "admin123"
-    ) {
-      const demoUser = {
-        uid: "demo-admin-user",
-        email: normalizedEmail,
-      } as User;
-      const demoRole: AppRole = "admin";
-      const demoPermissions = createDefaultPermissions("admin");
-
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(
-          "erp_demo_session",
-          JSON.stringify({
-            uid: "demo-admin-user",
-            email: normalizedEmail,
-            role: demoRole,
-          })
-        );
-      }
-
-      setUser(demoUser);
-      setRole(demoRole);
-      setPermissions(demoPermissions);
-      setLoading(false);
-      return { success: true, role: demoRole };
-    }
-
-    // 2. Firebase Authentication
+    // Firebase Authentication
     try {
       const userCredential = await signInWithEmailAndPassword(
         auth,
