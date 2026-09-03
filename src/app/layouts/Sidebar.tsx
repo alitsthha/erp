@@ -226,31 +226,17 @@ export default function Sidebar({
         {/* =================================================
             LOGO / BRAND
         ================================================== */}
-        <div className="flex h-20 shrink-0 items-center border-b border-slate-200 px-5">
+        <div className="flex h-20 shrink-0 items-center border-b border-slate-200 bg-slate-50 px-4 py-2">
           <NavLink
-            to="/dashboard"
-            onClick={onClose}
-            className="flex min-w-0 items-center gap-3"
+              to="/dashboard"
+              onClick={onClose}
+              className="flex h-full items-center"
           >
-            {/* Logo */}
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-50">
-              <img
+            <img
                 src="/yea-logo.png"
                 alt="Young Explorers Academy"
-                className="h-full w-full object-contain"
-              />
-            </div>
-
-            {/* Brand name */}
-            <div className="min-w-0">
-              <p className="truncate text-sm font-bold text-slate-900">
-                Young Explorers
-              </p>
-
-              <p className="truncate text-xs font-medium text-slate-500">
-                Academy ERP
-              </p>
-            </div>
+                className="h-12 w-auto object-contain"
+            />
           </NavLink>
         </div>
 
