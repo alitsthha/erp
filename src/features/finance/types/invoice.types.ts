@@ -3,7 +3,9 @@ export type InvoiceStatus =
   | "Unpaid"
   | "Partially Paid"
   | "Paid"
-  | "Cancelled";
+  | "Cancelled"
+  | "Sent (Mail)"
+  | "Sent (WhatsApp)";
 
 export interface InvoiceLine {
   enrollmentId?: string;

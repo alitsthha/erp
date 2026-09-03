@@ -4,6 +4,7 @@ import {
   CreditCard,
   Eye,
   MoreHorizontal,
+  Pencil,
   Trash2,
   XCircle,
 } from "lucide-react";
@@ -41,12 +42,23 @@ const STATUS_STYLES: Record<
     className: "bg-red-50 text-red-600 ring-1 ring-red-200",
     icon: <XCircle size={12} />,
   },
+  "Sent (Mail)": {
+    label: "Sent (Mail)",
+    className: "bg-violet-50 text-violet-700 ring-1 ring-violet-200",
+    icon: <CheckCircle2 size={12} />,
+  },
+  "Sent (WhatsApp)": {
+    label: "Sent (WhatsApp)",
+    className: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
+    icon: <CheckCircle2 size={12} />,
+  },
 };
 
 interface InvoiceTableProps {
   invoices: Invoice[];
   isLoading?: boolean;
   onView?: (invoice: Invoice) => void;
+  onEdit?: (invoice: Invoice) => void;
   onDelete?: (invoiceId: string) => void;
   onRecordPayment?: (invoice: Invoice) => void;
 }
@@ -55,6 +67,7 @@ export default function InvoiceTable({
   invoices,
   isLoading = false,
   onView,
+  onEdit,
   onDelete,
   onRecordPayment,
 }: InvoiceTableProps) {
@@ -186,6 +199,17 @@ export default function InvoiceTable({
                           </button>
                         )}
 
+                        {onEdit && (
+                          <button
+                            type="button"
+                            onClick={() => onEdit(invoice)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                            title="Edit invoice"
+                          >
+                            <Pencil size={13} />
+                          </button>
+                        )}
+
                         {onRecordPayment &&
                           invoice.status !== "Paid" &&
                           invoice.status !== "Cancelled" && (
@@ -285,6 +309,16 @@ export default function InvoiceTable({
                   >
                     <Eye size={13} />
                     View
+                  </button>
+                )}
+                {onEdit && (
+                  <button
+                    type="button"
+                    onClick={() => onEdit(invoice)}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-700"
+                    title="Edit invoice"
+                  >
+                    <Pencil size={13} />
                   </button>
                 )}
                 {onRecordPayment &&

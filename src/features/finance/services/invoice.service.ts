@@ -8,6 +8,7 @@ import {
   query,
   serverTimestamp,
   runTransaction,
+  updateDoc,
   where,
 } from "firebase/firestore";
 
@@ -61,6 +62,67 @@ function roundMoney(
       (value + Number.EPSILON) * 100
     ) / 100
   );
+}
+
+async function applyStudentAdvance(
+ studentId: string,
+ billAmount: number
+): Promise<number> {
+ if (!studentId || billAmount <= 0) {
+   return 0;
+ }
+
+ const advanceQuery = query(
+   collection(db, "financeIncome"),
+   where("studentId", "==", studentId)
+ );
+
+ const snapshot = await getDocs(advanceQuery);
+ const eligibleDocs = snapshot.docs
+   .filter((docSnap) => !docSnap.data().deletedAt)
+   .filter((docSnap) => docSnap.data().category === "Student Fee (Advance)")
+   .sort((a, b) => {
+     const aValue = a.data().incomeDate;
+     const bValue = b.data().incomeDate;
+     const aTime = aValue ? new Date(String(aValue)).getTime() : 0;
+     const bTime = bValue ? new Date(String(bValue)).getTime() : 0;
+
+     if (Number.isNaN(aTime) || Number.isNaN(bTime)) {
+       return String(aValue ?? "").localeCompare(String(bValue ?? ""));
+     }
+
+     return aTime - bTime;
+   });
+
+ let remainingBill = roundMoney(billAmount);
+ let totalApplied = 0;
+
+ for (const docSnap of eligibleDocs) {
+   const data = docSnap.data() as Record<string, unknown>;
+   const amount = roundMoney(toNumber(data.amount));
+   const applied = roundMoney(toNumber(data.appliedAmount));
+   const available = roundMoney(Math.max(amount - applied, 0));
+   if (available <= 0) continue;
+
+   const applyNow = roundMoney(Math.min(remainingBill, available));
+   if (applyNow <= 0) continue;
+
+   const nextApplied = roundMoney(applied + applyNow);
+   await updateDoc(docSnap.ref, {
+     appliedAmount: nextApplied,
+     remainingAmount: roundMoney(Math.max(amount - nextApplied, 0)),
+     updatedAt: serverTimestamp(),
+   });
+
+   remainingBill = roundMoney(Math.max(remainingBill - applyNow, 0));
+   totalApplied = roundMoney(totalApplied + applyNow);
+
+   if (remainingBill <= 0) {
+     break;
+   }
+ }
+
+ return totalApplied;
 }
 
 /* =========================================================
@@ -141,10 +203,11 @@ function mapInvoice(
 
     status:
       data.status === "Paid" ||
-      data.status ===
-        "Partially Paid" ||
+      data.status === "Partially Paid" ||
       data.status === "Unpaid" ||
-      data.status === "Cancelled"
+      data.status === "Cancelled" ||
+      data.status === "Sent (Mail)" ||
+      data.status === "Sent (WhatsApp)"
         ? data.status
         : "Draft",
 
@@ -349,11 +412,26 @@ export async function createInvoiceFromStudentFee(
       )
     );
 
-  const totalAmount =
+  const billBeforeAdvance =
     roundMoney(
       Math.max(
         subtotal -
           discount,
+        0
+      )
+    );
+
+  const advanceApplied =
+    await applyStudentAdvance(
+      studentId,
+      billBeforeAdvance
+    );
+
+  const totalAmount =
+    roundMoney(
+      Math.max(
+        billBeforeAdvance -
+          advanceApplied,
         0
       )
     );
@@ -428,6 +506,11 @@ export async function createInvoiceFromStudentFee(
         })
       );
 
+  const invoiceNotes = [
+    options?.notes,
+    advanceApplied > 0 ? `Student advance applied: Rs. ${advanceApplied}` : "",
+  ].filter(Boolean).join(" | ");
+
   const invoiceData = {
     invoiceNumber,
 
@@ -462,7 +545,7 @@ export async function createInvoiceFromStudentFee(
     status,
 
     notes:
-      options?.notes ?? "",
+      invoiceNotes,
 
     createdAt:
       serverTimestamp(),
