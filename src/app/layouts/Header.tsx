@@ -95,7 +95,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
         {/* Page Identity */}
         <div className="min-w-0 flex-1">
           <h2 className="truncate text-base font-semibold text-slate-900">
-            Academy ERP
+            Young Explorer Academy
           </h2>
 
           <p className="hidden text-xs text-slate-500 sm:block">

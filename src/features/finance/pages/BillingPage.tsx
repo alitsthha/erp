@@ -11,8 +11,10 @@ import {
   AlertCircle,
   FileText,
   Loader2,
-  Send,
+  Mail,
+  MessageCircle,
   Search,
+  Send,
   UserRound,
 } from "lucide-react";
 
@@ -36,6 +38,7 @@ import {
 import {
   createInvoiceFromStudentFee,
   getInvoices,
+  updateInvoice,
 } from "../services/invoice.service";
 
 import {
@@ -45,7 +48,6 @@ import {
 import {
   createPayment,
 } from "../services/payment.service";
-import { queueEmail } from "../services/email.service";
 import { getSettings } from "@/features/settings/services/settings.service";
 
 import InvoiceTable from "../components/InvoiceTable";
@@ -127,11 +129,16 @@ export default function BillingPage() {
   const [selectedInvoiceForPreview, setSelectedInvoiceForPreview] =
     useState<Invoice | null>(null);
 
+  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
+  const [editInvoiceDate, setEditInvoiceDate] = useState("");
+  const [editInvoiceTotal, setEditInvoiceTotal] = useState(0);
+
   const [invoiceCustomer, setInvoiceCustomer] = useState<Student | null>(null);
 
   const invoicePreviewRef = useRef<HTMLDivElement | null>(null);
   const [exportingInvoicePdf, setExportingInvoicePdf] = useState(false);
   const [sendingInvoice, setSendingInvoice] = useState(false);
+  const [isSendInvoiceModalOpen, setIsSendInvoiceModalOpen] = useState(false);
   const [organizationPan, setOrganizationPan] = useState("");
 
   const [error, setError] =
@@ -459,41 +466,72 @@ async function handleDownloadInvoicePdf() {
   }
 }
 
-async function handleSendInvoice() {
+function normalizeWhatsappNumber(value: string): string {
+  const digitsOnly = value.replace(/\D/g, "");
+  return digitsOnly.startsWith("0") ? digitsOnly.slice(1) : digitsOnly;
+}
+
+async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
   const invoice = selectedInvoiceForPreview;
   if (!invoice) return;
-
-  const recipient = invoiceCustomer?.guardianEmail || invoiceCustomer?.parentEmail || invoiceCustomer?.studentEmail || "";
-  if (!recipient) {
-    setError("No parent or student email is saved for this student.");
-    return;
-  }
 
   try {
     setSendingInvoice(true);
     setError("");
+
     const pdf = await createInvoicePdf();
     if (!pdf) {
       throw new Error("Unable to prepare the invoice PDF.");
     }
-    const dataUri = pdf.output("datauristring");
-    const base64Content = dataUri.split(",")[1];
-    await queueEmail({
-      to: recipient,
-      subject: `Invoice ${invoice.invoiceNumber} for ${invoice.studentName}`,
-      text: `Dear Parent / Guardian,\n\nThe invoice for ${invoice.studentName} (${invoice.billingMonth}) is ready.\nInvoice: ${invoice.invoiceNumber}\nPAN: ${organizationPan || "Not configured"}\nTotal due: Rs. ${formatCurrency(invoice.totalAmount)}\n\nPlease contact ${ORGANIZATION_DETAILS.email} if you have any questions.`,
-      html: `<p>Dear Parent / Guardian,</p><p>The invoice for <strong>${invoice.studentName}</strong> (${invoice.billingMonth}) is ready.</p><p><strong>Invoice:</strong> ${invoice.invoiceNumber}<br /><strong>PAN:</strong> ${organizationPan || "Not configured"}<br /><strong>Total due:</strong> Rs. ${formatCurrency(invoice.totalAmount)}</p><p>Please contact ${ORGANIZATION_DETAILS.email} if you have any questions.</p>`,
-      attachments: [{
-        filename: `invoice-${invoice.invoiceNumber}.pdf`,
-        content: base64Content,
-        encoding: "base64",
-        contentType: "application/pdf",
-      }],
-    });
-    setSuccess(`Invoice queued for delivery to ${recipient}.`);
+
+    const pdfBlob = pdf.output("blob");
+    const fileName = `invoice-${invoice.invoiceNumber}.pdf`;
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+
+    const downloadLink = document.createElement("a");
+    downloadLink.href = pdfUrl;
+    downloadLink.download = fileName;
+    downloadLink.click();
+
+    const parentName = invoiceCustomer?.guardianName || invoiceCustomer?.parentName || "Parent / Guardian";
+    const messageBody = `Dear ${parentName},\n\nThe invoice for ${invoice.studentName} (${invoice.billingMonth}) is ready.\nInvoice: ${invoice.invoiceNumber}\nPAN: ${organizationPan || "Not configured"}\nTotal due: Rs. ${formatCurrency(invoice.totalAmount)}\n\nPlease contact ${ORGANIZATION_DETAILS.email} if you have any questions.`;
+
+    if (method === "mail") {
+      const recipient = invoiceCustomer?.guardianEmail || invoiceCustomer?.parentEmail || invoiceCustomer?.studentEmail || "";
+      if (!recipient) {
+        setError("No parent or student email is saved for this student.");
+        return;
+      }
+
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(recipient)}&su=${encodeURIComponent(`Invoice ${invoice.invoiceNumber} for ${invoice.studentName}`)}&body=${encodeURIComponent(`${messageBody}\n\nInvoice PDF downloaded: ${fileName}`)}`;
+      window.open(gmailUrl, "_blank", "noopener,noreferrer");
+      setSuccess(`Gmail compose window opened for ${recipient}.`);
+      if (invoice.id) {
+        await updateInvoice(invoice.id, {
+          status: "Sent (Mail)",
+        });
+        await loadInvoices();
+      }
+    } else {
+      const whatsappNumber = normalizeWhatsappNumber(invoiceCustomer?.guardianPhone || invoiceCustomer?.parentPhone || "");
+      const whatsappUrl = whatsappNumber
+        ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`${messageBody}\n\nInvoice PDF downloaded: ${fileName}`)}`
+        : `https://wa.me/?text=${encodeURIComponent(`${messageBody}\n\nInvoice PDF downloaded: ${fileName}`)}`;
+      window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+      setSuccess("WhatsApp share window opened with the invoice details.");
+      if (invoice.id) {
+        await updateInvoice(invoice.id, {
+          status: "Sent (WhatsApp)",
+        });
+        await loadInvoices();
+      }
+    }
+
+    window.setTimeout(() => URL.revokeObjectURL(pdfUrl), 5000);
+    setIsSendInvoiceModalOpen(false);
   } catch (err) {
-    console.error("Failed to send invoice email:", err);
-    setError(err instanceof Error ? err.message : "Unable to send invoice email.");
+    console.error("Failed to prepare invoice share:", err);
+    setError(err instanceof Error ? err.message : "Unable to prepare invoice sharing.");
   } finally {
     setSendingInvoice(false);
   }
@@ -578,6 +616,57 @@ async function handleSendInvoice() {
       );
     } finally {
       setCreatingInvoice(false);
+    }
+  }
+
+  async function handleEditInvoiceSave() {
+    if (!editingInvoice || !editingInvoice.id) {
+      return;
+    }
+
+    const nextTotal = Number(editInvoiceTotal);
+    const validDate = editInvoiceDate.trim();
+
+    if (!validDate) {
+      setError("Invoice date is required.");
+      return;
+    }
+
+    if (!Number.isFinite(nextTotal) || nextTotal < 0) {
+      setError("Total amount must be a valid number.");
+      return;
+    }
+
+    try {
+      setError("");
+      setSuccess("");
+      const nextDueAmount = Math.max(nextTotal - editingInvoice.paidAmount, 0);
+      const nextStatus =
+        editingInvoice.status === "Sent (Mail)" || editingInvoice.status === "Sent (WhatsApp)"
+          ? editingInvoice.status
+          : nextTotal <= 0
+            ? "Draft"
+            : editingInvoice.paidAmount >= nextTotal
+              ? "Paid"
+              : editingInvoice.paidAmount > 0
+                ? "Partially Paid"
+                : "Unpaid";
+
+      await updateInvoice(editingInvoice.id, {
+        invoiceDate: validDate,
+        totalAmount: nextTotal,
+        dueAmount: nextDueAmount,
+        status: nextStatus,
+      });
+
+      setEditingInvoice(null);
+      setEditInvoiceDate("");
+      setEditInvoiceTotal(0);
+      await loadInvoices();
+      setSuccess("Invoice updated successfully.");
+    } catch (err) {
+      console.error("Failed to update invoice:", err);
+      setError(err instanceof Error ? err.message : "Unable to update invoice.");
     }
   }
 
@@ -1223,6 +1312,11 @@ async function handleSendInvoice() {
               invoices={invoices}
               isLoading={loadingInvoices}
               onView={(invoice) => setSelectedInvoiceForPreview(invoice)}
+              onEdit={(invoice) => {
+                setEditingInvoice(invoice);
+                setEditInvoiceDate(invoice.invoiceDate);
+                setEditInvoiceTotal(invoice.totalAmount);
+              }}
               onRecordPayment={(invoice) => {
                 setSelectedInvoice(invoice);
                 setIsPaymentModalOpen(true);
@@ -1272,12 +1366,12 @@ async function handleSendInvoice() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => void handleSendInvoice()}
+                  onClick={() => setIsSendInvoiceModalOpen(true)}
                   disabled={sendingInvoice || !invoiceCustomer}
                   className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Send size={15} />
-                  {sendingInvoice ? "Sending..." : "Send to Parent"}
+                  {sendingInvoice ? "Preparing..." : "Send to Parent"}
                 </button>
                 <button
                   type="button"
@@ -1288,6 +1382,50 @@ async function handleSendInvoice() {
                 </button>
               </div>
             </div>
+
+            {isSendInvoiceModalOpen && (
+              <div className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                      Share invoice
+                    </p>
+                    <h4 className="mt-1 text-lg font-semibold text-emerald-900">
+                      Choose delivery method
+                    </h4>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsSendInvoiceModalOpen(false)}
+                    className="rounded-lg border border-emerald-200 bg-white px-2.5 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
+                  >
+                    Close
+                  </button>
+                </div>
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => void handleSendInvoiceSelection("mail")}
+                    disabled={sendingInvoice}
+                    className="flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Mail size={17} className="text-blue-600" />
+                    Send with Mail
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => void handleSendInvoiceSelection("whatsapp")}
+                    disabled={sendingInvoice}
+                    className="flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <MessageCircle size={17} />
+                    Send with WhatsApp
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div ref={invoicePreviewRef} className="rounded-2xl border border-slate-200 bg-white p-6">
               <div className="flex flex-col gap-5 border-b border-slate-200 pb-6 sm:flex-row sm:items-start sm:justify-between">
@@ -1366,6 +1504,75 @@ async function handleSendInvoice() {
                   <span className="font-semibold">Notes:</span> {selectedInvoiceForPreview.notes}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Edit Invoice</p>
+                <h3 className="mt-1 text-xl font-bold text-slate-900">{editingInvoice.invoiceNumber}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingInvoice(null);
+                  setEditInvoiceDate("");
+                  setEditInvoiceTotal(0);
+                }}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <label className="block text-sm font-medium text-slate-700">
+                Invoice Date
+                <input
+                  type="date"
+                  value={editInvoiceDate}
+                  onChange={(event) => setEditInvoiceDate(event.target.value)}
+                  className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                />
+              </label>
+
+              <label className="block text-sm font-medium text-slate-700">
+                Total Amount (Rs.)
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={editInvoiceTotal}
+                  onChange={(event) => setEditInvoiceTotal(Number(event.target.value) || 0)}
+                  className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                />
+              </label>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingInvoice(null);
+                  setEditInvoiceDate("");
+                  setEditInvoiceTotal(0);
+                }}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleEditInvoiceSave()}
+                className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
+              >
+                Save Changes
+              </button>
             </div>
           </div>
         </div>

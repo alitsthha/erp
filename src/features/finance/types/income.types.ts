@@ -1,4 +1,4 @@
-export type IncomeCategory = "Student Fee";
+export type IncomeCategory = "Student Fee" | "Student Fee (Advance)";
 
 export interface Income {
   id?: string;
@@ -14,6 +14,11 @@ export interface Income {
   incomeDate: string;
 
   source?: string;
+
+  studentId?: string;
+  studentName?: string;
+  appliedAmount?: number;
+  remainingAmount?: number;
 
   accountId?: string;
   accountName?: string;
@@ -38,6 +43,11 @@ export interface IncomeFormData {
   incomeDate: string;
 
   source?: string;
+
+  studentId?: string;
+  studentName?: string;
+  appliedAmount?: number;
+  remainingAmount?: number;
 
   accountId?: string;
   accountName?: string;
