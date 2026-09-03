@@ -30,11 +30,18 @@ function mapIncome(
   return {
     id,
     incomeNumber: String(data.incomeNumber ?? ""),
-    category: (data.category as Income["category"]) ?? "Other",
+    category:
+      data.category === "Student Fee" || data.category === "Student Fee (Advance)"
+        ? (data.category as Income["category"])
+        : "Student Fee",
     description: String(data.description ?? ""),
     amount: Number(data.amount ?? 0),
     incomeDate: String(data.incomeDate ?? ""),
     source: data.source ? String(data.source) : undefined,
+    studentId: data.studentId ? String(data.studentId) : undefined,
+    studentName: data.studentName ? String(data.studentName) : undefined,
+    appliedAmount: Number(data.appliedAmount ?? 0),
+    remainingAmount: Number(data.remainingAmount ?? 0),
     accountId: data.accountId ? String(data.accountId) : undefined,
     accountName: data.accountName ? String(data.accountName) : undefined,
     paymentMethod: data.paymentMethod ? String(data.paymentMethod) : undefined,
@@ -63,6 +70,8 @@ export async function createIncome(
       ...data,
       incomeNumber,
       amount: Number(data.amount),
+      appliedAmount: Number(data.appliedAmount ?? 0),
+      remainingAmount: Number(data.remainingAmount ?? Number(data.amount)),
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     }

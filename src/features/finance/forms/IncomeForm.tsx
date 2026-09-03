@@ -10,7 +10,7 @@ import type {
 
 const TODAY = getCurrentBSDate();
 
-const CATEGORIES = ["Student Fee"] as const;
+const CATEGORIES = ["Student Fee", "Student Fee (Advance)"] as const;
 
 interface IncomeFormProps {
   initialData?: Income;
@@ -35,13 +35,14 @@ export default function IncomeForm({
   const [paymentMethod, setPaymentMethod] = useState(initialData?.paymentMethod ?? "Cash");
   const [referenceNumber, setReferenceNumber] = useState(initialData?.referenceNumber ?? "");
   const [notes, setNotes] = useState(initialData?.notes ?? "");
+  const isAdvance = category === "Student Fee (Advance)";
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
 
     await onSubmit({
       category,
-      description,
+      description: description || (isAdvance ? "Student fee advance" : "Student fee payment"),
       amount: Number(amount),
       incomeDate,
       source: source || undefined,
@@ -74,14 +75,14 @@ export default function IncomeForm({
 
       <div>
         <label className="mb-1.5 block text-sm font-medium text-slate-700">
-          Description <span className="text-red-500">*</span>
+          Description {isAdvance ? "" : <span className="text-red-500">*</span>}
         </label>
         <input
           value={description}
           onChange={(event) => setDescription(event.target.value)}
           className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-          placeholder="Student fee collection or camp income"
-          required
+          placeholder={isAdvance ? "Advance payment for selected student" : "Student fee collection or camp income"}
+          required={!isAdvance}
         />
       </div>
 
