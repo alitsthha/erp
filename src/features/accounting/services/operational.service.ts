@@ -47,12 +47,33 @@ export async function createJournalEntry(data: Omit<JournalEntry, "id" | "entryN
     throw new Error("Journal entry must balance debits and credits.");
   }
   const entryNumber = await generateCode("journalEntries", "JE");
-  const reference = await addDoc(journalCollection, {
-    ...data,
-    entryNumber,
-    totalDebit: Number(data.totalDebit),
-    totalCredit: Number(data.totalCredit),
-    createdAt: serverTimestamp(),
+  const reference = doc(journalCollection);
+  await runTransaction(db, async (transaction) => {
+    const accountRefs = data.lines.map((line) => doc(db, "accounts", line.accountId));
+    const accountSnapshots = await Promise.all(accountRefs.map((accountRef) => transaction.get(accountRef)));
+
+    for (let index = 0; index < data.lines.length; index += 1) {
+      const accountSnapshot = accountSnapshots[index];
+      if (!accountSnapshot.exists()) throw new Error(`Account ${data.lines[index].accountName} was not found.`);
+
+      const account = accountSnapshot.data();
+      const debit = Number(data.lines[index].debit || 0);
+      const credit = Number(data.lines[index].credit || 0);
+      const debitNormal = account.accountType === "Asset" || account.accountType === "Expense";
+      const balanceChange = debitNormal ? debit - credit : credit - debit;
+      transaction.update(accountRefs[index], {
+        currentBalance: Number(account.currentBalance ?? 0) + balanceChange,
+        updatedAt: serverTimestamp(),
+      });
+    }
+
+    transaction.set(reference, {
+      ...data,
+      entryNumber,
+      totalDebit: Number(data.totalDebit),
+      totalCredit: Number(data.totalCredit),
+      createdAt: serverTimestamp(),
+    });
   });
   return reference.id;
 }

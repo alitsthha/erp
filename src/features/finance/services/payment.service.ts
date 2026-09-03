@@ -22,6 +22,7 @@ import {
 
 import type { Payment } from "../types/payment.types";
 import { recordFinancialAudit } from "./financial-audit.service";
+import { bankAccount, cashAccount, postAccountingEntry, studentFeeIncomeAccount } from "@/features/accounting/services/accounting-posting.service";
 
 const COLLECTION = "financePayments";
 
@@ -146,6 +147,15 @@ export async function createInvoicePayment(
       status: newStatus,
       updatedAt: serverTimestamp(),
     });
+  });
+
+  await postAccountingEntry({
+    date: data.paymentDate,
+    description: `Student fee payment for ${data.studentName ?? "student"}`,
+    reference: paymentRef.id,
+    amount,
+    debit: (accounts) => data.paymentMethod?.toLowerCase().includes("bank") ? bankAccount(accounts) : cashAccount(accounts),
+    credit: studentFeeIncomeAccount,
   });
 
   return paymentRef.id;

@@ -16,6 +16,7 @@ import { generateCode } from "@/lib/generateCode";
 import type { Expense, ExpenseFormData } from "../types/expense.types";
 import { recordFinancialAudit } from "./financial-audit.service";
 import { updateFinancialRecord } from "./financial-concurrency.service";
+import { bankAccount, cashAccount, generalExpenseAccount, postAccountingEntry, salaryExpenseAccount } from "@/features/accounting/services/accounting-posting.service";
 
 const COLLECTION = "financeExpenses";
 
@@ -78,6 +79,15 @@ export async function createExpense(
     collection(db, COLLECTION),
     cleanPayload
   );
+
+  await postAccountingEntry({
+    date: data.expenseDate,
+    description: data.description,
+    reference: expenseNumber,
+    amount: Number(data.amount),
+    debit: (accounts) => data.category === "Salaries" ? salaryExpenseAccount(accounts) : generalExpenseAccount(accounts),
+    credit: (accounts) => data.paymentMethod?.toLowerCase().includes("bank") ? bankAccount(accounts) : cashAccount(accounts),
+  });
 
   return docRef.id;
 }
