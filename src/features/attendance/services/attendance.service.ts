@@ -199,6 +199,27 @@ function sanitizeForFirestore<T extends Record<string, unknown>>(value: T): T {
   ) as T;
 }
 
+function getAttendanceKey(record: {
+  studentId: string;
+  activityId: string;
+  sessionDate?: string;
+  sessionDateBS?: string;
+}): string {
+  return `${record.studentId}_${record.activityId}_${
+    record.sessionDateBS || record.sessionDate || ""
+  }`;
+}
+
+function deduplicateAttendances(records: Attendance[]): Attendance[] {
+  const uniqueRecords = new Map<string, Attendance>();
+
+  for (const record of records) {
+    uniqueRecords.set(getAttendanceKey(record), record);
+  }
+
+  return Array.from(uniqueRecords.values());
+}
+
 /* =========================================================
    CREATE
 ========================================================= */
@@ -295,15 +316,17 @@ export async function getAttendanceByDate(
   const snapshot =
     await getDocs(q);
 
-  return snapshot.docs.map(
-    (docSnap) =>
-      mapAttendanceDoc(
-        docSnap.id,
-        docSnap.data() as Record<
-          string,
-          unknown
-        >
-      )
+  return deduplicateAttendances(
+    snapshot.docs.map(
+      (docSnap) =>
+        mapAttendanceDoc(
+          docSnap.id,
+          docSnap.data() as Record<
+            string,
+            unknown
+          >
+        )
+    )
   );
 }
 
@@ -365,7 +388,25 @@ export async function saveBatchAttendance(
     }
   >
 ): Promise<void> {
-  const validRecords = records.filter(
+  const validRecords = Array.from(
+    new Map(
+      records
+        .filter(
+          (record) =>
+            record.enrollmentId &&
+            record.studentId &&
+            record.activityId &&
+            record.sessionDate
+        )
+        .map((record) => [getAttendanceKey(record), record])
+    ).values()
+  );
+
+  /*
+   * Keep one attendance row per student, activity, and date even when
+   * duplicate enrollment rows are present in the roster.
+   */
+  const validRecordsWithDate = validRecords.filter(
     (record) =>
       record.enrollmentId &&
       record.studentId &&
@@ -373,7 +414,7 @@ export async function saveBatchAttendance(
       record.sessionDate
   );
 
-  if (validRecords.length === 0) {
+  if (validRecordsWithDate.length === 0) {
     throw new Error(
       "No valid attendance rows were provided to save."
     );
@@ -381,11 +422,23 @@ export async function saveBatchAttendance(
 
   const savedAttendances: Attendance[] = [];
   const dateBS =
-    validRecords[0].sessionDateBS || validRecords[0].sessionDate;
+    validRecordsWithDate[0].sessionDateBS || validRecordsWithDate[0].sessionDate;
 
-  for (const record of validRecords) {
-    let savedId = record.id;
-    let attendanceCode = record.attendanceCode;
+  let existingDateRecords: Attendance[] = [];
+  try {
+    existingDateRecords = await getAttendanceByDate(dateBS);
+  } catch {
+    existingDateRecords = [];
+  }
+
+  const existingByKey = new Map(
+    existingDateRecords.map((record) => [getAttendanceKey(record), record])
+  );
+
+  for (const record of validRecordsWithDate) {
+    const existingRecord = existingByKey.get(getAttendanceKey(record));
+    let savedId = record.id || existingRecord?.id;
+    let attendanceCode = record.attendanceCode || existingRecord?.attendanceCode;
 
     if (savedId) {
       const docRef = doc(db, COLLECTION_NAME, savedId);
@@ -464,15 +517,15 @@ export async function saveBatchAttendance(
     const existingDateRecords = await getAttendanceByDate(dateBS);
     const map = new Map<string, Attendance>();
 
-    // Add existing records to map (keyed by enrollmentId or studentId+activityId)
+    // Add existing records to map by student, activity, and date.
     for (const rec of existingDateRecords) {
-      const key = rec.enrollmentId || `${rec.studentId}_${rec.activityId}`;
+      const key = getAttendanceKey(rec);
       map.set(key, rec);
     }
 
     // Overlay newly saved batch attendances
     for (const rec of savedAttendances) {
-      const key = rec.enrollmentId || `${rec.studentId}_${rec.activityId}`;
+      const key = getAttendanceKey(rec);
       map.set(key, rec);
     }
 
@@ -502,7 +555,7 @@ export async function saveBatchAttendance(
       id: dateBS,
       sessionDateBS: dateBS,
       sessionDate:
-        validRecords[0].sessionDate || convertBSToAD(dateBS),
+        validRecordsWithDate[0].sessionDate || convertBSToAD(dateBS),
       totalRecords: allDateAttendances.length,
       presentCount,
       absentCount,
@@ -568,6 +621,8 @@ export async function getDailyAttendanceByDate(
   if (allRecords.length === 0) {
     return null;
   }
+
+  allRecords = deduplicateAttendances(allRecords);
 
   const activities = groupAttendancesByActivity(allRecords);
   const presentCount = allRecords.filter((r) => r.status === "Present").length;

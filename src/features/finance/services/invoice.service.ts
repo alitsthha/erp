@@ -7,7 +7,7 @@ import {
   orderBy,
   query,
   serverTimestamp,
-  updateDoc,
+  runTransaction,
   where,
 } from "firebase/firestore";
 
@@ -22,6 +22,7 @@ import type {
 import {
   calculateStudentMonthlyFee,
 } from "./fee-calculation.service";
+import { updateFinancialRecord } from "./financial-concurrency.service";
 
 /* =========================================================
    COLLECTION
@@ -204,47 +205,44 @@ function calculateInvoiceStatus(
 ========================================================= */
 
 async function generateInvoiceNumber(): Promise<string> {
-  const snapshot =
-    await getDocs(
-      collection(
-        db,
-        COLLECTION_NAME
-      )
-    );
+  const counterRef = doc(db, "counters", COLLECTION_NAME);
+  const existingCounter = await getDoc(counterRef);
+  let initialNumber = 1;
 
-  let highestNumber = 0;
+  if (!existingCounter.exists()) {
+    const snapshot = await getDocs(collection(db, COLLECTION_NAME));
+    let highestNumber = 0;
 
-  snapshot.forEach(
-    (invoiceDoc) => {
-      const invoiceNumber =
-        toString(
-          invoiceDoc.data().invoiceNumber
-        );
+    snapshot.forEach((invoiceDoc) => {
+      const match = toString(invoiceDoc.data().invoiceNumber).match(
+        /(?:INV[-\s]*)?(\d+)/i
+      );
+      const parsedNumber = match ? Number(match[1]) : 0;
 
-      const match =
-        invoiceNumber.match(
-          /(?:INV[-\s]*)?(\d+)/i
-        );
-
-      if (!match) {
-        return;
-      }
-
-      const parsedNumber =
-        Number(match[1]);
-
-      if (
-        Number.isFinite(parsedNumber) &&
-        parsedNumber > highestNumber
-      ) {
+      if (Number.isFinite(parsedNumber) && parsedNumber > highestNumber) {
         highestNumber = parsedNumber;
       }
-    }
-  );
+    });
 
-  return `INV-${String(
-    highestNumber + 1
-  ).padStart(3, "0")}`;
+    initialNumber = highestNumber + 1;
+  }
+
+  return runTransaction(db, async (transaction) => {
+    const counterSnapshot = await transaction.get(counterRef);
+    let nextNumber = initialNumber;
+
+    if (counterSnapshot.exists()) {
+      const currentNumber = Number(counterSnapshot.data().value);
+      nextNumber = Number.isFinite(currentNumber) ? currentNumber + 1 : 1;
+    }
+
+    transaction.set(counterRef, {
+      value: nextNumber,
+      updatedAt: serverTimestamp(),
+    });
+
+    return `INV-${String(nextNumber).padStart(3, "0")}`;
+  });
 }
 
 /* =========================================================
@@ -530,6 +528,10 @@ export async function getInvoiceById(
     return null;
   }
 
+  if (snapshot.data().deletedAt) {
+    return null;
+  }
+
   return mapInvoice(
     snapshot.id,
     snapshot.data() as Record<
@@ -561,7 +563,7 @@ export async function getInvoices(): Promise<
   const snapshot =
     await getDocs(q);
 
-  return snapshot.docs.map(
+  return snapshot.docs.filter((invoiceDoc) => !invoiceDoc.data().deletedAt).map(
     (invoiceDoc) =>
       mapInvoice(
         invoiceDoc.id,
@@ -601,6 +603,7 @@ export async function getInvoicesByStudentId(
     await getDocs(q);
 
   return snapshot.docs
+    .filter((invoiceDoc) => !invoiceDoc.data().deletedAt)
     .map(
       (invoiceDoc) =>
         mapInvoice(
@@ -646,7 +649,7 @@ export async function getInvoicesByMonth(
   const snapshot =
     await getDocs(q);
 
-  return snapshot.docs.map(
+  return snapshot.docs.filter((invoiceDoc) => !invoiceDoc.data().deletedAt).map(
     (invoiceDoc) =>
       mapInvoice(
         invoiceDoc.id,
@@ -694,7 +697,7 @@ export async function getInvoiceByStudentAndMonth(
   const snapshot =
     await getDocs(q);
 
-  if (snapshot.empty) {
+  if (snapshot.empty || snapshot.docs[0].data().deletedAt) {
     return null;
   }
 
@@ -731,18 +734,10 @@ export async function updateInvoice(
     );
   }
 
-  await updateDoc(
-    doc(
-      db,
-      COLLECTION_NAME,
-      invoiceId
-    ),
-    {
-      ...data,
-
-      updatedAt:
-        serverTimestamp(),
-    }
+  await updateFinancialRecord(
+    COLLECTION_NAME,
+    invoiceId,
+    data as Record<string, unknown>
   );
 }
 

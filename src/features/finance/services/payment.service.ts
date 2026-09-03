@@ -1,12 +1,12 @@
 import {
   addDoc,
   collection,
-  deleteDoc,
   doc,
   getDoc,
   getDocs,
   orderBy,
   query,
+  runTransaction,
   serverTimestamp,
   updateDoc,
   where,
@@ -21,6 +21,7 @@ import {
 } from "./invoice.service";
 
 import type { Payment } from "../types/payment.types";
+import { recordFinancialAudit } from "./financial-audit.service";
 
 const COLLECTION = "financePayments";
 
@@ -86,30 +87,50 @@ export async function createInvoicePayment(
     throw new Error("Payment amount must be greater than zero.");
   }
 
-  const invoice = await getInvoiceById(data.invoiceId);
-  if (!invoice) {
-    throw new Error("Invoice not found.");
-  }
-
-  if (invoice.status === "Cancelled") {
-    throw new Error("Cannot make payment against a cancelled invoice.");
-  }
-
-  const remaining = roundMoney(Math.max(invoice.totalAmount - invoice.paidAmount, 0));
-  if (amount > remaining) {
-    throw new Error(`Payment exceeds outstanding amount of Rs. ${remaining}.`);
-  }
-
   const paymentNumber = await generateCode(COLLECTION, "PMT");
-  const paymentRef = await addDoc(collection(db, COLLECTION), {
-    ...data,
-    amount,
-    paymentNumber,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
+  const invoiceRef = doc(db, "invoices", data.invoiceId);
+  const paymentRef = doc(collection(db, COLLECTION));
+
+  await runTransaction(db, async (transaction) => {
+    const invoiceSnapshot = await transaction.get(invoiceRef);
+    if (!invoiceSnapshot.exists() || invoiceSnapshot.data().deletedAt) {
+      throw new Error("Invoice not found.");
+    }
+
+    const invoice = invoiceSnapshot.data();
+    if (invoice.status === "Cancelled") {
+      throw new Error("Cannot make payment against a cancelled invoice.");
+    }
+
+    const paidAmount = roundMoney(Math.max(Number(invoice.paidAmount ?? 0), 0));
+    const totalAmount = roundMoney(Math.max(Number(invoice.totalAmount ?? 0), 0));
+    const remaining = roundMoney(Math.max(totalAmount - paidAmount, 0));
+    if (amount > remaining) {
+      throw new Error(`Payment exceeds outstanding amount of Rs. ${remaining}.`);
+    }
+
+    const newPaidAmount = roundMoney(paidAmount + amount);
+    const newStatus = newPaidAmount >= totalAmount
+      ? "Paid"
+      : newPaidAmount > 0
+        ? "Partially Paid"
+        : "Unpaid";
+
+    transaction.set(paymentRef, {
+      ...data,
+      amount,
+      paymentNumber,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    transaction.update(invoiceRef, {
+      paidAmount: newPaidAmount,
+      dueAmount: roundMoney(Math.max(totalAmount - newPaidAmount, 0)),
+      status: newStatus,
+      updatedAt: serverTimestamp(),
+    });
   });
 
-  await updateInvoicePaymentState(data.invoiceId, invoice.paidAmount + amount);
   return paymentRef.id;
 }
 
@@ -159,7 +180,7 @@ export async function createPayment(
 export async function getPayments(): Promise<Payment[]> {
   const q = query(collection(db, COLLECTION), orderBy("createdAt", "desc"));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((docSnap) => mapPayment(docSnap.id, docSnap.data() as Record<string, unknown>));
+  return snapshot.docs.filter((docSnap) => !docSnap.data().deletedAt).map((docSnap) => mapPayment(docSnap.id, docSnap.data() as Record<string, unknown>));
 }
 
 export async function getPaymentsByInvoice(invoiceId: string): Promise<Payment[]> {
@@ -167,7 +188,7 @@ export async function getPaymentsByInvoice(invoiceId: string): Promise<Payment[]
 
   const q = query(collection(db, COLLECTION), where("invoiceId", "==", invoiceId));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((docSnap) => mapPayment(docSnap.id, docSnap.data() as Record<string, unknown>));
+  return snapshot.docs.filter((docSnap) => !docSnap.data().deletedAt).map((docSnap) => mapPayment(docSnap.id, docSnap.data() as Record<string, unknown>));
 }
 
 export async function getPaymentsByStaffId(staffId: string): Promise<Payment[]> {
@@ -175,7 +196,7 @@ export async function getPaymentsByStaffId(staffId: string): Promise<Payment[]> 
 
   const q = query(collection(db, COLLECTION), where("staffId", "==", staffId));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((docSnap) => mapPayment(docSnap.id, docSnap.data() as Record<string, unknown>));
+  return snapshot.docs.filter((docSnap) => !docSnap.data().deletedAt).map((docSnap) => mapPayment(docSnap.id, docSnap.data() as Record<string, unknown>));
 }
 
 export async function getPaymentById(id: string): Promise<Payment | null> {
@@ -183,6 +204,7 @@ export async function getPaymentById(id: string): Promise<Payment | null> {
 
   const snapshot = await getDoc(doc(db, COLLECTION, id));
   if (!snapshot.exists()) return null;
+  if (snapshot.data().deletedAt) return null;
 
   return mapPayment(snapshot.id, snapshot.data() as Record<string, unknown>);
 }
@@ -209,10 +231,24 @@ export async function updatePayment(
     throw new Error("Payment amount must be greater than zero.");
   }
 
-  await updateDoc(doc(db, COLLECTION, id), {
-    ...data,
-    amount: newAmount,
-    updatedAt: serverTimestamp(),
+  let transactionAttempts = 0;
+  await runTransaction(db, async (transaction) => {
+    transactionAttempts += 1;
+    const paymentSnapshot = await transaction.get(doc(db, COLLECTION, id));
+    if (!paymentSnapshot.exists() || paymentSnapshot.data().deletedAt) {
+      throw new Error("Payment not found.");
+    }
+    if (transactionAttempts > 1) {
+      throw new Error(
+        "This payment was changed by another user. Reload it before saving again."
+      );
+    }
+
+    transaction.update(doc(db, COLLECTION, id), {
+      ...data,
+      amount: newAmount,
+      updatedAt: serverTimestamp(),
+    });
   });
 
   if (oldInvoiceId) {
@@ -238,7 +274,17 @@ export async function deletePayment(id: string): Promise<void> {
   const payment = await getPaymentById(id);
   if (!payment) throw new Error("Payment not found.");
 
-  await deleteDoc(doc(db, COLLECTION, id));
+  const paymentRef = doc(db, COLLECTION, id);
+  await updateDoc(paymentRef, {
+    status: "cancelled",
+    deletedAt: serverTimestamp(),
+    deletedBy: "financial-user",
+    updatedAt: serverTimestamp(),
+  });
+  await recordFinancialAudit("ARCHIVE", COLLECTION, id, {
+    ...payment,
+    status: "cancelled",
+  });
 
   if (payment.invoiceId) {
     const invoice = await getInvoiceById(payment.invoiceId);

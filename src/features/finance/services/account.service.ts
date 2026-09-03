@@ -1,7 +1,6 @@
 import {
   addDoc,
   collection,
-  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -17,6 +16,8 @@ import type {
   Account,
   AccountFormData,
 } from "../types/account.types";
+import { recordFinancialAudit } from "./financial-audit.service";
+import { updateFinancialRecord } from "./financial-concurrency.service";
 
 const accountsCollection = collection(db, "accounts");
 
@@ -77,7 +78,7 @@ export async function getAccounts(): Promise<Account[]> {
 
   const snapshot = await getDocs(q);
 
-  return snapshot.docs.map((docSnap) => {
+  return snapshot.docs.filter((docSnap) => !docSnap.data().deletedAt).map((docSnap) => {
     const data = docSnap.data();
 
     return {
@@ -143,6 +144,10 @@ export async function getAccountById(
     return null;
   }
 
+  if (snapshot.data().deletedAt) {
+    return null;
+  }
+
   const data = snapshot.data();
 
   return {
@@ -200,18 +205,9 @@ export async function updateAccount(
     throw new Error("Account ID is required");
   }
 
-  await updateDoc(
-    doc(db, "accounts", id),
-    {
-      ...data,
-      updatedAt: serverTimestamp(),
-    }
-  );
+  await updateFinancialRecord("accounts", id, data as Record<string, unknown>);
 }
 
-/**
- * Delete an account
- */
 export async function deleteAccount(
   id: string
 ): Promise<void> {
@@ -219,7 +215,14 @@ export async function deleteAccount(
     throw new Error("Account ID is required");
   }
 
-  await deleteDoc(
-    doc(db, "accounts", id)
-  );
+  const accountRef = doc(db, "accounts", id);
+  const snapshot = await getDoc(accountRef);
+  if (!snapshot.exists()) throw new Error("Account not found");
+
+  await updateDoc(accountRef, {
+    deletedAt: serverTimestamp(),
+    deletedBy: "financial-user",
+    updatedAt: serverTimestamp(),
+  });
+  await recordFinancialAudit("ARCHIVE", "accounts", id, snapshot.data());
 }

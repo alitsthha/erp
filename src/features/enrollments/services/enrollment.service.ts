@@ -9,6 +9,7 @@ import {
   query,
   serverTimestamp,
   updateDoc,
+  where,
 } from "firebase/firestore";
 
 import { db } from "@/firebase/config";
@@ -106,6 +107,30 @@ export async function getActivitiesForEnrollment(): Promise<Activity[]> {
   ) as Activity[];
 }
 
+async function ensureEnrollmentIsUnique(
+  studentId: string,
+  activityId: string,
+  enrollmentId?: string
+): Promise<void> {
+  const snapshot = await getDocs(
+    query(
+      collection(db, "enrollments"),
+      where("studentId", "==", studentId),
+      where("activityId", "==", activityId)
+    )
+  );
+
+  const duplicate = snapshot.docs.some(
+    (enrollmentDoc) => enrollmentDoc.id !== enrollmentId
+  );
+
+  if (duplicate) {
+    throw new Error(
+      "This student is already enrolled in the selected activity."
+    );
+  }
+}
+
 /* =========================================================
    ADD ENROLLMENT
 ========================================================= */
@@ -113,6 +138,8 @@ export async function getActivitiesForEnrollment(): Promise<Activity[]> {
 export async function addEnrollment(
   data: EnrollmentFormData
 ): Promise<string> {
+  await ensureEnrollmentIsUnique(data.studentId, data.activityId);
+
   const enrollmentCode = await generateEnrollmentCode();
 
   const studentSnapshot = await getDoc(
@@ -176,6 +203,12 @@ export async function updateEnrollment(
   if (!enrollmentId) {
     throw new Error("Enrollment ID is required.");
   }
+
+  await ensureEnrollmentIsUnique(
+    data.studentId,
+    data.activityId,
+    enrollmentId
+  );
 
   const studentSnapshot = await getDoc(
     doc(db, "students", data.studentId)

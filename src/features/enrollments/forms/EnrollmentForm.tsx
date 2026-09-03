@@ -222,7 +222,11 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
       navigate("/enrollments");
     } catch (error) {
       console.error(error);
-      alert("Failed to save enrollment.");
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to save enrollment."
+      );
     }
   };
 

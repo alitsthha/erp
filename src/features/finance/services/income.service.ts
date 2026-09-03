@@ -1,7 +1,6 @@
 import {
   addDoc,
   collection,
-  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -15,6 +14,8 @@ import { db } from "@/firebase/config";
 import { generateCode } from "@/lib/generateCode";
 
 import type { Income, IncomeFormData } from "../types/income.types";
+import { recordFinancialAudit } from "./financial-audit.service";
+import { updateFinancialRecord } from "./financial-concurrency.service";
 
 const COLLECTION = "financeIncome";
 
@@ -83,7 +84,7 @@ export async function getIncomes(): Promise<Income[]> {
 
     const snapshot = await getDocs(q);
 
-    return snapshot.docs.map((docSnap) =>
+    return snapshot.docs.filter((docSnap) => !docSnap.data().deletedAt).map((docSnap) =>
       mapIncome(docSnap.id, docSnap.data() as Record<string, unknown>)
     );
   } catch {
@@ -104,6 +105,7 @@ export async function getIncomeById(
     const docSnap = await getDoc(doc(db, COLLECTION, id));
 
     if (!docSnap.exists()) return null;
+    if (docSnap.data().deletedAt) return null;
 
     return mapIncome(
       docSnap.id,
@@ -124,10 +126,7 @@ export async function updateIncome(
 ): Promise<void> {
   if (!id) throw new Error("Income ID is required");
 
-  await updateDoc(doc(db, COLLECTION, id), {
-    ...data,
-    updatedAt: serverTimestamp(),
-  });
+  await updateFinancialRecord(COLLECTION, id, data as Record<string, unknown>);
 }
 
 /* =========================================================
@@ -137,5 +136,14 @@ export async function updateIncome(
 export async function deleteIncome(id: string): Promise<void> {
   if (!id) throw new Error("Income ID is required");
 
-  await deleteDoc(doc(db, COLLECTION, id));
+  const incomeRef = doc(db, COLLECTION, id);
+  const snapshot = await getDoc(incomeRef);
+  if (!snapshot.exists()) throw new Error("Income not found");
+
+  await updateDoc(incomeRef, {
+    deletedAt: serverTimestamp(),
+    deletedBy: "financial-user",
+    updatedAt: serverTimestamp(),
+  });
+  await recordFinancialAudit("ARCHIVE", COLLECTION, id, snapshot.data());
 }

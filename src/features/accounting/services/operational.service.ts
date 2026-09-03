@@ -7,6 +7,7 @@ import {
   serverTimestamp,
   updateDoc,
   query,
+  runTransaction,
   where,
 } from "firebase/firestore";
 
@@ -105,7 +106,52 @@ export async function getPayrollRuns(): Promise<PayrollRun[]> {
 
 export async function createPayrollRun(data: Omit<PayrollRun, "id" | "createdAt">): Promise<string> {
   await assertPeriodOpen(data.paymentDate);
-  const reference = await addDoc(payrollCollection, { ...data, createdAt: serverTimestamp() });
+
+  const staffIds = data.payslips.map((payslip) => payslip.staffId);
+  if (new Set(staffIds).size !== staffIds.length) {
+    throw new Error("A payroll run cannot contain the same employee more than once.");
+  }
+
+  const existingRuns = await getDocs(
+    query(payrollCollection, where("period", "==", data.period))
+  );
+  const existingStaffIds = new Set(
+    existingRuns.docs.flatMap((run) => {
+      const payslips = run.data().payslips;
+      return Array.isArray(payslips)
+        ? payslips.map((payslip) => (payslip as { staffId?: unknown }).staffId)
+        : [];
+    })
+  );
+  const duplicateStaffId = staffIds.find((staffId) => existingStaffIds.has(staffId));
+
+  if (duplicateStaffId) {
+    throw new Error("Payroll has already been generated for an employee in this month.");
+  }
+
+  const reservationRefs = staffIds.map((staffId) =>
+    doc(db, "payrollReservations", `${data.period}_${staffId}`)
+  );
+  const reference = doc(payrollCollection);
+
+  await runTransaction(db, async (transaction) => {
+    for (const reservationRef of reservationRefs) {
+      const reservation = await transaction.get(reservationRef);
+      if (reservation.exists()) {
+        throw new Error("Payroll has already been generated for an employee in this month.");
+      }
+    }
+
+    for (const reservationRef of reservationRefs) {
+      transaction.set(reservationRef, {
+        period: data.period,
+        createdAt: serverTimestamp(),
+      });
+    }
+
+    transaction.set(reference, { ...data, createdAt: serverTimestamp() });
+  });
+
   return reference.id;
 }
 

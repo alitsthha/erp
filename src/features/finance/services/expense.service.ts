@@ -1,7 +1,6 @@
 import {
   addDoc,
   collection,
-  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -15,6 +14,8 @@ import { db } from "@/firebase/config";
 import { generateCode } from "@/lib/generateCode";
 
 import type { Expense, ExpenseFormData } from "../types/expense.types";
+import { recordFinancialAudit } from "./financial-audit.service";
+import { updateFinancialRecord } from "./financial-concurrency.service";
 
 const COLLECTION = "financeExpenses";
 
@@ -94,7 +95,7 @@ export async function getExpenses(): Promise<Expense[]> {
 
     const snapshot = await getDocs(q);
 
-    return snapshot.docs.map((docSnap) =>
+    return snapshot.docs.filter((docSnap) => !docSnap.data().deletedAt).map((docSnap) =>
       mapExpense(docSnap.id, docSnap.data() as Record<string, unknown>)
     );
   } catch {
@@ -115,6 +116,7 @@ export async function getExpenseById(
     const docSnap = await getDoc(doc(db, COLLECTION, id));
 
     if (!docSnap.exists()) return null;
+    if (docSnap.data().deletedAt) return null;
 
     return mapExpense(
       docSnap.id,
@@ -135,10 +137,7 @@ export async function updateExpense(
 ): Promise<void> {
   if (!id) throw new Error("Expense ID is required");
 
-  await updateDoc(doc(db, COLLECTION, id), {
-    ...data,
-    updatedAt: serverTimestamp(),
-  });
+  await updateFinancialRecord(COLLECTION, id, data as Record<string, unknown>);
 }
 
 /* =========================================================
@@ -148,5 +147,14 @@ export async function updateExpense(
 export async function deleteExpense(id: string): Promise<void> {
   if (!id) throw new Error("Expense ID is required");
 
-  await deleteDoc(doc(db, COLLECTION, id));
+  const expenseRef = doc(db, COLLECTION, id);
+  const snapshot = await getDoc(expenseRef);
+  if (!snapshot.exists()) throw new Error("Expense not found");
+
+  await updateDoc(expenseRef, {
+    deletedAt: serverTimestamp(),
+    deletedBy: "financial-user",
+    updatedAt: serverTimestamp(),
+  });
+  await recordFinancialAudit("ARCHIVE", COLLECTION, id, snapshot.data());
 }
