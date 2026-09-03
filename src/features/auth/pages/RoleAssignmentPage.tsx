@@ -181,7 +181,40 @@ export default function RoleAssignmentPage() {
       return;
     }
 
+    if (existingUserRole) {
+      void handleUpdateExistingRole();
+      return;
+    }
+
     setIsPasswordModalOpen(true);
+  };
+
+  const handleUpdateExistingRole = async () => {
+    setSubmitting(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      await upsertUserRole({
+        email: targetEmail,
+        role,
+        label: role,
+        permissions,
+      });
+
+      setExistingUserRole({
+        email: targetEmail,
+        role,
+        label: role,
+        permissions,
+      });
+      setMessage(`Module access updated for ${targetName}. Their existing Gmail and password were kept unchanged.`);
+    } catch (updateError) {
+      console.error("Error updating user permissions:", updateError);
+      setError(updateError instanceof Error ? updateError.message : "Unable to update user permissions.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // Confirm password and create account + role assignment
@@ -572,7 +605,7 @@ export default function RoleAssignmentPage() {
             className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <KeyRound size={17} />
-            {existingUserRole ? "Update Role & Set Password" : "Assign Role & Set Password"}
+            {existingUserRole ? "Update Role & Modules" : "Assign Role & Set Password"}
           </button>
         </form>
 

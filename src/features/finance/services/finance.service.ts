@@ -1,6 +1,7 @@
 import {
   collection,
   getDocs,
+  onSnapshot,
   query,
   orderBy,
 } from "firebase/firestore";
@@ -10,6 +11,7 @@ import { db } from "@/firebase/config";
 import type {
   FinanceDateFilter,
   FinanceSummary,
+  FinanceLedgerEntry,
 } from "../types/finance.types";
 
 type AnyRecord = Record<string, any>;
@@ -104,10 +106,11 @@ export async function getFinanceIncome(
     );
 
     return snapshot.docs
-      .map((doc) => ({
+      .map((doc): AnyRecord => ({
         id: doc.id,
         ...doc.data(),
       }))
+      .filter((record) => !record.deletedAt)
       .filter((record) => isDateInRange(record, filters));
   } catch (error) {
     console.error("Error loading finance income:", error);
@@ -131,10 +134,11 @@ export async function getFinanceExpenses(
     );
 
     return snapshot.docs
-      .map((doc) => ({
+      .map((doc): AnyRecord => ({
         id: doc.id,
         ...doc.data(),
       }))
+      .filter((record) => !record.deletedAt)
       .filter((record) => isDateInRange(record, filters));
   } catch (error) {
     console.error("Error loading finance expenses:", error);
@@ -158,10 +162,11 @@ export async function getFinanceInvoices(
     );
 
     return snapshot.docs
-      .map((doc) => ({
+      .map((doc): AnyRecord => ({
         id: doc.id,
         ...doc.data(),
       }))
+      .filter((record) => !record.deletedAt)
       .filter((record) => isDateInRange(record, filters));
   } catch (error) {
     console.error("Error loading finance invoices:", error);
@@ -185,10 +190,11 @@ export async function getFinancePayments(
     );
 
     return snapshot.docs
-      .map((doc) => ({
+      .map((doc): AnyRecord => ({
         id: doc.id,
         ...doc.data(),
       }))
+      .filter((record) => !record.deletedAt)
       .filter((record) => isDateInRange(record, filters));
   } catch (error) {
     console.error("Error loading finance payments:", error);
@@ -215,26 +221,16 @@ export async function getFinanceSummary(
     getFinancePayments(filters),
   ]);
 
-  const totalIncome =
-    incomeRecords.reduce(
-      (total, record) =>
-        total +
-        toNumber(
-          record.amount ??
-            record.totalAmount ??
-            record.paidAmount,
-        ),
-      0,
-    ) +
-    paymentRecords.reduce(
-      (total, payment) =>
-        total +
-        toNumber(
-          payment.amount ??
-            payment.paidAmount,
-        ),
-      0,
-    );
+  const totalIncome = incomeRecords.reduce(
+    (total, record) =>
+      total +
+      toNumber(
+        record.amount ??
+          record.totalAmount ??
+          record.paidAmount,
+      ),
+    0,
+  );
 
   const totalExpenses = expenseRecords.reduce(
     (total, record) =>
@@ -402,4 +398,54 @@ export async function getFinanceSummary(
     cashBalance,
     bankBalance,
   };
+}
+
+export function subscribeToFinanceLedger(
+  filters: FinanceDateFilter | undefined,
+  onChange: (entries: FinanceLedgerEntry[]) => void,
+  onError?: (error: Error) => void,
+): () => void {
+  const sources = [
+    { collectionName: "financeIncome", type: "Income" as const },
+    { collectionName: "financeExpenses", type: "Expense" as const },
+  ];
+  const entriesBySource = new Map<string, FinanceLedgerEntry[]>();
+  const unsubscribers = sources.map(({ collectionName, type }) =>
+    onSnapshot(
+      query(collection(db, collectionName), orderBy("createdAt", "desc")),
+      (snapshot) => {
+        entriesBySource.set(
+          collectionName,
+          snapshot.docs
+            .filter((doc) => !doc.data().deletedAt)
+            .map((doc) => {
+              const record = doc.data() as AnyRecord;
+              const date = String(
+                record.incomeDate ?? record.expenseDate ?? record.createdAt ?? ""
+              );
+              return {
+                id: doc.id,
+                date,
+                type,
+                description: String(record.description ?? ""),
+                reference: String(
+                  record.referenceNumber ?? record.incomeNumber ?? record.expenseNumber ?? ""
+                ),
+                amount: toNumber(record.amount),
+              };
+            })
+            .filter((entry) => isDateInRange({ incomeDate: entry.date }, filters)),
+        );
+
+        onChange(
+          Array.from(entriesBySource.values())
+            .flat()
+            .sort((a, b) => b.date.localeCompare(a.date)),
+        );
+      },
+      (error) => onError?.(error),
+    ),
+  );
+
+  return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
 }

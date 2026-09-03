@@ -27,3 +27,12 @@ export interface FinanceDateFilter {
 
   status?: string;
 }
+
+export interface FinanceLedgerEntry {
+  id: string;
+  date: string;
+  type: "Income" | "Expense";
+  description: string;
+  reference: string;
+  amount: number;
+}

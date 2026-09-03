@@ -88,9 +88,13 @@ export default function AttendanceListPage() {
       setIsLoading(true);
       try {
         if (viewMode === "daily") {
-          const data = await fetchDailyAttendance(selectedDateBS);
+          const [data, history] = await Promise.all([
+            fetchDailyAttendance(selectedDateBS),
+            fetchAttendances(),
+          ]);
           if (!cancelled) {
             setDailyData(data);
+            setAllAttendances(history);
           }
         } else {
           const data = await fetchAttendances();
@@ -238,6 +242,29 @@ export default function AttendanceListPage() {
   }, [viewMode, activeRecords, selectedDateBS]);
 
   const listRecords = viewMode === "daily" ? groupedDailyRecords : activeRecords;
+
+  const classCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    const seen = new Set<string>();
+
+    for (const record of allAttendances) {
+      if (
+        record.status !== "Present" ||
+        !record.studentId ||
+        !isActivityAllowedForRole(role, record.activityName, record.activityCode) ||
+        (selectedActivityId !== "all" && record.activityId !== selectedActivityId)
+      ) {
+        continue;
+      }
+
+      const key = `${record.studentId}_${record.activityId}_${record.sessionDateBS || record.sessionDate}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      counts[record.studentId] = (counts[record.studentId] ?? 0) + 1;
+    }
+
+    return counts;
+  }, [allAttendances, role, selectedActivityId]);
 
   // Filter records by activity, search, and status
   const filteredAttendances = useMemo(() => {
@@ -832,6 +859,7 @@ export default function AttendanceListPage() {
               onEdit={handleEdit}
               onDelete={handleDelete}
               isLoading={isLoading}
+              classCounts={classCounts}
             />
           )}
         </div>

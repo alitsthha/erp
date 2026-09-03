@@ -8,6 +8,7 @@ interface AttendanceTableProps {
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   isLoading?: boolean;
+  classCounts?: Record<string, number>;
 }
 
 export default function AttendanceTable({
@@ -15,6 +16,7 @@ export default function AttendanceTable({
   onEdit,
   onDelete,
   isLoading,
+  classCounts = {},
 }: AttendanceTableProps) {
   if (data.length === 0) {
     return (
@@ -34,6 +36,7 @@ export default function AttendanceTable({
             <th className="px-5 py-3.5">Activity</th>
             <th className="px-5 py-3.5">Nepali Date (BS)</th>
             <th className="px-5 py-3.5">Status</th>
+            <th className="px-5 py-3.5">Classes Taken</th>
             <th className="px-5 py-3.5">Session Fee</th>
             <th className="px-5 py-3.5">Notes</th>
             <th className="px-5 py-3.5 text-right">Actions</th>
@@ -43,6 +46,7 @@ export default function AttendanceTable({
           {data.map((record) => {
             const isPresent = record.status === "Present";
             const dateBS = record.sessionDateBS || record.sessionDate;
+            const classCount = classCounts[record.studentId] ?? 0;
 
             return (
               <tr
@@ -118,6 +122,11 @@ export default function AttendanceTable({
                     )}
                     {record.status}
                   </span>
+                </td>
+
+                {/* Classes Taken */}
+                <td className="px-5 py-4 align-middle font-semibold text-blue-700">
+                  {classCount}
                 </td>
 
                 {/* Session Fee */}

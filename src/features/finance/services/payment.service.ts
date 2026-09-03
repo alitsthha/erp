@@ -88,8 +88,10 @@ export async function createInvoicePayment(
   }
 
   const paymentNumber = await generateCode(COLLECTION, "PMT");
+  const incomeNumber = await generateCode("financeIncome", "INC");
   const invoiceRef = doc(db, "invoices", data.invoiceId);
   const paymentRef = doc(collection(db, COLLECTION));
+  const incomeRef = doc(db, "financeIncome", `PAYMENT-${paymentRef.id}`);
 
   await runTransaction(db, async (transaction) => {
     const invoiceSnapshot = await transaction.get(invoiceRef);
@@ -120,6 +122,21 @@ export async function createInvoicePayment(
       ...data,
       amount,
       paymentNumber,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+    transaction.set(incomeRef, {
+      incomeNumber,
+      category: "Student Fee",
+      description: `Student fee payment for ${data.studentName ?? "student"}`,
+      amount,
+      incomeDate: data.paymentDate,
+      source: data.studentName ?? data.studentId ?? "Student",
+      referenceNumber: paymentNumber,
+      paymentMethod: data.paymentMethod ?? "Cash",
+      notes: data.notes ?? "",
+      paymentId: paymentRef.id,
+      invoiceId: data.invoiceId,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
@@ -281,6 +298,19 @@ export async function deletePayment(id: string): Promise<void> {
     deletedBy: "financial-user",
     updatedAt: serverTimestamp(),
   });
+  const incomeSnapshot = await getDocs(
+    query(collection(db, "financeIncome"), where("paymentId", "==", id))
+  );
+  await Promise.all(
+    incomeSnapshot.docs.map(async (incomeDoc) => {
+      await updateDoc(incomeDoc.ref, {
+        deletedAt: serverTimestamp(),
+        deletedBy: "financial-user",
+        updatedAt: serverTimestamp(),
+      });
+      await recordFinancialAudit("ARCHIVE", "financeIncome", incomeDoc.id, incomeDoc.data());
+    })
+  );
   await recordFinancialAudit("ARCHIVE", COLLECTION, id, {
     ...payment,
     status: "cancelled",

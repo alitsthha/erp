@@ -46,6 +46,7 @@ import {
   createPayment,
 } from "../services/payment.service";
 import { queueEmail } from "../services/email.service";
+import { getSettings } from "@/features/settings/services/settings.service";
 
 import InvoiceTable from "../components/InvoiceTable";
 import PaymentForm from "../forms/PaymentForm";
@@ -131,6 +132,7 @@ export default function BillingPage() {
   const invoicePreviewRef = useRef<HTMLDivElement | null>(null);
   const [exportingInvoicePdf, setExportingInvoicePdf] = useState(false);
   const [sendingInvoice, setSendingInvoice] = useState(false);
+  const [organizationPan, setOrganizationPan] = useState("");
 
   const [error, setError] =
     useState("");
@@ -182,6 +184,12 @@ export default function BillingPage() {
     return () => {
       mounted = false;
     };
+  }, []);
+
+  useEffect(() => {
+    void getSettings()
+      .then((settings) => setOrganizationPan(settings.taxId?.trim() ?? ""))
+      .catch((err) => console.error("Failed to load organization PAN:", err));
   }, []);
 
   async function loadInvoices() {
@@ -285,6 +293,9 @@ async function createInvoicePdf(): Promise<jsPDF | null> {
     pdf.text("+977-1-4567890", textX, startY + 14);
     pdf.text("info@youngexplorers.edu.np", textX, startY + 28);
     pdf.text("www.youngexplorers.edu.np", textX, startY + 42);
+    if (organizationPan) {
+      pdf.text(`PAN: ${organizationPan}`, textX, startY + 56);
+    }
 
   // ---- Big title: Student Fee Invoice ----
     pdf.setTextColor(15, 23, 42);
@@ -470,8 +481,8 @@ async function handleSendInvoice() {
     await queueEmail({
       to: recipient,
       subject: `Invoice ${invoice.invoiceNumber} for ${invoice.studentName}`,
-      text: `Dear Parent / Guardian,\n\nThe invoice for ${invoice.studentName} (${invoice.billingMonth}) is ready.\nInvoice: ${invoice.invoiceNumber}\nTotal due: Rs. ${formatCurrency(invoice.totalAmount)}\n\nPlease contact ${ORGANIZATION_DETAILS.email} if you have any questions.`,
-      html: `<p>Dear Parent / Guardian,</p><p>The invoice for <strong>${invoice.studentName}</strong> (${invoice.billingMonth}) is ready.</p><p><strong>Invoice:</strong> ${invoice.invoiceNumber}<br /><strong>Total due:</strong> Rs. ${formatCurrency(invoice.totalAmount)}</p><p>Please contact ${ORGANIZATION_DETAILS.email} if you have any questions.</p>`,
+      text: `Dear Parent / Guardian,\n\nThe invoice for ${invoice.studentName} (${invoice.billingMonth}) is ready.\nInvoice: ${invoice.invoiceNumber}\nPAN: ${organizationPan || "Not configured"}\nTotal due: Rs. ${formatCurrency(invoice.totalAmount)}\n\nPlease contact ${ORGANIZATION_DETAILS.email} if you have any questions.`,
+      html: `<p>Dear Parent / Guardian,</p><p>The invoice for <strong>${invoice.studentName}</strong> (${invoice.billingMonth}) is ready.</p><p><strong>Invoice:</strong> ${invoice.invoiceNumber}<br /><strong>PAN:</strong> ${organizationPan || "Not configured"}<br /><strong>Total due:</strong> Rs. ${formatCurrency(invoice.totalAmount)}</p><p>Please contact ${ORGANIZATION_DETAILS.email} if you have any questions.</p>`,
       attachments: [{
         filename: `invoice-${invoice.invoiceNumber}.pdf`,
         content: base64Content,
@@ -1293,6 +1304,7 @@ async function handleSendInvoice() {
                   <p><span className="font-semibold text-slate-900">Phone:</span> {ORGANIZATION_DETAILS.phone}</p>
                   <p><span className="font-semibold text-slate-900">Email:</span> {ORGANIZATION_DETAILS.email}</p>
                   <p><span className="font-semibold text-slate-900">Website:</span> {ORGANIZATION_DETAILS.website}</p>
+                  <p><span className="font-semibold text-slate-900">PAN:</span> {organizationPan || "Not configured"}</p>
                 </div>
               </div>
 
@@ -1313,6 +1325,7 @@ async function handleSendInvoice() {
                   <div className="mt-2 space-y-1 text-sm text-slate-600">
                     <p><span className="font-medium">Invoice #:</span> {selectedInvoiceForPreview.invoiceNumber}</p>
                     <p><span className="font-medium">Issue Date:</span> {formatBSDate(selectedInvoiceForPreview.invoiceDate)}</p>
+                    <p><span className="font-medium">PAN:</span> {organizationPan || "Not configured"}</p>
                   </div>
                 </div>
               </div>

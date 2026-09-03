@@ -4,14 +4,16 @@ import { ArrowLeft, BarChart3, CalendarRange, Download, TrendingUp } from "lucid
 import jsPDF from "jspdf";
 import NepaliDatePickerInput from "@/components/forms/NepaliDatePickerInput";
 
-import { getFinanceSummary } from "../services/finance.service";
-import type { FinanceSummary } from "../types/finance.types";
+import { getFinanceSummary, subscribeToFinanceLedger } from "../services/finance.service";
+import type { FinanceLedgerEntry, FinanceSummary } from "../types/finance.types";
+import { getCurrentBSDate } from "@/utils/nepali-date";
 
 const formatCurrency = (value: number) => `Rs. ${value.toLocaleString("en-IN")}`;
 
 // ─── Pure jsPDF Finance Report Builder ───────────────────────────────────────
 function buildFinanceReportPDF(
   summary: FinanceSummary,
+  ledger: FinanceLedgerEntry[],
   startDate?: string,
   endDate?: string
 ): jsPDF {
@@ -132,6 +134,22 @@ function buildFinanceReportPDF(
   const totalLiquidity = summary.cashBalance + summary.bankBalance;
   rowLine("Total Liquid Assets (Cash + Bank)", formatCurrency(totalLiquidity), [237, 233, 254]);
 
+  sectionHeading("FINANCIAL LEDGER");
+  ledger.slice(0, 24).forEach((entry) => {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text(`${entry.date}  ${entry.type}  ${entry.description}`.slice(0, 74), marginL + 3, y + 4.2);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(entry.type === "Income" ? 5 : 190, entry.type === "Income" ? 150 : 18, entry.type === "Income" ? 105 : 60);
+    doc.text(formatCurrency(entry.amount), pageW - marginR - 3, y + 4.2, { align: "right" });
+    y += 7;
+    if (y > pageH - 20) {
+      doc.addPage();
+      y = 18;
+    }
+  });
+
   // ── Footer ───────────────────────────────────────────────────────────────
   doc.setDrawColor(226, 232, 240);
   doc.line(marginL, pageH - 12, pageW - marginR, pageH - 12);
@@ -148,6 +166,8 @@ export default function FinanceReportsPage() {
   const navigate = useNavigate();
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [periodPreset, setPeriodPreset] = useState<"custom" | "weekly" | "monthly" | "annual">("custom");
+  const [ledger, setLedger] = useState<FinanceLedgerEntry[]>([]);
   const [summary, setSummary] = useState<FinanceSummary>({
     totalIncome: 0,
     totalExpenses: 0,
@@ -160,6 +180,18 @@ export default function FinanceReportsPage() {
   });
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+
+  function applyPreset(preset: "weekly" | "monthly" | "annual") {
+    const [year, month, day] = getCurrentBSDate().split("-").map(Number);
+    const start = preset === "annual"
+      ? `${year}-01-01`
+      : preset === "monthly"
+        ? `${year}-${String(month).padStart(2, "0")}-01`
+        : `${year}-${String(month).padStart(2, "0")}-${String(Math.max(day - 6, 1)).padStart(2, "0")}`;
+    setStartDate(start);
+    setEndDate(getCurrentBSDate());
+    setPeriodPreset(preset);
+  }
 
   async function loadReport() {
     try {
@@ -179,6 +211,20 @@ export default function FinanceReportsPage() {
   useEffect(() => {
     void loadReport();
   }, []);
+
+  useEffect(() => subscribeToFinanceLedger(
+    { startDate: startDate || undefined, endDate: endDate || undefined },
+    (entries) => {
+      setLedger(entries);
+      void getFinanceSummary({
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+      }).then(setSummary).catch((error) => {
+        console.error("Failed to refresh finance summary:", error);
+      });
+    },
+    (error) => console.error("Failed to subscribe to finance ledger:", error),
+  ), [startDate, endDate]);
 
   const chartBars = useMemo(() => {
     const max = Math.max(summary.totalIncome, summary.totalExpenses, summary.netProfit, 1);
@@ -208,7 +254,7 @@ export default function FinanceReportsPage() {
   const handleExportPdf = () => {
     setExporting(true);
     try {
-      const doc = buildFinanceReportPDF(summary, startDate, endDate);
+      const doc = buildFinanceReportPDF(summary, ledger, startDate, endDate);
       doc.save("finance-report.pdf");
     } catch (err) {
       console.error("Failed to export finance PDF report:", err);
@@ -256,6 +302,19 @@ export default function FinanceReportsPage() {
             Date Filter
           </div>
 
+          <div className="mb-4 flex flex-wrap gap-2">
+            {(["weekly", "monthly", "annual"] as const).map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                onClick={() => applyPreset(preset)}
+                className={`rounded-lg px-3 py-2 text-xs font-medium ${periodPreset === preset ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-700"}`}
+              >
+                {preset[0].toUpperCase() + preset.slice(1)}
+              </button>
+            ))}
+          </div>
+
           <div className="grid gap-4 md:grid-cols-3">
             <div>
               <label className="mb-2 block text-sm font-medium text-slate-700">From</label>
@@ -274,6 +333,38 @@ export default function FinanceReportsPage() {
                 Apply Filter
               </button>
             </div>
+          </div>
+        </div>
+
+        <div className="mb-6 rounded-2xl border bg-white p-5 shadow-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-slate-900">Realtime Financial Ledger</h2>
+            <span className="text-xs font-medium text-emerald-600">Live updates enabled</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="border-b text-xs uppercase text-slate-500">
+                <tr>
+                  <th className="px-3 py-2">Date</th>
+                  <th className="px-3 py-2">Type</th>
+                  <th className="px-3 py-2">Description</th>
+                  <th className="px-3 py-2">Reference</th>
+                  <th className="px-3 py-2 text-right">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ledger.slice(0, 50).map((entry) => (
+                  <tr key={`${entry.type}-${entry.id}`} className="border-b border-slate-100">
+                    <td className="px-3 py-2">{entry.date}</td>
+                    <td className={entry.type === "Income" ? "px-3 py-2 text-emerald-600" : "px-3 py-2 text-rose-600"}>{entry.type}</td>
+                    <td className="px-3 py-2">{entry.description}</td>
+                    <td className="px-3 py-2 text-slate-500">{entry.reference}</td>
+                    <td className="px-3 py-2 text-right font-medium">{formatCurrency(entry.amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {ledger.length === 0 && <p className="py-8 text-center text-sm text-slate-500">No financial records for this period.</p>}
           </div>
         </div>
 

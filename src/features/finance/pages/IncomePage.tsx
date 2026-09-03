@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, TrendingUp, Wallet } from "lucide-react";
+import { ArrowLeft, TrendingUp, Wallet } from "lucide-react";
 
 import EmptyState from "@/components/common/EmptyState";
 import ListSkeleton from "@/components/common/ListSkeleton";
 import ListToolbar from "@/components/common/ListToolbar";
 
-import IncomeForm from "../forms/IncomeForm";
-import { createIncome, getIncomes } from "../services/income.service";
-import type { Income, IncomeFormData } from "../types/income.types";
+import { getIncomes } from "../services/income.service";
+import type { Income } from "../types/income.types";
 
 const formatCurrency = (value: number) => `Rs. ${value.toLocaleString("en-IN")}`;
 
@@ -16,10 +15,7 @@ export default function IncomePage() {
   const navigate = useNavigate();
   const [records, setRecords] = useState<Income[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
 
@@ -61,23 +57,6 @@ export default function IncomePage() {
   }, [records, search, categoryFilter]);
 
 
-  async function handleSubmit(data: IncomeFormData) {
-    try {
-      setSubmitting(true);
-      setError("");
-      setSuccess("");
-      await createIncome(data);
-      setShowForm(false);
-      setSuccess("Income added successfully.");
-      await loadData();
-    } catch (err) {
-      console.error("Failed to create income:", err);
-      setError(err instanceof Error ? err.message : "Unable to save income.");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
   return (
     <div className="min-h-full bg-slate-50">
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -98,25 +77,11 @@ export default function IncomePage() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setShowForm((current) => !current)}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white hover:bg-slate-800 sm:w-auto"
-          >
-            <Plus size={18} />
-            {showForm ? "Close Form" : "Add Income"}
-          </button>
         </div>
 
         {error && (
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
             {error}
-          </div>
-        )}
-
-        {success && (
-          <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
-            {success}
           </div>
         )}
 
@@ -146,16 +111,9 @@ export default function IncomePage() {
           </div>
         </div>
 
-        {showForm && (
-          <div className="mb-6 rounded-2xl border bg-white p-5 shadow-sm sm:p-6">
-            <h2 className="mb-4 text-lg font-semibold text-slate-900">Add Income Record</h2>
-            <IncomeForm
-              onSubmit={handleSubmit}
-              onCancel={() => setShowForm(false)}
-              isSubmitting={submitting}
-            />
-          </div>
-        )}
+        <div className="mb-6 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
+          Student-fee income is recorded automatically when an invoice payment is received.
+        </div>
 
         <div className="rounded-2xl border bg-white p-4 shadow-sm sm:p-6">
           <ListToolbar search={search} onSearchChange={setSearch} placeholder="Search description, source, or reference..." resultCount={filteredRecords.length} onClear={() => { setSearch(""); setCategoryFilter("all"); }} filter={<select aria-label="Filter income by category" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="all">All categories</option><option value="Student Fee">Student Fee</option></select>} />
