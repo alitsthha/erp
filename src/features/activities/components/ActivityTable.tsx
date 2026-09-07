@@ -62,7 +62,7 @@ export default function ActivityTable({
               </th>
 
               <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Fee / Session
+                Fee
               </th>
 
               <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -122,7 +122,7 @@ export default function ActivityTable({
 
                   <td className="whitespace-nowrap px-5 py-4 text-sm font-semibold text-slate-900">
                     {typeof feeVal === "number"
-                      ? `Rs. ${feeVal.toLocaleString()}`
+                      ? `Rs. ${feeVal.toLocaleString()} ${activity.countedMonthly ? '/ month' : '/ session'}`
                       : "-"}
                   </td>
 
@@ -190,10 +190,10 @@ export default function ActivityTable({
                 />
 
                 <InfoItem
-                  label="Fee / Session"
+                  label="Fee"
                   value={
                     typeof feeVal === "number"
-                      ? `Rs. ${feeVal.toLocaleString()}`
+                      ? `Rs. ${feeVal.toLocaleString()} ${activity.countedMonthly ? '/ month' : '/ session'}`
                       : "-"
                   }
                 />

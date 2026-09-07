@@ -7,6 +7,8 @@ export interface Activity {
   category: string;
   coachStaffId?: string;
   coachName?: string;
+  countedMonthly?: boolean;
+  feePerMonth?: number;
   feePerSession?: number;
   fee?: number;
   sessionFee?: number;

@@ -63,16 +63,17 @@ export function calculateInvoiceLine(
     )
   );
 
-  const calculatedAmount =
-    sessionCount * sessionFee;
+  let amount = 0;
 
-  const amount =
-    monthlyFee > 0
-      ? Math.min(
-          calculatedAmount,
-          monthlyFee
-        )
-      : calculatedAmount;
+  if (line.countedMonthly) {
+    // Monthly-mode: charge fixed monthly fee regardless of session count
+    amount = monthlyFee;
+  } else {
+    const calculatedAmount = sessionCount * sessionFee;
+
+    // Backwards compatible cap: if monthlyFee exists, don't exceed it
+    amount = monthlyFee > 0 ? Math.min(calculatedAmount, monthlyFee) : calculatedAmount;
+  }
 
   return {
     ...line,

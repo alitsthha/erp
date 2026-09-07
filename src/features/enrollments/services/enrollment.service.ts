@@ -165,6 +165,9 @@ export async function addEnrollment(
     ? Number(data.sessionFee)
     : (activity.feePerSession ?? activity.sessionFee ?? activity.fee ?? 0);
 
+  const countedMonthly = Boolean(activity.countedMonthly);
+  const numMonthlyFee = countedMonthly ? Number(activity.feePerMonth ?? 0) : 0;
+
   const docRef = await addDoc(
     collection(db, "enrollments"),
     {
@@ -180,6 +183,8 @@ export async function addEnrollment(
 
       enrollmentDate: data.enrollmentDate,
       sessionFee: numSessionFee,
+      countedMonthly,
+      monthlyFee: numMonthlyFee,
 
       notes: data.notes ?? "",
       status: data.status,
@@ -233,6 +238,9 @@ export async function updateEnrollment(
     ? Number(data.sessionFee)
     : (activity.feePerSession ?? activity.sessionFee ?? activity.fee ?? 0);
 
+  const countedMonthly = Boolean(activity.countedMonthly);
+  const numMonthlyFee = countedMonthly ? Number(activity.feePerMonth ?? 0) : 0;
+
   await updateDoc(
     doc(db, "enrollments", enrollmentId),
     {
@@ -246,6 +254,8 @@ export async function updateEnrollment(
 
       enrollmentDate: data.enrollmentDate,
       sessionFee: numSessionFee,
+      countedMonthly,
+      monthlyFee: numMonthlyFee,
 
       notes: data.notes ?? "",
       status: data.status,

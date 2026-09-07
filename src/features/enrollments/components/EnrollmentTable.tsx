@@ -74,7 +74,7 @@ export default function EnrollmentTable({
               </th>
 
               <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Session Fee
+                Fee
               </th>
 
               <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -146,8 +146,8 @@ export default function EnrollmentTable({
                 {/* Session Fee */}
                 <td className="whitespace-nowrap px-5 py-4">
                   <span className="text-sm font-semibold text-slate-900">
-                    {typeof enrollment.sessionFee === "number"
-                      ? `Rs. ${enrollment.sessionFee.toLocaleString()}`
+                    {typeof (enrollment.countedMonthly ? enrollment.monthlyFee : enrollment.sessionFee) === "number"
+                      ? `Rs. ${((enrollment.countedMonthly ? enrollment.monthlyFee : enrollment.sessionFee) || 0).toLocaleString()} ${enrollment.countedMonthly ? "/ month" : "/ session"}`
                       : "-"}
                   </span>
                 </td>
@@ -235,12 +235,12 @@ export default function EnrollmentTable({
 
               <div className="rounded-xl bg-slate-50 p-3">
                 <p className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
-                  Session Fee
+                  Fee
                 </p>
 
                 <p className="mt-1 text-sm font-semibold text-slate-800">
-                  {typeof enrollment.sessionFee === "number"
-                    ? `Rs. ${enrollment.sessionFee.toLocaleString()}`
+                  {typeof (enrollment.countedMonthly ? enrollment.monthlyFee : enrollment.sessionFee) === "number"
+                    ? `Rs. ${((enrollment.countedMonthly ? enrollment.monthlyFee : enrollment.sessionFee) || 0).toLocaleString()} ${enrollment.countedMonthly ? "/ month" : "/ session"}`
                     : "-"}
                 </p>
               </div>

@@ -395,16 +395,15 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
 
             {selectedActivity && (
               <div className="mt-2 text-xs text-slate-400">
-                Fee per session:{" "}
+                {selectedActivity.countedMonthly ? "Fee per month: " : "Fee per session: "}
                 <span className="font-medium text-slate-600">
                   {formatCurrency(
                     Number(
-                      selectedActivity.feePerSession ??
-                        selectedActivity.sessionFee ??
-                        selectedActivity.fee ??
-                        0
+                      selectedActivity.countedMonthly
+                        ? (selectedActivity.feePerMonth ?? 0)
+                        : (selectedActivity.feePerSession ?? selectedActivity.sessionFee ?? selectedActivity.fee ?? 0)
                     )
-                  )}
+                  )} {selectedActivity.countedMonthly ? "/ month" : "/ session"}
                 </span>
               </div>
             )}
@@ -564,11 +563,11 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
 
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-blue-600">
-                Session Fee
+                {selectedActivity?.countedMonthly ? "Fee per Month" : "Session Fee"}
               </p>
 
               <p className="mt-0.5 text-xl font-bold text-slate-900">
-                {formatCurrency(Number(selectedSessionFee || 0))} / session
+                {formatCurrency(Number(selectedActivity?.countedMonthly ? (selectedActivity?.feePerMonth ?? 0) : (selectedSessionFee || 0)))} {selectedActivity?.countedMonthly ? "/ month" : "/ session"}
               </p>
             </div>
           </div>

@@ -60,6 +60,10 @@ export async function addActivity(
   const numFeePerSession = data.feePerSession?.trim()
     ? Number(data.feePerSession)
     : 0;
+  const numFeePerMonth = data.feePerMonth?.trim()
+    ? Number(data.feePerMonth)
+    : 0;
+  const countedMonthly = Boolean(data.countedMonthly);
 
   const payload = {
     activityCode,
@@ -75,9 +79,11 @@ export async function addActivity(
     coachName:
       data.coachName?.trim() || "",
 
-    feePerSession: numFeePerSession,
-    fee: numFeePerSession, // Backward compatibility
-    sessionFee: numFeePerSession, // Backward compatibility
+    countedMonthly,
+    feePerMonth: countedMonthly ? numFeePerMonth : 0,
+    feePerSession: countedMonthly ? 0 : numFeePerSession,
+    fee: countedMonthly ? 0 : numFeePerSession, // Backward compatibility
+    sessionFee: countedMonthly ? 0 : numFeePerSession, // Backward compatibility
 
     description:
       data.description?.trim() || "",
@@ -106,6 +112,10 @@ export async function updateActivity(
   const numFeePerSession = data.feePerSession?.trim()
     ? Number(data.feePerSession)
     : 0;
+  const numFeePerMonth = data.feePerMonth?.trim()
+    ? Number(data.feePerMonth)
+    : 0;
+  const countedMonthly = Boolean(data.countedMonthly);
 
   const payload = {
     activityName:
@@ -119,9 +129,11 @@ export async function updateActivity(
     coachName:
       data.coachName?.trim() || "",
 
-    feePerSession: numFeePerSession,
-    fee: numFeePerSession, // Backward compatibility
-    sessionFee: numFeePerSession, // Backward compatibility
+    countedMonthly,
+    feePerMonth: countedMonthly ? numFeePerMonth : 0,
+    feePerSession: countedMonthly ? 0 : numFeePerSession,
+    fee: countedMonthly ? 0 : numFeePerSession, // Backward compatibility
+    sessionFee: countedMonthly ? 0 : numFeePerSession, // Backward compatibility
 
     description:
       data.description?.trim() || "",

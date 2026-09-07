@@ -76,6 +76,7 @@ export default function InvoiceForm({
         expectedSessions: Number(line.expectedSessions || 0),
         sessionCount: Number(line.attendedSessions || 0),
         sessionFee: Number(line.sessionFee || 0),
+        countedMonthly: Boolean(line.countedMonthly),
         amount: Number(line.calculatedAmount || 0),
       }));
 
@@ -100,7 +101,12 @@ export default function InvoiceForm({
       const line = { ...next[index], [field]: value };
 
       /* Auto-recalculate amount */
-      line.amount = (Number(line.sessionCount) || 0) * (Number(line.sessionFee) || 0);
+      if (line.countedMonthly) {
+        line.amount = Number(line.monthlyFee || 0);
+      } else {
+        line.amount = (Number(line.sessionCount) || 0) * (Number(line.sessionFee) || 0);
+      }
+
       next[index] = line;
 
       return next;

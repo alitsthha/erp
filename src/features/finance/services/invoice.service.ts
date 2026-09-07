@@ -499,6 +499,8 @@ export async function createInvoiceFromStudentFee(
               line.sessionFee
             ),
 
+          countedMonthly: !!line.countedMonthly,
+
           amount:
             roundMoney(
               line.calculatedAmount

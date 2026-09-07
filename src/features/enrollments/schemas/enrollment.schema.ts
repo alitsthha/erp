@@ -19,6 +19,12 @@ export const enrollmentSchema = z.object({
     .string()
     .min(1, "Session fee is required"),
 
+  // Captured pricing mode from the selected activity at enrollment time.
+  countedMonthly: z.boolean().optional(),
+
+  // If activity is counted monthly this stores the configured monthly fee (string representation)
+  monthlyFee: z.string().optional(),
+
   notes: z
     .string()
     .optional(),

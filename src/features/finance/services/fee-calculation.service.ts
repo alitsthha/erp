@@ -31,6 +31,9 @@ export interface StudentFeeLine {
   activityName: string;
   activityCode: string;
 
+  /** True when this enrollment is billed monthly (flat) */
+  countedMonthly: boolean;
+
   monthlyFee: number;
   expectedSessions: number;
   sessionFee: number;
@@ -168,6 +171,7 @@ export function calculateEnrollmentFee(
   attendedSessions: number,
   month?: string
 ): StudentFeeLine {
+  const countedMonthly = Boolean((enrollment as any).countedMonthly);
   const monthlyFee = toNumber(enrollment.monthlyFee);
   const expectedFromEnrollment = toNumber(enrollment.expectedSessionsPerMonth);
   let sessionFee = toNumber(enrollment.sessionFee);
@@ -178,10 +182,24 @@ export function calculateEnrollmentFee(
       ? getProrationFactor(enrollment.enrollmentDate, normalizedMonth)
       : 1;
 
+  // If session fee is missing but monthly + expected sessions exist, derive session fee
   if (sessionFee <= 0 && monthlyFee > 0 && expectedFromEnrollment > 0) {
     sessionFee = calculateSessionFee(monthlyFee, expectedFromEnrollment);
   }
 
+  const safeAttendance = Math.max(0, Math.floor(toNumber(attendedSessions)));
+
+  let calculatedAmount = 0;
+
+  if (countedMonthly) {
+    // Monthly mode: charge fixed monthly fee (prorated if enrollment started mid-month)
+    calculatedAmount = monthlyFee > 0 ? monthlyFee * prorationFactor : safeAttendance * sessionFee;
+  } else {
+    // Session mode: charge per present session
+    calculatedAmount = safeAttendance * sessionFee;
+  }
+
+  // Determine resolved expected sessions for reporting purposes
   const resolvedExpectedSessions =
     expectedFromEnrollment > 0
       ? expectedFromEnrollment
@@ -194,29 +212,12 @@ export function calculateEnrollmentFee(
       ? Math.max(0, resolvedExpectedSessions * prorationFactor)
       : 0;
 
-  const safeAttendance = Math.max(0, Math.floor(toNumber(attendedSessions)));
-  const chargeableSessions =
-    resolvedExpectedSessions > 0
-      ? Math.min(safeAttendance, proratedExpectedSessions)
-      : safeAttendance;
-
-  let calculatedAmount = 0;
-
-  if (monthlyFee > 0 && sessionFee <= 0) {
-    calculatedAmount = monthlyFee * prorationFactor;
-  } else if (resolvedExpectedSessions > 0 && sessionFee > 0) {
-    const sessionAmount = chargeableSessions * sessionFee;
-    const cappedMonthlyFee = monthlyFee > 0 ? Math.min(monthlyFee * prorationFactor, monthlyFee) : sessionAmount;
-    calculatedAmount = monthlyFee > 0 ? Math.min(sessionAmount, cappedMonthlyFee) : sessionAmount;
-  } else {
-    calculatedAmount = chargeableSessions * sessionFee;
-  }
-
   return {
     enrollmentId: enrollment.id ?? "",
     activityId: toString(enrollment.activityId),
     activityName: toString(enrollment.activityName),
     activityCode: toString(enrollment.activityCode),
+    countedMonthly,
     monthlyFee: roundMoney(monthlyFee),
     expectedSessions: Math.max(0, Math.ceil(proratedExpectedSessions)),
     sessionFee: roundMoney(sessionFee),

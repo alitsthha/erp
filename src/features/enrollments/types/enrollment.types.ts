@@ -18,6 +18,13 @@ export interface Enrollment {
   enrollmentDate: string;
 
   /**
+   * Billing mode for this enrollment. When true, student is charged a fixed
+   * monthly fee regardless of attendance. When false, student is charged per
+   * attended session.
+   */
+  countedMonthly?: boolean;
+
+  /**
    * Monthly fee configured for this enrollment.
    *
    * Example:

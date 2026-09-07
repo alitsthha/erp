@@ -20,6 +20,13 @@ export const activitySchema = z.object({
     .trim()
     .optional(),
 
+  countedMonthly: z.boolean().optional(),
+
+  feePerMonth: z
+    .string()
+    .trim()
+    .optional(),
+
   feePerSession: z
     .string()
     .trim()

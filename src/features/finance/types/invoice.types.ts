@@ -38,6 +38,11 @@ export interface InvoiceLine {
   sessionFee: number;
 
   /**
+   * True if this invoiced line was billed monthly (flat) at the time of invoice creation.
+   */
+  countedMonthly?: boolean;
+
+  /**
    * Final calculated amount for this line.
    */
   amount: number;
