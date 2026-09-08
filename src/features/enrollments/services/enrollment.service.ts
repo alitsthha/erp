@@ -161,12 +161,17 @@ export async function addEnrollment(
   const student = studentSnapshot.data();
   const activity = activitySnapshot.data() as Activity;
 
-  const numSessionFee = data.sessionFee
-    ? Number(data.sessionFee)
-    : (activity.feePerSession ?? activity.sessionFee ?? activity.fee ?? 0);
-
   const countedMonthly = Boolean(activity.countedMonthly);
   const numMonthlyFee = countedMonthly ? Number(activity.feePerMonth ?? 0) : 0;
+  const numSessionFee = countedMonthly
+    ? 0
+    : data.sessionFee
+      ? Number(data.sessionFee)
+      : (activity.feePerSession ?? activity.sessionFee ?? activity.fee ?? 0);
+
+  if (countedMonthly && numMonthlyFee <= 0) {
+    throw new Error("Selected monthly activity does not have a monthly fee configured.");
+  }
 
   const docRef = await addDoc(
     collection(db, "enrollments"),
@@ -234,12 +239,17 @@ export async function updateEnrollment(
   const student = studentSnapshot.data();
   const activity = activitySnapshot.data() as Activity;
 
-  const numSessionFee = data.sessionFee
-    ? Number(data.sessionFee)
-    : (activity.feePerSession ?? activity.sessionFee ?? activity.fee ?? 0);
-
   const countedMonthly = Boolean(activity.countedMonthly);
   const numMonthlyFee = countedMonthly ? Number(activity.feePerMonth ?? 0) : 0;
+  const numSessionFee = countedMonthly
+    ? 0
+    : data.sessionFee
+      ? Number(data.sessionFee)
+      : (activity.feePerSession ?? activity.sessionFee ?? activity.fee ?? 0);
+
+  if (countedMonthly && numMonthlyFee <= 0) {
+    throw new Error("Selected monthly activity does not have a monthly fee configured.");
+  }
 
   await updateDoc(
     doc(db, "enrollments", enrollmentId),

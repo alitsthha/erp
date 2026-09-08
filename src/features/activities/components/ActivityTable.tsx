@@ -77,10 +77,11 @@ export default function ActivityTable({
 
           <tbody className="divide-y divide-slate-100">
             {activities.map((activity) => {
-              const feeVal =
-                activity.feePerSession ??
-                activity.sessionFee ??
-                activity.fee;
+              const feeVal = activity.countedMonthly
+                ? activity.feePerMonth
+                : activity.feePerSession ??
+                  activity.sessionFee ??
+                  activity.fee;
 
               return (
                 <tr
@@ -148,10 +149,11 @@ export default function ActivityTable({
 
       <div className="divide-y divide-slate-100 md:hidden">
         {activities.map((activity) => {
-          const feeVal =
-            activity.feePerSession ??
-            activity.sessionFee ??
-            activity.fee;
+          const feeVal = activity.countedMonthly
+            ? activity.feePerMonth
+            : activity.feePerSession ??
+              activity.sessionFee ??
+              activity.fee;
 
           return (
             <div

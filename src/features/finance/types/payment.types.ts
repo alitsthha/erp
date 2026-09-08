@@ -31,6 +31,9 @@ export interface Payment {
 
   referenceNumber?: string;
 
+  /** Stable key for safely retrying one user submission. */
+  idempotencyKey?: string;
+
   notes?: string;
 
   createdAt?: unknown;

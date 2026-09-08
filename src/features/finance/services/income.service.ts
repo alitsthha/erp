@@ -1,13 +1,12 @@
 import {
-  addDoc,
   collection,
   doc,
   getDoc,
   getDocs,
   orderBy,
   query,
+  runTransaction,
   serverTimestamp,
-  updateDoc,
 } from "firebase/firestore";
 
 import { db } from "@/firebase/config";
@@ -15,7 +14,7 @@ import { generateCode } from "@/lib/generateCode";
 
 import type { Income, IncomeFormData } from "../types/income.types";
 import { recordFinancialAudit } from "./financial-audit.service";
-import { updateFinancialRecord } from "./financial-concurrency.service";
+import { bankAccount, cashAccount, getAccountsForPosting, postAccountingEntryInTransaction, studentFeeIncomeAccount } from "@/features/accounting/services/accounting-posting.service";
 
 const COLLECTION = "financeIncome";
 
@@ -63,10 +62,21 @@ export async function createIncome(
     "financeIncome",
     "INC"
   );
+  const entryNumber = await generateCode("journalEntries", "JE");
+  const accounts = await getAccountsForPosting();
+  const incomeRef = doc(collection(db, COLLECTION));
+  const entryRef = doc(collection(db, "journalEntries"));
 
-  const docRef = await addDoc(
-    collection(db, COLLECTION),
-    {
+  await runTransaction(db, async (transaction) => {
+    await postAccountingEntryInTransaction(transaction, accounts, entryRef, entryNumber, {
+      date: data.incomeDate,
+      description: data.description,
+      reference: incomeNumber,
+      amount: Number(data.amount),
+      debit: (postingAccounts) => data.paymentMethod?.toLowerCase().includes("bank") ? bankAccount(postingAccounts) : cashAccount(postingAccounts),
+      credit: studentFeeIncomeAccount,
+    });
+    transaction.set(incomeRef, {
       ...data,
       incomeNumber,
       amount: Number(data.amount),
@@ -74,10 +84,10 @@ export async function createIncome(
       remainingAmount: Number(data.remainingAmount ?? Number(data.amount)),
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-    }
-  );
+    });
+  });
 
-  return docRef.id;
+  return incomeRef.id;
 }
 
 /* =========================================================
@@ -135,7 +145,43 @@ export async function updateIncome(
 ): Promise<void> {
   if (!id) throw new Error("Income ID is required");
 
-  await updateFinancialRecord(COLLECTION, id, data as Record<string, unknown>);
+  const existing = await getIncomeById(id);
+  if (!existing) throw new Error("Income not found");
+  const oldAmount = Number(existing.amount ?? 0);
+  const newAmount = data.amount === undefined ? oldAmount : Number(data.amount);
+  const accounts = await getAccountsForPosting();
+  const reversalEntryNumber = await generateCode("journalEntries", "JE");
+  const replacementEntryNumber = await generateCode("journalEntries", "JE");
+  const reversalEntryRef = doc(collection(db, "journalEntries"));
+  const replacementEntryRef = doc(collection(db, "journalEntries"));
+  const suffix = Date.now();
+
+  await runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(doc(db, COLLECTION, id));
+    if (!snapshot.exists() || snapshot.data().deletedAt) throw new Error("Income not found");
+    const current = snapshot.data();
+    if (oldAmount > 0) {
+      await postAccountingEntryInTransaction(transaction, accounts, reversalEntryRef, reversalEntryNumber, {
+        date: String(current.incomeDate ?? ""),
+        description: `Reverse updated income ${String(current.incomeNumber ?? id)}`,
+        reference: `${id}-UPDATE-REVERSAL-${suffix}`,
+        amount: Number(current.amount ?? 0),
+        debit: studentFeeIncomeAccount,
+        credit: (postingAccounts) => String(current.paymentMethod ?? "Cash").toLowerCase().includes("bank") ? bankAccount(postingAccounts) : cashAccount(postingAccounts),
+      });
+    }
+    if (newAmount > 0) {
+      await postAccountingEntryInTransaction(transaction, accounts, replacementEntryRef, replacementEntryNumber, {
+        date: String(data.incomeDate ?? current.incomeDate ?? ""),
+        description: `Repost updated income ${String(current.incomeNumber ?? id)}`,
+        reference: `${id}-UPDATE-${suffix}`,
+        amount: newAmount,
+        debit: (postingAccounts) => String(data.paymentMethod ?? current.paymentMethod ?? "Cash").toLowerCase().includes("bank") ? bankAccount(postingAccounts) : cashAccount(postingAccounts),
+        credit: studentFeeIncomeAccount,
+      });
+    }
+    transaction.update(doc(db, COLLECTION, id), { ...data, amount: newAmount, updatedAt: serverTimestamp() });
+  });
 }
 
 /* =========================================================
@@ -149,10 +195,24 @@ export async function deleteIncome(id: string): Promise<void> {
   const snapshot = await getDoc(incomeRef);
   if (!snapshot.exists()) throw new Error("Income not found");
 
-  await updateDoc(incomeRef, {
-    deletedAt: serverTimestamp(),
-    deletedBy: "financial-user",
-    updatedAt: serverTimestamp(),
+  const accounts = await getAccountsForPosting();
+  const entryNumber = await generateCode("journalEntries", "JE");
+  const entryRef = doc(collection(db, "journalEntries"));
+  await runTransaction(db, async (transaction) => {
+    const currentSnapshot = await transaction.get(incomeRef);
+    if (!currentSnapshot.exists() || currentSnapshot.data().deletedAt) throw new Error("Income not found");
+    const current = currentSnapshot.data();
+    if (Number(current.amount ?? 0) > 0) {
+      await postAccountingEntryInTransaction(transaction, accounts, entryRef, entryNumber, {
+        date: String(current.incomeDate ?? ""),
+        description: `Reverse deleted income ${String(current.incomeNumber ?? id)}`,
+        reference: `${id}-DELETE-REVERSAL`,
+        amount: Number(current.amount ?? 0),
+        debit: studentFeeIncomeAccount,
+        credit: (postingAccounts) => String(current.paymentMethod ?? "Cash").toLowerCase().includes("bank") ? bankAccount(postingAccounts) : cashAccount(postingAccounts),
+      });
+    }
+    transaction.update(incomeRef, { deletedAt: serverTimestamp(), deletedBy: "financial-user", updatedAt: serverTimestamp() });
   });
   await recordFinancialAudit("ARCHIVE", COLLECTION, id, snapshot.data());
 }

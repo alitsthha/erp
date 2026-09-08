@@ -33,6 +33,7 @@ import {
 
 import {
   calculateStudentMonthlyFee,
+  getInclusiveBsMonthCount,
 } from "../services/fee-calculation.service";
 
 import {
@@ -92,7 +93,9 @@ export default function BillingPage() {
   const [billingDate, setBillingDate] =
     useState(getCurrentBSDate());
 
+  const currentMonth = getCurrentBSDate().slice(0, 7);
   const month = billingDate.slice(0, 7);
+  const monthCount = getInclusiveBsMonthCount(currentMonth, month);
 
   const [summary, setSummary] =
     useState<StudentFeeSummary | null>(
@@ -601,6 +604,8 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
         discount,
         invoiceDate: billingDate,
         billingDate,
+        months: monthCount,
+        startMonth: currentMonth,
       });
 
       await loadInvoices();
@@ -726,7 +731,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
         await calculateStudentMonthlyFee(
           selectedStudentId,
           month,
-          { billingDate }
+          { billingDate, months: monthCount, startMonth: currentMonth }
         );
 
       setSummary(result);
@@ -929,6 +934,9 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
             {/* Calculate */}
             <div className="flex items-end">
               <div className="flex w-full flex-col gap-2 lg:w-auto">
+                <p className="text-sm font-semibold text-red-600">
+                  {monthCount} month{monthCount === 1 ? "" : "s"}
+                </p>
                 <button
                   type="button"
                   onClick={

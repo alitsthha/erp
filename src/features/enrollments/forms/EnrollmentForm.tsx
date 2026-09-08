@@ -68,6 +68,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
       activityId: "",
       enrollmentDate: getCurrentBSDate(),
       sessionFee: "",
+      monthlyFee: "",
       notes: "",
       status: "Active",
     },
@@ -134,6 +135,15 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
       return;
     }
 
+    if (selectedActivity.countedMonthly) {
+      setValue(
+        "monthlyFee",
+        String(selectedActivity.feePerMonth ?? selectedActivity.fee ?? 0)
+      );
+      setValue("sessionFee", "0");
+      return;
+    }
+
     const feePerSession =
       selectedActivity.feePerSession ??
       selectedActivity.sessionFee ??
@@ -143,6 +153,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
     if (feePerSession > 0) {
       setValue("sessionFee", String(feePerSession));
     }
+    setValue("monthlyFee", "0");
   }, [selectedActivity, setValue]);
 
   /*
@@ -158,6 +169,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
         activityId: "",
         enrollmentDate: getCurrentBSDate(),
         sessionFee: "",
+        monthlyFee: "",
         notes: "",
         status: "Active",
       });
@@ -180,6 +192,10 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
           sessionFee:
             enrollment.sessionFee !== undefined
               ? String(enrollment.sessionFee)
+              : "",
+          monthlyFee:
+            enrollment.monthlyFee !== undefined
+              ? String(enrollment.monthlyFee)
               : "",
           notes: enrollment.notes ?? "",
           status: enrollment.status,
@@ -215,6 +231,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
         activityId: "",
         enrollmentDate: getCurrentBSDate(),
         sessionFee: "",
+        monthlyFee: "",
         notes: "",
         status: "Active",
       });
@@ -427,14 +444,14 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
             />
           </div>
 
-          {/* Session Fee */}
+          {/* Activity Fee */}
 
           <div>
             <label
-              htmlFor="sessionFee"
+              htmlFor={selectedActivity?.countedMonthly ? "monthlyFee" : "sessionFee"}
               className="mb-2 block text-sm font-medium text-slate-700"
             >
-              Session Fee (Rs.) <span className="text-red-500">*</span>
+              {selectedActivity?.countedMonthly ? "Monthly Fee (Rs.)" : "Session Fee (Rs.)"} <span className="text-red-500">*</span>
             </label>
 
             <div className="relative">
@@ -443,29 +460,31 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
               </span>
 
               <input
-                id="sessionFee"
+                id={selectedActivity?.countedMonthly ? "monthlyFee" : "sessionFee"}
                 type="number"
                 min="0"
                 step="0.01"
-                {...register("sessionFee")}
+                {...register(selectedActivity?.countedMonthly ? "monthlyFee" : "sessionFee")}
                 className={`h-11 w-full rounded-xl border bg-white pl-14 pr-4 text-sm font-medium text-slate-900 outline-none transition focus:ring-2 ${
                   errors.sessionFee
                     ? "border-red-300 focus:border-red-400 focus:ring-red-50"
                     : "border-slate-300 focus:border-blue-500 focus:ring-blue-50"
                 }`}
-                placeholder="0.00"
+                placeholder={selectedActivity?.countedMonthly ? "Monthly amount" : "Session amount"}
               />
             </div>
 
-            {errors.sessionFee && (
+            {errors.sessionFee && !selectedActivity?.countedMonthly && (
               <p className="mt-1.5 text-xs font-medium text-red-500">
                 {errors.sessionFee.message}
               </p>
             )}
 
-            <p className="mt-1.5 text-xs text-slate-400">
-              Fee charged per attendance session for this student enrollment.
-            </p>
+            {!selectedActivity?.countedMonthly && (
+              <p className="mt-1.5 text-xs text-slate-400">
+                Fee charged for each attended session.
+              </p>
+            )}
           </div>
 
           {/* Notes */}

@@ -59,6 +59,41 @@ async function deleteStudentLocally(studentId: string): Promise<void> {
   const invoicesSnapshot = await getDocs(
     query(collection(db, "invoices"), where("studentId", "==", studentId))
   );
+  const invoiceLocksSnapshot = await getDocs(
+    query(collection(db, "invoiceLocks"), where("studentId", "==", studentId))
+  );
+
+  const invoiceIds = invoicesSnapshot.docs.map((invoiceDoc) => invoiceDoc.id);
+  const paymentQueries = await Promise.all([
+    getDocs(query(collection(db, "financePayments"), where("studentId", "==", studentId))),
+    ...invoiceIds.map((invoiceId) => getDocs(query(collection(db, "financePayments"), where("invoiceId", "==", invoiceId)))),
+  ]);
+  const paymentDocs = paymentQueries
+    .flatMap((snapshot) => snapshot.docs)
+    .filter((document, index, documents) => documents.findIndex((item) => item.id === document.id) === index);
+
+  const incomeQueries = await Promise.all([
+    getDocs(query(collection(db, "financeIncome"), where("studentId", "==", studentId))),
+    ...paymentDocs.map((paymentDoc) => getDocs(query(collection(db, "financeIncome"), where("paymentId", "==", paymentDoc.id)))),
+  ]);
+  const incomeDocs = incomeQueries
+    .flatMap((snapshot) => snapshot.docs)
+    .filter((document, index, documents) => documents.findIndex((item) => item.id === document.id) === index);
+
+  const accountingPostings = await getDocs(collection(db, "accountingPostings"));
+  const accountingReferences = new Set([
+    ...paymentDocs.map((paymentDoc) => paymentDoc.id),
+    ...paymentDocs.map((paymentDoc) => String(paymentDoc.data().paymentNumber ?? "")),
+    ...incomeDocs.map((incomeDoc) => String(incomeDoc.data().incomeNumber ?? "")),
+    ...invoiceIds,
+  ].filter(Boolean));
+  for (const posting of accountingPostings.docs) {
+    if (accountingReferences.has(posting.id)) await queueDelete(posting.ref);
+  }
+
+  for (const incomeDoc of incomeDocs) await queueDelete(incomeDoc.ref);
+  for (const paymentDoc of paymentDocs) await queueDelete(paymentDoc.ref);
+  for (const invoiceLock of invoiceLocksSnapshot.docs) await queueDelete(invoiceLock.ref);
 
   for (const invoiceDoc of invoicesSnapshot.docs) {
     const paymentsSnapshot = await getDocs(

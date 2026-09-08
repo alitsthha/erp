@@ -21,6 +21,11 @@ export default function PaymentForm({
   onCancel,
   isSubmitting = false,
 }: PaymentFormProps) {
+  const [idempotencyKey] = useState(() =>
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+  );
   const [amount, setAmount] = useState(invoice.dueAmount ?? invoice.totalAmount ?? 0);
   const [paymentDate, setPaymentDate] = useState(TODAY);
   const [paymentMethod, setPaymentMethod] = useState<Payment["paymentMethod"]>("Cash");
@@ -40,6 +45,7 @@ export default function PaymentForm({
       paymentDate,
       paymentMethod,
       referenceNumber: referenceNumber || undefined,
+      idempotencyKey,
       notes: notes || undefined,
     });
   }

@@ -92,6 +92,9 @@ export interface StudentFeeSummary {
    * was not charged. Lets the caller tell the user which billing date to pick.
    */
   nextMonthlyDueDate: string;
+
+  /** Number of consecutive BS months included in this calculation. */
+  months: number;
 }
 
 export interface FeeCalculationOptions {
@@ -104,6 +107,12 @@ export interface FeeCalculationOptions {
    * fee whose due date falls anywhere inside the billing month.
    */
   billingDate?: string;
+
+  /** Number of consecutive BS months starting at the billing month. */
+  months?: number;
+
+  /** First BS month included in the range. Defaults to the requested month. */
+  startMonth?: string;
 }
 
 /* =========================================================
@@ -233,6 +242,23 @@ function getMonthIndex(parts: BsMonthParts): number {
 function addBsMonths(parts: BsMonthParts, count: number): BsMonthParts {
   const index = getMonthIndex(parts) + count;
   return { year: Math.floor(index / 12), month: (index % 12) + 1 };
+}
+
+function getBillingMonths(startMonth: string, count: number): string[] {
+  const start = parseBsMonthParts(startMonth);
+  if (!start) return [];
+
+  const safeCount = Math.min(120, Math.max(1, Math.floor(count) || 1));
+  return Array.from({ length: safeCount }, (_, index) =>
+    formatBsMonthParts(addBsMonths(start, index))
+  );
+}
+
+export function getInclusiveBsMonthCount(startMonth: string, endMonth: string): number {
+  const start = parseBsMonthParts(startMonth);
+  const end = parseBsMonthParts(endMonth);
+  if (!start || !end) return 1;
+  return Math.min(120, Math.max(1, getMonthIndex(end) - getMonthIndex(start) + 1));
 }
 
 /**
@@ -418,7 +444,7 @@ export function calculateEnrollmentFee(
 
   const enrollmentDate = normalizeBsDate(enrollment.enrollmentDate);
 
-  const { month: billingMonth, billingDate } = resolveBillingPeriod(
+  const { month: billingMonth } = resolveBillingPeriod(
     month,
     options?.billingDate
   );
@@ -434,37 +460,17 @@ export function calculateEnrollmentFee(
     sessionAmount = attendanceAmount;
     monthlyFeeNote = "Charged per attended session.";
   } else if (monthlyFee <= 0) {
-    // Monthly mode without a configured fee: fall back to attendance
-    sessionAmount = attendanceAmount;
-    monthlyFeeNote =
-      "No monthly fee is configured, so attended sessions were charged instead.";
-  } else if (!enrollmentDate) {
-    monthlyFeeNote =
-      "Monthly fee not charged: the enrollment date is missing or unreadable.";
+    monthlyFeeNote = "Monthly fee not charged: no monthly fee is configured.";
   } else if (!billingMonth) {
     monthlyFeeNote =
-      "Monthly fee not charged: the billing date is missing or unreadable.";
+      "Monthly fee not charged: the billing month is missing or unreadable.";
   } else {
-    monthlyDueDate = getMonthlyDueDateForMonth(enrollmentDate, billingMonth);
-
-    if (!monthlyDueDate) {
-      const firstDueDate = getNextMonthlyDueDate(enrollmentDate);
-
-      monthlyFeeNote = firstDueDate
-        ? `Monthly fee not charged: the first monthly cycle starts on ${firstDueDate}.`
-        : "Monthly fee not charged: the monthly cycle could not be resolved.";
-    } else if (!billingDate) {
-      // Month level billing: the due date falls inside the billing month
-      monthlyFeeApplied = true;
-      monthlyFeeAmount = monthlyFee;
-      monthlyFeeNote = `Monthly fee charged for the cycle due on ${monthlyDueDate}.`;
-    } else if (billingDate === monthlyDueDate) {
-      monthlyFeeApplied = true;
-      monthlyFeeAmount = monthlyFee;
-      monthlyFeeNote = `Monthly fee charged: the billing date matches the due date ${monthlyDueDate}.`;
-    } else {
-      monthlyFeeNote = `Monthly fee not charged: it is due on ${monthlyDueDate}, but ${billingDate} was selected.`;
-    }
+    monthlyDueDate = enrollmentDate
+      ? getMonthlyDueDateForMonth(enrollmentDate, billingMonth)
+      : "";
+    monthlyFeeApplied = true;
+    monthlyFeeAmount = monthlyFee;
+    monthlyFeeNote = `Monthly fee charged for ${billingMonth}.`;
   }
 
   // Expected sessions, for reporting only
@@ -600,6 +606,11 @@ export async function calculateStudentMonthlyFee(
   options?: FeeCalculationOptions
 ): Promise<StudentFeeSummary> {
   const { month, billingDate } = resolveBillingPeriod(period, options?.billingDate);
+  const startMonth = getMonthKey(options?.startMonth) || month;
+  const billingMonths = getBillingMonths(
+    startMonth,
+    options?.months ?? getInclusiveBsMonthCount(startMonth, month)
+  );
 
   const enrollments = await getStudentEnrollments(studentId);
   const activeEnrollments = enrollments.filter((enrollment) => enrollment.status === "Active");
@@ -611,13 +622,20 @@ export async function calculateStudentMonthlyFee(
       continue;
     }
 
-    const attendance = month
-      ? await getEnrollmentAttendance(enrollment.id, month)
-      : [];
-
-    lines.push(
-      calculateEnrollmentFee(enrollment, attendance.length, month, { billingDate })
+    const attendanceByMonth = await Promise.all(
+      billingMonths.map((billingMonth) =>
+        getEnrollmentAttendance(enrollment.id as string, billingMonth)
+      )
     );
+    const attendance = attendanceByMonth.flat();
+
+    const line = calculateEnrollmentFee(enrollment, attendance.length, month, { billingDate });
+    if (line.countedMonthly && line.monthlyFeeAmount > 0) {
+      line.monthlyFeeAmount = roundMoney(line.monthlyFeeAmount * billingMonths.length);
+      line.calculatedAmount = roundMoney(line.monthlyFeeAmount + line.sessionAmount);
+      line.monthlyFeeNote = `${line.monthlyFeeNote} ${billingMonths.length} month(s) included.`;
+    }
+    lines.push(line);
   }
 
   const monthlyFeeTotal = roundMoney(
@@ -654,6 +672,7 @@ export async function calculateStudentMonthlyFee(
     sessionFeeTotal,
     totalAmount,
     nextMonthlyDueDate: upcomingDueDates[0] ?? "",
+    months: billingMonths.length,
   };
 }
 

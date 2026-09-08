@@ -5,6 +5,7 @@ import {
   runTransaction,
   serverTimestamp,
   setDoc,
+  type Transaction,
 } from "firebase/firestore";
 
 import { db } from "@/firebase/config";
@@ -49,65 +50,71 @@ async function ensureDefaultAccounts(): Promise<Account[]> {
   return accounts;
 }
 
-function findAccount(accounts: Account[], predicate: (account: Account) => boolean, message: string): Account {
-  const account = accounts.find((item) => item.status === "Active" && predicate(item));
-  if (!account?.id) throw new Error(message);
-  return account;
-}
-
-export async function postAccountingEntry({
-  date,
-  description,
-  reference,
-  debit,
-  credit,
-  amount,
-}: {
+export type AccountingPostingInput = {
   date: string;
   description: string;
   reference: string;
   debit: (accounts: Account[]) => Account;
   credit: (accounts: Account[]) => Account;
   amount: number;
-}): Promise<string> {
+};
+
+function findAccount(accounts: Account[], predicate: (account: Account) => boolean, message: string): Account {
+  const account = accounts.find((item) => item.status === "Active" && predicate(item));
+  if (!account?.id) throw new Error(message);
+  return account;
+}
+
+export async function postAccountingEntryInTransaction(
+  transaction: Transaction,
+  accounts: Account[],
+  entryRef: ReturnType<typeof doc>,
+  entryNumber: string,
+  { date, description, reference, debit, credit, amount }: AccountingPostingInput,
+): Promise<string> {
   if (amount <= 0) throw new Error("Accounting amount must be greater than zero.");
 
-  const accounts = await ensureDefaultAccounts();
   const debitAccount = debit(accounts);
   const creditAccount = credit(accounts);
   if (debitAccount.id === creditAccount.id) throw new Error("Debit and credit accounts must be different.");
 
-  const entryRef = doc(collection(db, "journalEntries"));
-  const entryNumber = await generateCode("journalEntries", "JE");
   const lines: JournalLine[] = [
     { accountId: debitAccount.id!, accountName: debitAccount.accountName, debit: amount, credit: 0 },
     { accountId: creditAccount.id!, accountName: creditAccount.accountName, debit: 0, credit: amount },
   ];
 
-  await runTransaction(db, async (transaction) => {
-    const existingEntry = await transaction.get(doc(db, "accountingPostings", reference));
-    if (existingEntry.exists()) return;
+  const existingEntry = await transaction.get(doc(db, "accountingPostings", reference));
+  if (existingEntry.exists()) return entryRef.id;
 
-    const debitRef = doc(db, "accounts", debitAccount.id!);
-    const creditRef = doc(db, "accounts", creditAccount.id!);
-    const [debitSnapshot, creditSnapshot] = await Promise.all([
-      transaction.get(debitRef),
-      transaction.get(creditRef),
-    ]);
-    if (!debitSnapshot.exists() || !creditSnapshot.exists()) throw new Error("Accounting account not found.");
+  const debitRef = doc(db, "accounts", debitAccount.id!);
+  const creditRef = doc(db, "accounts", creditAccount.id!);
+  const [debitSnapshot, creditSnapshot] = await Promise.all([
+    transaction.get(debitRef),
+    transaction.get(creditRef),
+  ]);
+  if (!debitSnapshot.exists() || !creditSnapshot.exists()) throw new Error("Accounting account not found.");
 
-    const debitBalance = Number(debitSnapshot.data().currentBalance ?? 0);
-    const creditBalance = Number(creditSnapshot.data().currentBalance ?? 0);
-    const debitIncrease = debitAccount.accountType === "Asset" || debitAccount.accountType === "Expense";
-    const creditIncrease = creditAccount.accountType === "Income" || creditAccount.accountType === "Liability" || creditAccount.accountType === "Equity";
+  const debitBalance = Number(debitSnapshot.data().currentBalance ?? 0);
+  const creditBalance = Number(creditSnapshot.data().currentBalance ?? 0);
+  const debitIncrease = debitAccount.accountType === "Asset" || debitAccount.accountType === "Expense";
+  const creditIncrease = creditAccount.accountType === "Income" || creditAccount.accountType === "Liability" || creditAccount.accountType === "Equity";
 
-    transaction.update(debitRef, { currentBalance: debitBalance + (debitIncrease ? amount : -amount), updatedAt: serverTimestamp() });
-    transaction.update(creditRef, { currentBalance: creditBalance + (creditIncrease ? amount : -amount), updatedAt: serverTimestamp() });
-    transaction.set(entryRef, { entryNumber, entryDate: date, description, reference, lines, totalDebit: amount, totalCredit: amount, status: "Posted", createdAt: serverTimestamp() });
-    transaction.set(doc(db, "accountingPostings", reference), { journalEntryId: entryRef.id, entryNumber, createdAt: serverTimestamp() });
-  });
+  transaction.update(debitRef, { currentBalance: debitBalance + (debitIncrease ? amount : -amount), updatedAt: serverTimestamp() });
+  transaction.update(creditRef, { currentBalance: creditBalance + (creditIncrease ? amount : -amount), updatedAt: serverTimestamp() });
+  transaction.set(entryRef, { entryNumber, entryDate: date, description, reference, lines, totalDebit: amount, totalCredit: amount, status: "Posted", createdAt: serverTimestamp() });
+  transaction.set(doc(db, "accountingPostings", reference), { journalEntryId: entryRef.id, entryNumber, createdAt: serverTimestamp() });
 
   return entryRef.id;
+}
+
+export async function postAccountingEntry(input: AccountingPostingInput): Promise<string> {
+  const accounts = await ensureDefaultAccounts();
+  const entryRef = doc(collection(db, "journalEntries"));
+  const entryNumber = await generateCode("journalEntries", "JE");
+
+  return runTransaction(db, (transaction) =>
+    postAccountingEntryInTransaction(transaction, accounts, entryRef, entryNumber, input)
+  );
 }
 
 export const cashAccount = (accounts: Account[]) => findAccount(accounts, (account) => account.isCashAccount || account.accountName.toLowerCase() === "cash", "Cash account is required for automatic posting.");

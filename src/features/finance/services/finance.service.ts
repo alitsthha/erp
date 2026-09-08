@@ -30,6 +30,13 @@ function toNumber(value: unknown): number {
   return 0;
 }
 
+function normalizePaymentMethod(value: unknown): "cash" | "bank" | "other" {
+  const method = String(value ?? "").trim().toLowerCase().replace(/[_-]+/g, " ");
+  if (method === "cash") return "cash";
+  if (method.includes("bank") || method.includes("online") || method.includes("esewa") || method.includes("khalti") || method.includes("card")) return "bank";
+  return "other";
+}
+
 function getDateValue(record: AnyRecord): Date | null {
   const value =
     record.date ??
@@ -348,11 +355,7 @@ export async function getFinanceSummary(
   const cashBalance = paymentRecords
     .filter(
       (payment) =>
-        String(
-          payment.accountType ??
-            payment.paymentMethod ??
-            "",
-        ).toLowerCase() === "cash",
+        normalizePaymentMethod(payment.accountType ?? payment.paymentMethod) === "cash",
     )
     .reduce(
       (total, payment) =>
@@ -367,14 +370,7 @@ export async function getFinanceSummary(
   const bankBalance = paymentRecords
     .filter(
       (payment) =>
-        ["bank", "online", "esewa", "khalti"]
-          .includes(
-            String(
-              payment.accountType ??
-                payment.paymentMethod ??
-                "",
-            ).toLowerCase(),
-          ),
+        normalizePaymentMethod(payment.accountType ?? payment.paymentMethod) === "bank",
     )
     .reduce(
       (total, payment) =>
@@ -398,6 +394,34 @@ export async function getFinanceSummary(
     cashBalance,
     bankBalance,
   };
+}
+
+export function subscribeToFinanceSummary(
+  filters: FinanceDateFilter | undefined,
+  onChange: (summary: FinanceSummary) => void,
+  onError?: (error: Error) => void,
+): () => void {
+  let refreshQueued = false;
+  const refresh = () => {
+    if (refreshQueued) return;
+    refreshQueued = true;
+    queueMicrotask(() => {
+      refreshQueued = false;
+      void getFinanceSummary(filters).then(onChange).catch((error: unknown) => {
+        onError?.(error instanceof Error ? error : new Error("Failed to refresh finance summary."));
+      });
+    });
+  };
+
+  const unsubscribers = ["financeIncome", "financeExpenses", "invoices", "financePayments"].map((collectionName) =>
+    onSnapshot(
+      query(collection(db, collectionName), orderBy("createdAt", "desc")),
+      refresh,
+      (error) => onError?.(error),
+    ),
+  );
+  refresh();
+  return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
 }
 
 export function subscribeToFinanceLedger(

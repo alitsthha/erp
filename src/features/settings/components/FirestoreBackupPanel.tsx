@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Download, RefreshCw, Upload } from "lucide-react";
 
 import {
+  BACKUP_COLLECTIONS,
   exportFirestoreBackup,
   restoreFirestoreBackup,
   type FirestoreBackup,
@@ -11,12 +12,30 @@ export default function FirestoreBackupPanel() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showBackupOptions, setShowBackupOptions] = useState(false);
+  const [selectedCollections, setSelectedCollections] = useState<string[]>([...BACKUP_COLLECTIONS]);
+
+  function toggleCollection(collectionName: string) {
+    setSelectedCollections((current) => current.includes(collectionName)
+      ? current.filter((item) => item !== collectionName)
+      : [...current, collectionName]);
+  }
 
   async function handleBackup() {
+    if (selectedCollections.length === 0) {
+      setStatus("Select at least one section to download.");
+      return;
+    }
+
+    if (!window.confirm(`Download backup for ${selectedCollections.length} selected section(s)?`)) {
+      return;
+    }
+
     try {
+      setShowBackupOptions(false);
       setBusy(true);
       setStatus("Preparing backup...");
-      const backup = await exportFirestoreBackup(setStatus);
+      const backup = await exportFirestoreBackup(selectedCollections, setStatus);
       const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -81,7 +100,7 @@ export default function FirestoreBackupPanel() {
           <div className="flex flex-wrap gap-3">
             <button
               type="button"
-              onClick={() => void handleBackup()}
+              onClick={() => setShowBackupOptions(true)}
               disabled={busy}
               className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -107,6 +126,47 @@ export default function FirestoreBackupPanel() {
               className="hidden"
             />
           </div>
+
+          {showBackupOptions && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4" role="dialog" aria-modal="true" aria-labelledby="backup-options-title">
+              <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+                <div className="border-b border-slate-200 px-5 py-4 sm:px-6">
+                  <h3 id="backup-options-title" className="text-lg font-semibold text-slate-900">Choose backup sections</h3>
+                  <p className="mt-1 text-sm text-slate-500">All sections are selected by default. Only checked sections will be downloaded.</p>
+                </div>
+
+                <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3 sm:px-6">
+                  <span className="text-sm font-medium text-slate-700">{selectedCollections.length} of {BACKUP_COLLECTIONS.length} selected</span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCollections(selectedCollections.length === BACKUP_COLLECTIONS.length ? [] : [...BACKUP_COLLECTIONS])}
+                    className="text-sm font-medium text-blue-600 hover:text-blue-700"
+                  >
+                    {selectedCollections.length === BACKUP_COLLECTIONS.length ? "Clear all" : "Select all"}
+                  </button>
+                </div>
+
+                <div className="grid gap-2 px-5 py-4 sm:grid-cols-2 sm:px-6">
+                  {BACKUP_COLLECTIONS.map((collectionName) => (
+                    <label key={collectionName} className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50">
+                      <input
+                        type="checkbox"
+                        checked={selectedCollections.includes(collectionName)}
+                        onChange={() => toggleCollection(collectionName)}
+                        className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span>{collectionName}</span>
+                    </label>
+                  ))}
+                </div>
+
+                <div className="flex justify-end gap-3 border-t border-slate-200 px-5 py-4 sm:px-6">
+                  <button type="button" onClick={() => setShowBackupOptions(false)} className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
+                  <button type="button" onClick={() => void handleBackup()} disabled={selectedCollections.length === 0} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"><Download size={16} />Confirm & Download</button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {status && (
             <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600" aria-live="polite">

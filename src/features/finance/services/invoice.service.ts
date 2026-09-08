@@ -341,6 +341,8 @@ export async function createInvoiceFromStudentFee(
      * Defaults to `invoiceDate`.
      */
     billingDate?: string;
+    months?: number;
+    startMonth?: string;
     notes?: string;
   }
 ): Promise<string> {
@@ -373,7 +375,7 @@ export async function createInvoiceFromStudentFee(
     await calculateStudentMonthlyFee(
       studentId,
       billingMonth,
-      { billingDate }
+      { billingDate, months: options?.months, startMonth: options?.startMonth }
     );
 
   if (!feeSummary.studentId) {
@@ -542,6 +544,11 @@ export async function createInvoiceFromStudentFee(
         COLLECTION_NAME
       )
     );
+  const invoiceLockRef = doc(
+    db,
+    "invoiceLocks",
+    `${encodeURIComponent(studentId)}_${encodeURIComponent(billingMonth)}`
+  );
 
   /*
    * Consuming the student's advance and writing the invoice happen in one
@@ -549,6 +556,11 @@ export async function createInvoiceFromStudentFee(
    * created, and never spent twice by two concurrent invoices.
    */
   await runTransaction(db, async (transaction) => {
+    const lockSnapshot = await transaction.get(invoiceLockRef);
+    if (lockSnapshot.exists()) {
+      throw new Error("An invoice already exists for this student and billing month.");
+    }
+
     let remainingBill = billBeforeAdvance;
     let advanceApplied = 0;
 
@@ -650,6 +662,13 @@ export async function createInvoiceFromStudentFee(
         updatedAt: serverTimestamp(),
       });
     }
+
+    transaction.set(invoiceLockRef, {
+      studentId,
+      billingMonth: feeSummary.month || billingMonth,
+      invoiceId: invoiceRef.id,
+      createdAt: serverTimestamp(),
+    });
 
     transaction.set(invoiceRef, {
       invoiceNumber,

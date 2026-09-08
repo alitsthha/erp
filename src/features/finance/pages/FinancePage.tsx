@@ -35,6 +35,7 @@ import {
   getFinanceExpenses,
   getFinanceIncome,
   getFinancePayments,
+  subscribeToFinanceSummary,
 } from "../services/finance.service";
 import type { FinanceSummary } from "../types/finance.types";
 
@@ -302,6 +303,15 @@ export default function FinancePage() {
 
     void loadFinance();
   }, []);
+
+  useEffect(
+    () => subscribeToFinanceSummary(
+      undefined,
+      setSummary,
+      (error) => console.error("Error subscribing to finance summary:", error),
+    ),
+    [],
+  );
 
   // Calculate trend data from real data
   const trendData: TrendPoint[] = useMemo(() => {

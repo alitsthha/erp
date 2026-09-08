@@ -42,11 +42,12 @@ export interface FirestoreBackup {
 }
 
 export async function exportFirestoreBackup(
+  selectedCollections: readonly string[] = BACKUP_COLLECTIONS,
   onProgress?: (message: string) => void,
 ): Promise<FirestoreBackup> {
   const collections: FirestoreBackup["collections"] = {};
 
-  for (const collectionName of BACKUP_COLLECTIONS) {
+  for (const collectionName of selectedCollections) {
     onProgress?.(`Reading ${collectionName}...`);
     const snapshot = await getDocs(collection(db, collectionName));
     collections[collectionName] = snapshot.docs.map((item) => ({
