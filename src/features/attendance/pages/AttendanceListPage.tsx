@@ -47,7 +47,7 @@ type GroupedAttendanceRow = Attendance & {
 
 export default function AttendanceListPage() {
   const navigate = useNavigate();
-  const { role } = useAuth();
+  const { role, activityIds } = useAuth();
 
   // Current BS Date by default
   const todayBS = useMemo(() => getCurrentBSDate(), []);
@@ -122,7 +122,7 @@ export default function AttendanceListPage() {
   const activeRecords: Attendance[] = useMemo(() => {
     const raw = viewMode === "daily" ? dailyData?.attendances || [] : allAttendances;
     return raw.filter((item) =>
-      isActivityAllowedForRole(role, item.activityName, item.activityCode)
+      isActivityAllowedForRole(role, item.activityName, item.activityCode, activityIds, item.activityId)
     );
   }, [viewMode, dailyData, allAttendances, role]);
 
@@ -130,7 +130,7 @@ export default function AttendanceListPage() {
   const availableActivities = useMemo(() => {
     if (viewMode === "daily" && dailyData?.activities) {
       return dailyData.activities.filter((act) =>
-        isActivityAllowedForRole(role, act.activityName, act.activityCode)
+        isActivityAllowedForRole(role, act.activityName, act.activityCode, activityIds, act.activityId)
       );
     }
 
@@ -251,7 +251,7 @@ export default function AttendanceListPage() {
       if (
         record.status !== "Present" ||
         !record.studentId ||
-        !isActivityAllowedForRole(role, record.activityName, record.activityCode) ||
+        !isActivityAllowedForRole(role, record.activityName, record.activityCode, activityIds, record.activityId) ||
         (selectedActivityId !== "all" && record.activityId !== selectedActivityId)
       ) {
         continue;

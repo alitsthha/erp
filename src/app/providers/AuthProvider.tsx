@@ -26,6 +26,7 @@ type AuthContextValue = {
   user: User | null;
   role: AppRole | null;
   permissions: ModulePermissions;
+  activityIds: string[];
   loading: boolean;
   isAdmin: boolean;
   isTeacher: boolean;
@@ -45,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     createDefaultPermissions("teacher")
   );
   const [loading, setLoading] = useState(true);
+  const [activityIds, setActivityIds] = useState<string[]>([]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -53,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setRole(null);
         setPermissions(createDefaultPermissions("teacher"));
         setLoading(false);
+        setActivityIds([]);
         return;
       }
 
@@ -66,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const profile =
         email && fallbackAdminEmails.includes(email)
-          ? { role: "admin" as AppRole, permissions: createDefaultPermissions("admin") }
+          ? { role: "admin" as AppRole, permissions: createDefaultPermissions("admin"), activityIds: [] }
           : await getUserRoleForEmail(email);
 
       const nextRole = profile?.role ?? "teacher";
@@ -78,6 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(currentUser);
       setRole(nextRole);
       setPermissions(nextPermissions);
+      setActivityIds(profile?.activityIds ?? []);
       setLoading(false);
     });
 
@@ -151,6 +155,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setRole(null);
     setPermissions(createDefaultPermissions("teacher"));
+    setActivityIds([]);
   };
 
   const value = useMemo(
@@ -158,6 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       role,
       permissions,
+      activityIds,
       loading,
       isAdmin: role === "admin",
       isTeacher:
@@ -169,7 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login,
       logout,
     }),
-    [user, role, permissions, loading]
+    [user, role, permissions, activityIds, loading]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

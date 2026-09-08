@@ -10,6 +10,7 @@ export type UserRoleRecord = {
   role: AppRole;
   label?: string;
   permissions?: Partial<Record<keyof ModulePermissions, boolean>>;
+  activityIds?: string[];
   createdAt?: unknown;
   updatedAt?: unknown;
 };
@@ -104,6 +105,7 @@ export async function getUserRoleForEmail(
       role,
       label: match.label ?? role,
       permissions: match.permissions ?? {},
+      activityIds: Array.isArray(match.activityIds) ? match.activityIds : [],
     };
   }
 
@@ -123,11 +125,13 @@ export async function upsertUserRole({
   role,
   label,
   permissions,
+  activityIds,
 }: {
   email: string;
   role: AppRole;
   label?: string;
   permissions?: Partial<Record<keyof ModulePermissions, boolean>>;
+  activityIds?: string[];
 }): Promise<void> {
   const normalizedEmail = email.trim().toLowerCase();
   const userRef = doc(db, "user_roles", normalizedEmail);
@@ -139,6 +143,7 @@ export async function upsertUserRole({
       role,
       label: label ?? role,
       permissions: permissions ?? {},
+      activityIds: activityIds ?? [],
       updatedAt: serverTimestamp(),
       createdAt: serverTimestamp(),
     },

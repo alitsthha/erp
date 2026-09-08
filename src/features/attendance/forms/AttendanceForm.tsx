@@ -125,14 +125,14 @@ export default function AttendanceForm({
     }
   }, [attendanceDate]);
 
-  const { role } = useAuth();
+  const { role, activityIds } = useAuth();
 
   /*
    * Active enrollments.
    */
   const activeEnrollments = useMemo(() => {
     return enrollments.filter((enrollment) => {
-      if (!isActivityAllowedForRole(role, enrollment.activityName, enrollment.activityCode)) {
+      if (!isActivityAllowedForRole(role, enrollment.activityName, enrollment.activityCode, activityIds, enrollment.activityId)) {
         return false;
       }
 

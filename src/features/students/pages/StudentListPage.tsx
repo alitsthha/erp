@@ -25,7 +25,7 @@ import type { Enrollment } from "@/features/enrollments/types/enrollment.types";
 
 export default function StudentListPage() {
   const navigate = useNavigate();
-  const { role, isAdmin } = useAuth();
+  const { role, isAdmin, activityIds } = useAuth();
 
   const [students, setStudents] = useState<Student[]>([]);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
@@ -70,7 +70,7 @@ export default function StudentListPage() {
     }
     const ids = new Set<string>();
     for (const e of enrollments) {
-      if (isActivityAllowedForRole(role, e.activityName, e.activityCode)) {
+      if (isActivityAllowedForRole(role, e.activityName, e.activityCode, activityIds, e.activityId)) {
         if (e.studentId) ids.add(e.studentId);
       }
     }

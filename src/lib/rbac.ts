@@ -41,11 +41,6 @@ export const moduleOptions: { value: ModuleName; label: string }[] = [
 
 export const roleOptions: { value: AppRole; label: string; classFocus?: string }[] = [
   { value: "admin", label: "Admin", classFocus: "All modules" },
-  { value: "teacher", label: "General Teacher", classFocus: "General access" },
-  { value: "music_teacher", label: "Music Teacher", classFocus: "Music class only" },
-  { value: "dance_teacher", label: "Dance Teacher", classFocus: "Dance class only" },
-  { value: "art_teacher", label: "Art Teacher", classFocus: "Art class only" },
-  { value: "sports_teacher", label: "Sports Teacher", classFocus: "Sports class only" },
 ];
 
 export const defaultPermissionsByRole: Record<AppRole, ModulePermissions> = {
@@ -203,10 +198,16 @@ export function getLandingRouteForRole(role: AppRole | null | undefined): string
 export function isActivityAllowedForRole(
   role: AppRole | null | undefined,
   activityName?: string | null,
-  activityCode?: string | null
+  activityCode?: string | null,
+  assignedActivityIds?: string[],
+  activityId?: string | null
 ): boolean {
-  if (!role || role === "admin" || role === "teacher") {
+  if (!role || role === "admin") {
     return true;
+  }
+
+  if (assignedActivityIds && assignedActivityIds.length > 0) {
+    return !!activityId && assignedActivityIds.includes(activityId);
   }
 
   const name = (activityName || "").toLowerCase();

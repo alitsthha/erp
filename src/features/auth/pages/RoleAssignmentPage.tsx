@@ -28,6 +28,8 @@ import {
   type ModulePermissions,
 } from "@/lib/rbac";
 import { useStaff } from "@/features/staff/hooks/useStaff";
+import { getActivities } from "@/features/activities/services/activity.service";
+import type { Activity } from "@/features/activities/types/activity.types";
 import {
   upsertUserRole,
   createTeacherAccount,
@@ -38,6 +40,8 @@ import {
 export default function RoleAssignmentPage() {
   const { isAdmin, user } = useAuth();
   const { staffs, loading: loadingStaff } = useStaff();
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [assignedActivityIds, setAssignedActivityIds] = useState<string[]>([]);
 
   // Selection mode: 'existing' or 'custom'
   const [selectionMode, setSelectionMode] = useState<"existing" | "custom">("existing");
@@ -48,7 +52,7 @@ export default function RoleAssignmentPage() {
   const [staffEmailOverride, setStaffEmailOverride] = useState("");
 
   // Role & Permissions
-  const [role, setRole] = useState<AppRole>("teacher");
+  const [role, setRole] = useState<AppRole>("admin");
   const [permissions, setPermissions] = useState<ModulePermissions>(
     createDefaultPermissions("teacher")
   );
@@ -65,6 +69,12 @@ export default function RoleAssignmentPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [modalError, setModalError] = useState<string | null>(null);
+
+  useEffect(() => {
+    void getActivities()
+      .then((items) => setActivities(items.filter((item) => item.status === "Active")))
+      .catch((err) => console.error("Error loading activities:", err));
+  }, []);
 
   const selectedStaff = useMemo(
     () => staffs.find((staff) => staff.id === selectedStaffId) ?? null,
@@ -106,8 +116,9 @@ export default function RoleAssignmentPage() {
     let active = true;
     if (!targetEmail) {
       setExistingUserRole(null);
-      setRole("teacher");
+      setRole("admin");
       setPermissions(createDefaultPermissions("teacher"));
+      setAssignedActivityIds([]);
       return;
     }
 
@@ -120,10 +131,12 @@ export default function RoleAssignmentPage() {
             setExistingUserRole(record);
             setRole(record.role);
             setPermissions(normalizePermissions(record.permissions, record.role));
+            setAssignedActivityIds(record.activityIds ?? []);
           } else {
             setExistingUserRole(null);
-            setRole("teacher");
+            setRole("admin");
             setPermissions(createDefaultPermissions("teacher"));
+            setAssignedActivityIds([]);
           }
         }
       } catch (err) {
@@ -153,6 +166,13 @@ export default function RoleAssignmentPage() {
   const applyRoleTemplate = (nextRole: AppRole) => {
     setRole(nextRole);
     setPermissions(createDefaultPermissions(nextRole));
+    setAssignedActivityIds([]);
+  };
+
+  const applyActivityTemplate = (activityId: string) => {
+    setRole("teacher");
+    setPermissions(createDefaultPermissions("teacher"));
+    setAssignedActivityIds(activityId ? [activityId] : []);
   };
 
   const handlePermissionToggle = (moduleName: ModuleName) => {
@@ -200,6 +220,7 @@ export default function RoleAssignmentPage() {
         role,
         label: role,
         permissions,
+        activityIds: assignedActivityIds,
       });
 
       setExistingUserRole({
@@ -207,6 +228,7 @@ export default function RoleAssignmentPage() {
         role,
         label: role,
         permissions,
+        activityIds: assignedActivityIds,
       });
       setMessage(`Module access updated for ${targetName}. Their existing Gmail and password were kept unchanged.`);
     } catch (updateError) {
@@ -246,6 +268,7 @@ export default function RoleAssignmentPage() {
         role,
         label: role,
         permissions,
+        activityIds: assignedActivityIds,
       });
 
       const selectedRoleObj = roleOptions.find((item) => item.value === role);
@@ -554,8 +577,12 @@ export default function RoleAssignmentPage() {
               Role Template
             </label>
             <select
-              value={role}
-              onChange={(e) => applyRoleTemplate(e.target.value as AppRole)}
+              value={role === "admin" ? "admin" : assignedActivityIds.length === 1 ? `activity:${assignedActivityIds[0]}` : assignedActivityIds.length > 1 ? "custom-activities" : role}
+              onChange={(e) => e.target.value.startsWith("activity:")
+                ? applyActivityTemplate(e.target.value.replace("activity:", ""))
+                : e.target.value === "custom-activities"
+                  ? undefined
+                  : applyRoleTemplate(e.target.value as AppRole)}
               className="h-11 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 text-xs font-semibold text-slate-800 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100"
             >
               {roleOptions.map((option) => (
@@ -563,8 +590,42 @@ export default function RoleAssignmentPage() {
                   {option.label} ({option.classFocus})
                 </option>
               ))}
+              {activities.map((activity) => (
+                <option key={activity.id} value={`activity:${activity.id}`}>
+                  {activity.activityName} Teacher (this activity only)
+                </option>
+              ))}
+              {assignedActivityIds.length > 1 && (
+                <option value="custom-activities">Custom assigned activities</option>
+              )}
+              {existingUserRole &&
+                existingUserRole.role !== "admin" &&
+                assignedActivityIds.length === 0 && (
+                  <option value={existingUserRole.role}>
+                    Existing: {existingUserRole.label ?? existingUserRole.role}
+                  </option>
+                )}
             </select>
           </div>
+
+          {activities.length > 0 && role !== "admin" && (
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-slate-700">Assigned Activities</label>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {activities.map((activity) => (
+                  <label key={activity.id} className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs">
+                    <span>{activity.activityName}</span>
+                    <input
+                      type="checkbox"
+                      checked={activity.id ? assignedActivityIds.includes(activity.id) : false}
+                      onChange={() => setAssignedActivityIds((current) => activity.id && current.includes(activity.id) ? current.filter((id) => id !== activity.id) : activity.id ? [...current, activity.id] : current)}
+                      className="h-4 w-4 rounded border-slate-300 text-blue-600"
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Module Access Checkboxes */}
           <div>
