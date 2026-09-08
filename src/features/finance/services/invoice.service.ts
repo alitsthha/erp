@@ -1,5 +1,4 @@
 import {
-  addDoc,
   collection,
   doc,
   getDoc,
@@ -8,11 +7,12 @@ import {
   query,
   serverTimestamp,
   runTransaction,
-  updateDoc,
   where,
+  type DocumentReference,
 } from "firebase/firestore";
 
 import { db } from "@/firebase/config";
+import { getCurrentBSDate } from "@/utils/nepali-date";
 
 import type {
   Invoice,
@@ -22,6 +22,9 @@ import type {
 
 import {
   calculateStudentMonthlyFee,
+} from "./fee-calculation.service";
+import type {
+  StudentFeeSummary,
 } from "./fee-calculation.service";
 import { updateFinancialRecord } from "./financial-concurrency.service";
 
@@ -64,65 +67,78 @@ function roundMoney(
   );
 }
 
-async function applyStudentAdvance(
- studentId: string,
- billAmount: number
-): Promise<number> {
- if (!studentId || billAmount <= 0) {
-   return 0;
- }
+/**
+ * Explains why a bill came out as Rs. 0, naming the monthly due dates the user
+ * has to pick as the billing date instead of just reporting a zero total.
+ */
+function buildNothingToBillMessage(
+  feeSummary: StudentFeeSummary,
+  billingDate: string
+): string {
+  const pendingMonthly =
+    feeSummary.lines.filter(
+      (line) =>
+        line.countedMonthly &&
+        line.monthlyFee > 0 &&
+        !line.monthlyFeeApplied
+    );
 
- const advanceQuery = query(
-   collection(db, "financeIncome"),
-   where("studentId", "==", studentId)
- );
+  if (pendingMonthly.length === 0) {
+    return `There is nothing to bill on ${billingDate}: no monthly fee is due and no attended sessions were found.`;
+  }
 
- const snapshot = await getDocs(advanceQuery);
- const eligibleDocs = snapshot.docs
-   .filter((docSnap) => !docSnap.data().deletedAt)
-   .filter((docSnap) => docSnap.data().category === "Student Fee (Advance)")
-   .sort((a, b) => {
-     const aValue = a.data().incomeDate;
-     const bValue = b.data().incomeDate;
-     const aTime = aValue ? new Date(String(aValue)).getTime() : 0;
-     const bTime = bValue ? new Date(String(bValue)).getTime() : 0;
+  const details =
+    pendingMonthly
+      .map(
+        (line) =>
+          `${line.activityName || "Activity"} is due on ${
+            line.monthlyDueDate ||
+            feeSummary.nextMonthlyDueDate ||
+            "a later date"
+          }`
+      )
+      .join("; ");
 
-     if (Number.isNaN(aTime) || Number.isNaN(bTime)) {
-       return String(aValue ?? "").localeCompare(String(bValue ?? ""));
-     }
+  return `No monthly fee is due on ${billingDate}. ${details}. Select the due date as the billing date to generate that bill.`;
+}
 
-     return aTime - bTime;
-   });
+/**
+ * Advance payments of a student, oldest first.
+ *
+ * Only the document references are returned: the amounts are re-read inside
+ * the invoice transaction so an advance can never be consumed twice, and can
+ * never be consumed at all if writing the invoice fails.
+ */
+async function findStudentAdvanceRefs(
+  studentId: string
+): Promise<DocumentReference[]> {
+  if (!studentId) {
+    return [];
+  }
 
- let remainingBill = roundMoney(billAmount);
- let totalApplied = 0;
+  const advanceQuery = query(
+    collection(db, "financeIncome"),
+    where("studentId", "==", studentId)
+  );
 
- for (const docSnap of eligibleDocs) {
-   const data = docSnap.data() as Record<string, unknown>;
-   const amount = roundMoney(toNumber(data.amount));
-   const applied = roundMoney(toNumber(data.appliedAmount));
-   const available = roundMoney(Math.max(amount - applied, 0));
-   if (available <= 0) continue;
+  const snapshot = await getDocs(advanceQuery);
 
-   const applyNow = roundMoney(Math.min(remainingBill, available));
-   if (applyNow <= 0) continue;
+  return snapshot.docs
+    .filter((docSnap) => !docSnap.data().deletedAt)
+    .filter((docSnap) => docSnap.data().category === "Student Fee (Advance)")
+    .sort((a, b) => {
+      const aValue = a.data().incomeDate;
+      const bValue = b.data().incomeDate;
+      const aTime = aValue ? new Date(String(aValue)).getTime() : 0;
+      const bTime = bValue ? new Date(String(bValue)).getTime() : 0;
 
-   const nextApplied = roundMoney(applied + applyNow);
-   await updateDoc(docSnap.ref, {
-     appliedAmount: nextApplied,
-     remainingAmount: roundMoney(Math.max(amount - nextApplied, 0)),
-     updatedAt: serverTimestamp(),
-   });
+      if (Number.isNaN(aTime) || Number.isNaN(bTime)) {
+        return String(aValue ?? "").localeCompare(String(bValue ?? ""));
+      }
 
-   remainingBill = roundMoney(Math.max(remainingBill - applyNow, 0));
-   totalApplied = roundMoney(totalApplied + applyNow);
-
-   if (remainingBill <= 0) {
-     break;
-   }
- }
-
- return totalApplied;
+      return aTime - bTime;
+    })
+    .map((docSnap) => docSnap.ref);
 }
 
 /* =========================================================
@@ -319,6 +335,12 @@ export async function createInvoiceFromStudentFee(
     discount?: number;
     dueDate?: string;
     invoiceDate?: string;
+    /**
+     * Exact BS billing date the bill was calculated for. A monthly fee is only
+     * invoiced when this date is the enrollment's monthly due date.
+     * Defaults to `invoiceDate`.
+     */
+    billingDate?: string;
     notes?: string;
   }
 ): Promise<string> {
@@ -334,13 +356,24 @@ export async function createInvoiceFromStudentFee(
     );
   }
 
+  const invoiceDate =
+    options?.invoiceDate ??
+    getCurrentBSDate();
+
+  const billingDate =
+    options?.billingDate ??
+    invoiceDate;
+
   /*
-   * Attendance → Fee Calculation
+   * Attendance + monthly cycle → Fee Calculation.
+   * The billing date is passed through so the invoice is built from exactly
+   * the same numbers the billing screen previewed.
    */
   const feeSummary =
     await calculateStudentMonthlyFee(
       studentId,
-      billingMonth
+      billingMonth,
+      { billingDate }
     );
 
   if (!feeSummary.studentId) {
@@ -361,7 +394,10 @@ export async function createInvoiceFromStudentFee(
     feeSummary.totalAmount <= 0
   ) {
     throw new Error(
-      "The calculated invoice amount is Rs. 0."
+      buildNothingToBillMessage(
+        feeSummary,
+        billingDate
+      )
     );
   }
 
@@ -384,77 +420,8 @@ export async function createInvoiceFromStudentFee(
   const invoiceNumber =
     await generateInvoiceNumber();
 
-  const invoiceDate =
-    options?.invoiceDate ??
-    new Date()
-      .toISOString()
-      .substring(0, 10);
-
-  const discount =
-    roundMoney(
-      Math.max(
-        0,
-        toNumber(
-          options?.discount
-        )
-      )
-    );
-
-  const subtotal =
-    roundMoney(
-      feeSummary.lines.reduce(
-        (total, line) =>
-          total +
-          toNumber(
-            line.calculatedAmount
-          ),
-        0
-      )
-    );
-
-  const billBeforeAdvance =
-    roundMoney(
-      Math.max(
-        subtotal -
-          discount,
-        0
-      )
-    );
-
-  const advanceApplied =
-    await applyStudentAdvance(
-      studentId,
-      billBeforeAdvance
-    );
-
-  const totalAmount =
-    roundMoney(
-      Math.max(
-        billBeforeAdvance -
-          advanceApplied,
-        0
-      )
-    );
-
-  const paidAmount = 0;
-
-  const dueAmount =
-    roundMoney(
-      Math.max(
-        totalAmount -
-          paidAmount,
-        0
-      )
-    );
-
-  const status =
-    calculateInvoiceStatus(
-      totalAmount,
-      paidAmount
-    );
-
   /*
-   * Freeze the attendance/fee
+   * Freeze the attendance/monthly-cycle
    * calculation into invoice lines.
    */
   const lines:
@@ -501,6 +468,22 @@ export async function createInvoiceFromStudentFee(
 
           countedMonthly: !!line.countedMonthly,
 
+          monthlyDueDate:
+            line.monthlyDueDate,
+
+          monthlyFeeApplied:
+            !!line.monthlyFeeApplied,
+
+          monthlyFeeAmount:
+            roundMoney(
+              line.monthlyFeeAmount
+            ),
+
+          sessionAmount:
+            roundMoney(
+              line.sessionAmount
+            ),
+
           amount:
             roundMoney(
               line.calculatedAmount
@@ -508,62 +491,221 @@ export async function createInvoiceFromStudentFee(
         })
       );
 
-  const invoiceNotes = [
-    options?.notes,
-    advanceApplied > 0 ? `Student advance applied: Rs. ${advanceApplied}` : "",
-  ].filter(Boolean).join(" | ");
+  /*
+   * The subtotal is re-derived from the frozen lines so the stored document is
+   * internally consistent even if a line amount was rounded.
+   */
+  const subtotal =
+    roundMoney(
+      lines.reduce(
+        (total, line) =>
+          total +
+          Math.max(
+            0,
+            toNumber(line.amount)
+          ),
+        0
+      )
+    );
 
-  const invoiceData = {
-    invoiceNumber,
+  const discount =
+    roundMoney(
+      Math.min(
+        Math.max(
+          0,
+          toNumber(
+            options?.discount
+          )
+        ),
+        subtotal
+      )
+    );
 
-    studentId:
-      feeSummary.studentId,
+  const billBeforeAdvance =
+    roundMoney(
+      Math.max(
+        subtotal -
+          discount,
+        0
+      )
+    );
 
-    studentName:
-      feeSummary.studentName,
-
-    studentCode:
-      feeSummary.studentCode,
-
-    billingMonth,
-
-    invoiceDate,
-
-    dueDate:
-      options?.dueDate ?? "",
-
-    lines,
-
-    subtotal,
-
-    discount,
-
-    totalAmount,
-
-    paidAmount,
-
-    dueAmount,
-
-    status,
-
-    notes:
-      invoiceNotes,
-
-    createdAt:
-      serverTimestamp(),
-
-    updatedAt:
-      serverTimestamp(),
-  };
+  const advanceRefs =
+    await findStudentAdvanceRefs(
+      studentId
+    );
 
   const invoiceRef =
-    await addDoc(
+    doc(
       collection(
         db,
         COLLECTION_NAME
-      ),
-      invoiceData
+      )
     );
+
+  /*
+   * Consuming the student's advance and writing the invoice happen in one
+   * transaction: an advance is never spent unless the invoice it pays for was
+   * created, and never spent twice by two concurrent invoices.
+   */
+  await runTransaction(db, async (transaction) => {
+    let remainingBill = billBeforeAdvance;
+    let advanceApplied = 0;
+
+    const advanceWrites: Array<{
+      ref: DocumentReference;
+      appliedAmount: number;
+      remainingAmount: number;
+    }> = [];
+
+    for (const advanceRef of advanceRefs) {
+      if (remainingBill <= 0) {
+        break;
+      }
+
+      const advanceSnapshot =
+        await transaction.get(advanceRef);
+
+      if (
+        !advanceSnapshot.exists() ||
+        advanceSnapshot.data().deletedAt
+      ) {
+        continue;
+      }
+
+      const data =
+        advanceSnapshot.data() as Record<string, unknown>;
+
+      const amount = roundMoney(Math.max(0, toNumber(data.amount)));
+      const applied = roundMoney(Math.max(0, toNumber(data.appliedAmount)));
+      const available = roundMoney(Math.max(amount - applied, 0));
+
+      if (available <= 0) {
+        continue;
+      }
+
+      const applyNow = roundMoney(Math.min(remainingBill, available));
+
+      if (applyNow <= 0) {
+        continue;
+      }
+
+      const nextApplied = roundMoney(applied + applyNow);
+
+      advanceWrites.push({
+        ref: advanceRef,
+        appliedAmount: nextApplied,
+        remainingAmount: roundMoney(Math.max(amount - nextApplied, 0)),
+      });
+
+      remainingBill = roundMoney(Math.max(remainingBill - applyNow, 0));
+      advanceApplied = roundMoney(advanceApplied + applyNow);
+    }
+
+    const totalAmount =
+      roundMoney(
+        Math.max(
+          billBeforeAdvance -
+            advanceApplied,
+          0
+        )
+      );
+
+    const paidAmount = 0;
+
+    const dueAmount =
+      roundMoney(
+        Math.max(
+          totalAmount -
+            paidAmount,
+          0
+        )
+      );
+
+    const status =
+      calculateInvoiceStatus(
+        totalAmount,
+        paidAmount
+      );
+
+    const invoiceNotes = [
+      options?.notes,
+      feeSummary.monthlyFeeTotal > 0
+        ? `Monthly fees charged: Rs. ${feeSummary.monthlyFeeTotal}`
+        : "",
+      feeSummary.sessionFeeTotal > 0
+        ? `Session charges: Rs. ${feeSummary.sessionFeeTotal}`
+        : "",
+      advanceApplied > 0
+        ? `Student advance applied: Rs. ${advanceApplied}`
+        : "",
+    ]
+      .filter(Boolean)
+      .join(" | ");
+
+    for (const advanceWrite of advanceWrites) {
+      transaction.update(advanceWrite.ref, {
+        appliedAmount: advanceWrite.appliedAmount,
+        remainingAmount: advanceWrite.remainingAmount,
+        updatedAt: serverTimestamp(),
+      });
+    }
+
+    transaction.set(invoiceRef, {
+      invoiceNumber,
+
+      studentId:
+        feeSummary.studentId,
+
+      studentName:
+        feeSummary.studentName,
+
+      studentCode:
+        feeSummary.studentCode,
+
+      billingMonth:
+        feeSummary.month || billingMonth,
+
+      invoiceDate,
+
+      billingDate:
+        feeSummary.billingDate || billingDate,
+
+      dueDate:
+        options?.dueDate ?? "",
+
+      lines,
+
+      subtotal,
+
+      discount,
+
+      monthlyFeeTotal:
+        feeSummary.monthlyFeeTotal,
+
+      sessionFeeTotal:
+        feeSummary.sessionFeeTotal,
+
+      advanceApplied,
+
+      totalAmount,
+
+      paidAmount,
+
+      dueAmount,
+
+      status,
+
+      notes:
+        invoiceNotes,
+
+      createdAt:
+        serverTimestamp(),
+
+      updatedAt:
+        serverTimestamp(),
+    });
+  });
 
   return invoiceRef.id;
 }

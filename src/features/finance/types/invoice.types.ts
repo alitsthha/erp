@@ -43,6 +43,28 @@ export interface InvoiceLine {
   countedMonthly?: boolean;
 
   /**
+   * BS date on which the monthly fee of this enrollment fell due for the
+   * billing month, frozen at invoice creation time.
+   */
+  monthlyDueDate?: string;
+
+  /**
+   * True when the monthly fee was charged on this line because the billing
+   * date matched `monthlyDueDate`.
+   */
+  monthlyFeeApplied?: boolean;
+
+  /**
+   * Monthly part of this line (`monthlyFee` when applied, otherwise 0).
+   */
+  monthlyFeeAmount?: number;
+
+  /**
+   * Attendance part of this line (sessions × session fee).
+   */
+  sessionAmount?: number;
+
+  /**
    * Final calculated amount for this line.
    */
   amount: number;

@@ -600,6 +600,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
       await createInvoiceFromStudentFee(selectedStudentId, month, {
         discount,
         invoiceDate: billingDate,
+        billingDate,
       });
 
       await loadInvoices();
@@ -724,7 +725,8 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
       const result =
         await calculateStudentMonthlyFee(
           selectedStudentId,
-          month
+          month,
+          { billingDate }
         );
 
       setSummary(result);
@@ -897,8 +899,11 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
             <NepaliDatePickerInput
               label="Billing Date (BS)"
               value={billingDate}
-              onChange={setBillingDate}
-              helperText="Select a Nepali year, month, and day"
+              onChange={(value) => {
+                setBillingDate(value);
+                setSummary(null);
+              }}
+              helperText="Monthly fees apply only on the next-month enrollment-day due date."
             />
 
             <div>
@@ -1150,7 +1155,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                           <td className="px-6 py-4 text-sm text-slate-700">
                             Rs.{" "}
                             {formatCurrency(
-                              line.monthlyFee
+                              line.monthlyFeeAmount
                             )}
                           </td>
 
@@ -1247,7 +1252,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                           <p className="mt-1 text-sm font-medium text-slate-700">
                             Rs.{" "}
                             {formatCurrency(
-                              line.monthlyFee
+                              line.monthlyFeeAmount
                             )}
                           </p>
                         </div>
