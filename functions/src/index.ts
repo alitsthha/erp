@@ -5,6 +5,25 @@ admin.initializeApp();
 
 const db = admin.firestore();
 
+async function isAdminRequest(request: { auth?: { token?: Record<string, unknown> } }): Promise<boolean> {
+  const email = typeof request.auth?.token?.email === "string"
+    ? request.auth.token.email.trim().toLowerCase()
+    : "";
+  const tokenAdmin = request.auth?.token?.admin === true;
+  const fallbackAdmin = [
+    "admin@academy.edu",
+    "admin@gmail.com",
+    "admin@outlook.com",
+    "alitshrestha74@gmail.com",
+  ].includes(email);
+
+  if (tokenAdmin || fallbackAdmin) return true;
+  if (!email) return false;
+
+  const roleSnapshot = await db.collection("user_roles").doc(email).get();
+  return roleSnapshot.data()?.role === "admin";
+}
+
 async function reverseJournalEntry(reference: string): Promise<string | null> {
   const postingRef = db.collection("accountingPostings").doc(reference);
   const postingSnapshot = await postingRef.get();
@@ -78,6 +97,10 @@ async function reverseJournalEntry(reference: string): Promise<string | null> {
 
 export const deleteStudentCascade = onCall(async (request) => {
   const { studentId } = request.data ?? {};
+
+  if (!(await isAdminRequest(request))) {
+    throw new HttpsError("permission-denied", "Only administrators can delete students.");
+  }
 
   if (typeof studentId !== "string" || studentId.trim() === "") {
     throw new HttpsError("invalid-argument", "studentId is required.");

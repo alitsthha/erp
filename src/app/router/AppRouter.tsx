@@ -138,12 +138,12 @@ export default function AppRouter() {
 
             <Route
               path="/activities/add"
-              element={<AddActivityPage />}
+              element={<AdminRoute><AddActivityPage /></AdminRoute>}
             />
 
             <Route
               path="/activities/edit/:activityId"
-              element={<EditActivityPage />}
+              element={<AdminRoute><EditActivityPage /></AdminRoute>}
             />
 
             {/* =================================================
@@ -166,7 +166,7 @@ export default function AppRouter() {
 
             <Route
               path="/students/edit/:studentId"
-              element={<EditStudentPage />}
+              element={<AdminRoute><EditStudentPage /></AdminRoute>}
             />
 
             <Route
@@ -185,12 +185,12 @@ export default function AppRouter() {
 
             <Route
               path="/enrollments/add"
-              element={<AddEnrollmentPage />}
+              element={<AdminRoute><AddEnrollmentPage /></AdminRoute>}
             />
 
             <Route
               path="/enrollments/edit/:enrollmentId"
-              element={<EditEnrollmentPage />}
+              element={<AdminRoute><EditEnrollmentPage /></AdminRoute>}
             />
 
             {/* =================================================
@@ -223,17 +223,17 @@ export default function AppRouter() {
 
             <Route
               path="/staff"
-              element={<StaffListPage />}
+              element={<AdminRoute><StaffListPage /></AdminRoute>}
             />
 
             <Route
               path="/staff/add"
-              element={<AddStaffPage />}
+              element={<AdminRoute><AddStaffPage /></AdminRoute>}
             />
 
             <Route
               path="/staff/edit/:staffId"
-              element={<EditStaffPage />}
+              element={<AdminRoute><EditStaffPage /></AdminRoute>}
             />
 
             {/* =================================================
@@ -242,22 +242,22 @@ export default function AppRouter() {
 
             <Route
               path="/finance"
-              element={<FinancePage />}
+              element={<AdminRoute><FinancePage /></AdminRoute>}
             />
 
             <Route
               path="/finance/billing"
-              element={<BillingPage />}
+              element={<AdminRoute><BillingPage /></AdminRoute>}
             />
 
             <Route
               path="/finance/income"
-              element={<IncomePage />}
+              element={<AdminRoute><IncomePage /></AdminRoute>}
             />
 
             <Route
               path="/finance/expenses"
-              element={<ExpensesPage />}
+              element={<AdminRoute><ExpensesPage /></AdminRoute>}
             />
 
             {/* =================================================
@@ -266,32 +266,32 @@ export default function AppRouter() {
 
             <Route
               path="/accounting"
-              element={<AccountingPage />}
+              element={<AdminRoute><AccountingPage /></AdminRoute>}
             />
 
             <Route
               path="/accounting/accounts"
-              element={<AccountsPage />}
+              element={<AdminRoute><AccountsPage /></AdminRoute>}
             />
 
             <Route
               path="/accounting/salary-config"
-              element={<SalaryConfigPage />}
+              element={<AdminRoute><SalaryConfigPage /></AdminRoute>}
             />
 
             <Route
               path="/accounting/salary-config/add"
-              element={<AddSalaryConfigPage />}
+              element={<AdminRoute><AddSalaryConfigPage /></AdminRoute>}
             />
 
             <Route
               path="/accounting/salary-config/edit/:configId"
-              element={<EditSalaryConfigPage />}
+              element={<AdminRoute><EditSalaryConfigPage /></AdminRoute>}
             />
 
             <Route
               path="/accounting/payroll"
-              element={<PayrollPage />}
+              element={<AdminRoute><PayrollPage /></AdminRoute>}
             />
 
             {/* =================================================
@@ -300,7 +300,7 @@ export default function AppRouter() {
 
             <Route
               path="/reports"
-              element={<ReportsPage />}
+              element={<AdminRoute><ReportsPage /></AdminRoute>}
             />
 
             {/* =================================================

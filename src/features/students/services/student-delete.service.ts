@@ -16,7 +16,7 @@ function isFunctionsUnavailableError(error: unknown) {
   if (!("code" in error)) return false;
 
   const code = String((error as { code?: unknown }).code ?? "");
-  return code.startsWith("functions/");
+  return code === "functions/not-found" || code === "functions/unavailable";
 }
 
 async function deleteStudentLocally(studentId: string): Promise<void> {

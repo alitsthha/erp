@@ -6,7 +6,13 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn() && request.auth.token.email != null && (
+      return isSignedIn() && (
+        request.auth.token.admin == true ||
+        (
+          request.auth.token.email != null &&
+          exists(/databases/$(database)/documents/user_roles/$(request.auth.token.email)) &&
+          get(/databases/$(database)/documents/user_roles/$(request.auth.token.email)).data.role == 'admin'
+        ) ||
         request.auth.token.email == 'admin@academy.edu' ||
         request.auth.token.email == 'admin@gmail.com' ||
         request.auth.token.email == 'admin@outlook.com' ||
@@ -15,7 +21,8 @@ service cloud.firestore {
     }
 
     match /user_roles/{email} {
-      allow read, write: if isAdmin() || request.auth.token.email == email;
+      allow read: if isAdmin() || (isSignedIn() && request.auth.token.email == email);
+      allow create, update, delete: if isAdmin();
     }
 
     match /students/{document=**} {
@@ -38,8 +45,18 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
-    match /staff/{document=**} {
+    match /daily_attendances/{document=**} {
       allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /staff/{document=**} {
+      allow read: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /staffAttendance/{document=**} {
+      allow read: if isAdmin();
       allow create, update, delete: if isAdmin();
     }
 
@@ -54,58 +71,78 @@ service cloud.firestore {
     }
 
     match /salaryConfigs/{document=**} {
-      allow read: if isSignedIn();
+      allow read: if isAdmin();
       allow create, update, delete: if isAdmin();
     }
 
     match /financeIncome/{document=**} {
-      allow read: if isSignedIn();
+      allow read: if isAdmin();
       allow create, update, delete: if isAdmin();
     }
 
     match /financeExpenses/{document=**} {
-      allow read: if isSignedIn();
+      allow read: if isAdmin();
       allow create, update, delete: if isAdmin();
     }
 
     match /invoices/{document=**} {
-      allow read: if isSignedIn();
+      allow read: if isAdmin();
       allow create, update, delete: if isAdmin();
     }
 
+    match /invoiceLocks/{document=**} {
+      allow read, write: if isAdmin();
+    }
+
     match /financePayments/{document=**} {
-      allow read: if isSignedIn();
+      allow read: if isAdmin();
       allow create, update, delete: if isAdmin();
     }
 
     match /accounts/{document=**} {
-      allow read: if isSignedIn();
+      allow read: if isAdmin();
       allow create, update, delete: if isAdmin();
     }
 
     match /bankTransactions/{document=**} {
-      allow read: if isSignedIn();
+      allow read: if isAdmin();
       allow create, update, delete: if isAdmin();
     }
 
     match /financialPeriods/{document=**} {
-      allow read: if isSignedIn();
+      allow read: if isAdmin();
       allow create, update, delete: if isAdmin();
     }
 
     match /journalEntries/{document=**} {
-      allow read: if isSignedIn();
+      allow read: if isAdmin();
       allow create, update, delete: if isAdmin();
+    }
+
+    match /accountingPostings/{document=**} {
+      allow read, write: if isAdmin();
     }
 
     match /payrollRuns/{document=**} {
-      allow read: if isSignedIn();
+      allow read: if isAdmin();
       allow create, update, delete: if isAdmin();
     }
 
+    match /payrollReservations/{document=**} {
+      allow read, write: if isAdmin();
+    }
+
     match /financeCategoryRules/{document=**} {
-      allow read: if isSignedIn();
+      allow read: if isAdmin();
       allow create, update, delete: if isAdmin();
+    }
+
+    match /counters/{document=**} {
+      allow read, write: if isAdmin();
+    }
+
+    match /auditLogs/{document=**} {
+      allow read, write: if isAdmin();
     }
 
     match /mail/{document=**} {
@@ -113,8 +150,7 @@ service cloud.firestore {
     }
 
     match /{document=**} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow read, write: if false;
     }
   }
 }

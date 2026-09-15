@@ -13,8 +13,8 @@ import StudentTable from "../components/StudentTable";
 
 import {
   getStudents,
-  deleteStudent,
 } from "../services/student.service";
+import { deleteStudent } from "../services/student-delete.service";
 
 import type { Student } from "../types/student.types";
 

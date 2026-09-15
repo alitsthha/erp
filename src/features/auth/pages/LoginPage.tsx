@@ -1,8 +1,10 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent, type MouseEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
+import { sendPasswordResetEmail } from "firebase/auth";
 
 import { useAuth } from "@/app/providers/AuthProvider";
+import { auth } from "@/firebase/config";
 import { getLandingRouteForRole } from "@/lib/rbac";
 import yeaLogo from "/yea-logo.png";
 
@@ -49,6 +51,24 @@ export default function LoginPage() {
       setError("An unexpected error occurred during login. Please try again.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handlePasswordReset = async (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!normalizedEmail) {
+      setError("Enter your email address first, then select Forgot password.");
+      return;
+    }
+
+    try {
+      await sendPasswordResetEmail(auth, normalizedEmail);
+      setError("If an account exists for this email, a password reset link has been sent.");
+    } catch (err) {
+      console.error(err);
+      setError("Unable to send the password reset email. Check the email address and try again.");
     }
   };
 
@@ -138,9 +158,13 @@ export default function LoginPage() {
               />
               <span className="text-sm text-slate-600">Remember me</span>
             </label>
-            <a href="#" className="text-sm font-medium text-blue-600 hover:text-blue-700">
+            <button
+              type="button"
+              onClick={handlePasswordReset}
+              className="text-sm font-medium text-blue-600 hover:text-blue-700"
+            >
               Forgot password?
-            </a>
+            </button>
           </div>
 
           {/* Sign In Button */}
