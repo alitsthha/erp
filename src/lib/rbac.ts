@@ -41,6 +41,11 @@ export const moduleOptions: { value: ModuleName; label: string }[] = [
 
 export const roleOptions: { value: AppRole; label: string; classFocus?: string }[] = [
   { value: "admin", label: "Admin", classFocus: "All modules" },
+  { value: "teacher", label: "Teacher", classFocus: "Assigned activities" },
+  { value: "music_teacher", label: "Music Teacher", classFocus: "Music activities" },
+  { value: "dance_teacher", label: "Dance Teacher", classFocus: "Dance activities" },
+  { value: "art_teacher", label: "Art Teacher", classFocus: "Art activities" },
+  { value: "sports_teacher", label: "Sports Teacher", classFocus: "Sports activities" },
 ];
 
 export const defaultPermissionsByRole: Record<AppRole, ModulePermissions> = {

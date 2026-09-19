@@ -1,7 +1,11 @@
 import { useEffect, useState, type FormEvent, type MouseEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
-import { sendPasswordResetEmail } from "firebase/auth";
+import {
+  confirmPasswordReset,
+  sendPasswordResetEmail,
+  verifyPasswordResetCode,
+} from "firebase/auth";
 
 import { useAuth } from "@/app/providers/AuthProvider";
 import { auth } from "@/firebase/config";
@@ -18,8 +22,46 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [resetSubmitting, setResetSubmitting] = useState(false);
+  const [resetCode, setResetCode] = useState<string | null>(null);
+  const [resetEmail, setResetEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const mode = params.get("mode");
+    const code = params.get("oobCode");
+
+    if (mode !== "resetPassword" || !code) {
+      return;
+    }
+
+    let active = true;
+    setResetSubmitting(true);
+    setError(null);
+    void verifyPasswordResetCode(auth, code)
+      .then((accountEmail) => {
+        if (active) {
+          setResetCode(code);
+          setResetEmail(accountEmail);
+          setNotice("Verified reset link. Choose a new password for this account.");
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setError("This password reset link is invalid or expired. Request a new one.");
+        }
+      })
+      .finally(() => {
+        if (active) setResetSubmitting(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!loading && user) {
@@ -81,6 +123,36 @@ export default function LoginPage() {
     }
   };
 
+  const handleConfirmPasswordReset = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!resetCode) return;
+
+    setError(null);
+    setNotice(null);
+    if (newPassword.length < 6) {
+      setError("New password must be at least 6 characters long.");
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setError("New password and confirmation do not match.");
+      return;
+    }
+
+    setResetSubmitting(true);
+    try {
+      await confirmPasswordReset(auth, resetCode, newPassword);
+      setResetCode(null);
+      setNewPassword("");
+      setConfirmNewPassword("");
+      window.history.replaceState({}, document.title, "/login");
+      setNotice("Your password has been changed. You can now sign in with the new password.");
+    } catch {
+      setError("Unable to change the password. The reset link may have expired. Request a new one.");
+    } finally {
+      setResetSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 via-white to-slate-50">
@@ -118,7 +190,49 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Login Form */}
+        {resetCode ? (
+          <form onSubmit={handleConfirmPasswordReset} className="space-y-5">
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
+              Resetting password for <strong>{resetEmail}</strong>
+            </div>
+            <div>
+              <label htmlFor="new-password" className="mb-2 block text-sm font-medium text-slate-700">
+                New Password
+              </label>
+              <input
+                id="new-password"
+                type="password"
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+                minLength={6}
+                required
+                className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label htmlFor="confirm-new-password" className="mb-2 block text-sm font-medium text-slate-700">
+                Confirm New Password
+              </label>
+              <input
+                id="confirm-new-password"
+                type="password"
+                value={confirmNewPassword}
+                onChange={(event) => setConfirmNewPassword(event.target.value)}
+                minLength={6}
+                required
+                className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={resetSubmitting}
+              className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-70"
+            >
+              {resetSubmitting ? "Changing password..." : "Change Password"}
+            </button>
+          </form>
+        ) : (
+        /* Login Form */
         <form onSubmit={handleLogin} className="space-y-5">
           {/* Email Field */}
           <div>
@@ -215,6 +329,7 @@ export default function LoginPage() {
             </div>
           </button>
         </form>
+        )}
       </div>
     </div>
   );

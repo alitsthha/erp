@@ -129,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const nextPermissions =
         nextRole === "admin"
           ? createDefaultPermissions("admin")
-          : normalizePermissions(profile?.permissions ?? createDefaultPermissions(nextRole));
+          : normalizePermissions(profile?.permissions, nextRole);
 
       setUser(currentUser);
       setRole(nextRole);
@@ -193,7 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const nextPermissions =
         nextRole === "admin"
           ? createDefaultPermissions("admin")
-          : normalizePermissions(profile?.permissions ?? createDefaultPermissions(nextRole));
+          : normalizePermissions(profile?.permissions, nextRole);
 
       setUser(currentUser);
       setRole(nextRole);

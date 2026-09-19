@@ -191,3 +191,29 @@ export async function upsertUserRole({
     { merge: true }
   );
 }
+
+export async function assignUserAccess({
+  email,
+  password,
+  role,
+  label,
+  permissions,
+  activityIds,
+}: {
+  email: string;
+  password?: string;
+  role: AppRole;
+  label?: string;
+  permissions?: Partial<Record<keyof ModulePermissions, boolean>>;
+  activityIds?: string[];
+}): Promise<void> {
+  const assign = httpsCallable(functions, "assignUserAccess");
+  await assign({
+    email: email.trim().toLowerCase(),
+    password: password ?? "",
+    role,
+    label: label ?? role,
+    permissions: permissions ?? {},
+    activityIds: activityIds ?? [],
+  });
+}

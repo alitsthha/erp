@@ -20,33 +20,42 @@ service cloud.firestore {
       );
     }
 
+    function hasModuleAccess(moduleName) {
+      return isAdmin() || (
+        isSignedIn() &&
+        request.auth.token.email != null &&
+        exists(/databases/$(database)/documents/user_roles/$(request.auth.token.email)) &&
+        get(/databases/$(database)/documents/user_roles/$(request.auth.token.email)).data.permissions[moduleName] == true
+      );
+    }
+
     match /user_roles/{email} {
       allow read: if isAdmin() || (isSignedIn() && request.auth.token.email == email);
       allow create, update, delete: if isAdmin();
     }
 
     match /students/{document=**} {
-      allow read: if isSignedIn();
+      allow read: if hasModuleAccess('students');
       allow create, update, delete: if isAdmin();
     }
 
     match /activities/{document=**} {
-      allow read: if isSignedIn();
+      allow read: if hasModuleAccess('activities');
       allow create, update, delete: if isAdmin();
     }
 
     match /enrollments/{document=**} {
-      allow read: if isSignedIn();
+      allow read: if hasModuleAccess('enrollments') || hasModuleAccess('students') || hasModuleAccess('attendance');
       allow create, update, delete: if isAdmin();
     }
 
     match /attendances/{document=**} {
-      allow read: if isSignedIn();
+      allow read: if hasModuleAccess('attendance');
       allow create, update, delete: if isAdmin();
     }
 
     match /daily_attendances/{document=**} {
-      allow read: if isSignedIn();
+      allow read: if hasModuleAccess('attendance');
       allow create, update, delete: if isAdmin();
     }
 
@@ -61,12 +70,12 @@ service cloud.firestore {
     }
 
     match /departments/{document=**} {
-      allow read: if isSignedIn();
+      allow read: if hasModuleAccess('staff');
       allow create, update, delete: if isAdmin();
     }
 
     match /roles/{document=**} {
-      allow read: if isSignedIn();
+      allow read: if hasModuleAccess('staff');
       allow create, update, delete: if isAdmin();
     }
 

@@ -33,11 +33,33 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.setUserPassword = exports.deleteStudentCascade = void 0;
+exports.setUserPassword = exports.deleteStudentCascade = exports.assignUserAccess = void 0;
 const admin = __importStar(require("firebase-admin"));
 const https_1 = require("firebase-functions/v2/https");
 admin.initializeApp();
 const db = admin.firestore();
+const allowedRoles = new Set([
+    "admin",
+    "teacher",
+    "music_teacher",
+    "dance_teacher",
+    "art_teacher",
+    "sports_teacher",
+]);
+const allowedModules = new Set([
+    "dashboard",
+    "students",
+    "activities",
+    "enrollments",
+    "attendance",
+    "billing",
+    "expenses",
+    "staff",
+    "payroll",
+    "reports",
+    "settings",
+    "teacherInfo",
+]);
 async function isAdminRequest(request) {
     const email = typeof request.auth?.token?.email === "string"
         ? request.auth.token.email.trim().toLowerCase()
@@ -56,6 +78,81 @@ async function isAdminRequest(request) {
     const roleSnapshot = await db.collection("user_roles").doc(email).get();
     return roleSnapshot.data()?.role === "admin";
 }
+exports.assignUserAccess = (0, https_1.onCall)(async (request) => {
+    if (!(await isAdminRequest(request))) {
+        throw new https_1.HttpsError("permission-denied", "Only administrators can assign user access.");
+    }
+    const data = request.data ?? {};
+    const email = typeof data.email === "string" ? data.email.trim().toLowerCase() : "";
+    const password = typeof data.password === "string" ? data.password : "";
+    const role = typeof data.role === "string" ? data.role : "";
+    const permissions = data.permissions && typeof data.permissions === "object" ? data.permissions : {};
+    const activityIds = Array.isArray(data.activityIds)
+        ? data.activityIds.filter((id) => typeof id === "string" && id.trim() !== "").map((id) => id.trim())
+        : [];
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        throw new https_1.HttpsError("invalid-argument", "A valid email address is required.");
+    }
+    if (!allowedRoles.has(role)) {
+        throw new https_1.HttpsError("invalid-argument", "Invalid role.");
+    }
+    if (activityIds.length > 100 || new Set(activityIds).size !== activityIds.length) {
+        throw new https_1.HttpsError("invalid-argument", "Activity assignments are invalid.");
+    }
+    if (role === "admin" && activityIds.length > 0) {
+        throw new https_1.HttpsError("invalid-argument", "Administrators cannot be limited to activities.");
+    }
+    if (activityIds.length > 0) {
+        const activitySnapshots = await Promise.all(activityIds.map((activityId) => db.collection("activities").doc(activityId).get()));
+        if (activitySnapshots.some((snapshot) => !snapshot.exists)) {
+            throw new https_1.HttpsError("invalid-argument", "One or more assigned activities do not exist.");
+        }
+    }
+    const cleanPermissions = {};
+    for (const [moduleName, enabled] of Object.entries(permissions)) {
+        if (!allowedModules.has(moduleName) || typeof enabled !== "boolean") {
+            throw new https_1.HttpsError("invalid-argument", "Invalid module permissions.");
+        }
+        cleanPermissions[moduleName] = enabled;
+    }
+    try {
+        let account;
+        try {
+            account = await admin.auth().getUserByEmail(email);
+            if (password) {
+                if (password.length < 6) {
+                    throw new https_1.HttpsError("invalid-argument", "Password must be at least 6 characters long.");
+                }
+                account = await admin.auth().updateUser(account.uid, { password });
+            }
+        }
+        catch (error) {
+            const code = typeof error === "object" && error !== null && "code" in error ? String(error.code) : "";
+            if (code !== "auth/user-not-found")
+                throw error;
+            if (password.length < 6) {
+                throw new https_1.HttpsError("invalid-argument", "Password must be at least 6 characters long for a new account.");
+            }
+            account = await admin.auth().createUser({ email, password });
+        }
+        await db.collection("user_roles").doc(email).set({
+            email,
+            role,
+            label: typeof data.label === "string" && data.label.trim() ? data.label.trim() : role,
+            permissions: cleanPermissions,
+            activityIds,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+        return { success: true, uid: account.uid };
+    }
+    catch (error) {
+        if (error instanceof https_1.HttpsError)
+            throw error;
+        console.error("assignUserAccess failed", error);
+        throw new https_1.HttpsError("internal", "Unable to assign user access.");
+    }
+});
 async function reverseJournalEntry(reference) {
     const postingRef = db.collection("accountingPostings").doc(reference);
     const postingSnapshot = await postingRef.get();

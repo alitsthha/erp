@@ -32,11 +32,9 @@ import { useStaff } from "@/features/staff/hooks/useStaff";
 import { getActivities } from "@/features/activities/services/activity.service";
 import type { Activity } from "@/features/activities/types/activity.types";
 import {
-  upsertUserRole,
-  createTeacherAccount,
+  assignUserAccess,
   getUserRoleForEmail,
   verifyAdminPassword,
-  setUserPassword,
   type UserRoleRecord,
 } from "@/features/auth/services/user-role.service";
 
@@ -178,7 +176,7 @@ export default function RoleAssignmentPage() {
   const applyActivityTemplate = (activityId: string) => {
     setRole("teacher");
     setPermissions(createDefaultPermissions("teacher"));
-    setAssignedActivityIds(activityId ? [activityId] : []);
+    setAssignedActivityIds((current) => activityId && !current.includes(activityId) ? [...current, activityId] : current);
   };
 
   const handlePermissionToggle = (moduleName: ModuleName) => {
@@ -226,7 +224,7 @@ export default function RoleAssignmentPage() {
       return;
     }
 
-    if (existingUserRole && newUserPassword.length < 6) {
+    if (existingUserRole && newUserPassword && newUserPassword.length < 6) {
       setModalError("The new user password must be at least 6 characters long.");
       return;
     }
@@ -236,9 +234,9 @@ export default function RoleAssignmentPage() {
     try {
       if (existingUserRole) {
         await verifyAdminPassword(password);
-        await setUserPassword(targetEmail, newUserPassword);
-        await upsertUserRole({
+        await assignUserAccess({
           email: targetEmail,
+          password: newUserPassword || undefined,
           role,
           label: role,
           permissions,
@@ -260,15 +258,9 @@ export default function RoleAssignmentPage() {
         return;
       }
 
-      // 1. Create Firebase Auth credentials using secondary app
-      await createTeacherAccount({
+      await assignUserAccess({
         email: targetEmail,
         password,
-      });
-
-      // 2. Save user role and module permissions in Firestore (user_roles collection)
-      await upsertUserRole({
-        email: targetEmail,
         role,
         label: role,
         permissions,
@@ -287,6 +279,7 @@ export default function RoleAssignmentPage() {
         role,
         label: role,
         permissions,
+          activityIds: assignedActivityIds,
       });
 
       // Reset modal state
@@ -803,7 +796,7 @@ export default function RoleAssignmentPage() {
               {existingUserRole && (
                 <div>
                   <label className="mb-1 block text-xs font-semibold text-slate-700">
-                    Set New User Password *
+                    Set New User Password (optional)
                   </label>
                   <div className="relative">
                     <input
@@ -815,7 +808,7 @@ export default function RoleAssignmentPage() {
                     />
                   </div>
                   <p className="mt-1 text-[11px] text-slate-500">
-                    This becomes the user&apos;s new login password.
+                    Leave blank to keep the existing login password.
                   </p>
                 </div>
               )}
@@ -836,7 +829,7 @@ export default function RoleAssignmentPage() {
               <button
                 type="button"
                 onClick={handleConfirmRoleAssignment}
-                disabled={submitting || !password || (Boolean(existingUserRole) && !newUserPassword)}
+                disabled={submitting || !password}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-semibold text-white shadow transition hover:bg-blue-700 disabled:opacity-50"
               >
                     {submitting ? (
