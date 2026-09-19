@@ -41,6 +41,7 @@ const db = admin.firestore();
 const allowedRoles = new Set([
     "admin",
     "teacher",
+    "multiple_activities_teacher",
     "music_teacher",
     "dance_teacher",
     "art_teacher",
@@ -60,17 +61,18 @@ const allowedModules = new Set([
     "settings",
     "teacherInfo",
 ]);
+const adminEmails = new Set([
+    "admin@academy.edu",
+    "admin@gmail.com",
+    "admin@outlook.com",
+    "alitshrestha74@gmail.com",
+]);
 async function isAdminRequest(request) {
     const email = typeof request.auth?.token?.email === "string"
         ? request.auth.token.email.trim().toLowerCase()
         : "";
     const tokenAdmin = request.auth?.token?.admin === true;
-    const fallbackAdmin = [
-        "admin@academy.edu",
-        "admin@gmail.com",
-        "admin@outlook.com",
-        "alitshrestha74@gmail.com",
-    ].includes(email);
+    const fallbackAdmin = adminEmails.has(email);
     if (tokenAdmin || fallbackAdmin)
         return true;
     if (!email)
@@ -115,6 +117,14 @@ exports.assignUserAccess = (0, https_1.onCall)(async (request) => {
         }
         cleanPermissions[moduleName] = enabled;
     }
+    if (role === "admin") {
+        for (const moduleName of allowedModules)
+            cleanPermissions[moduleName] = true;
+    }
+    else if (activityIds.length > 0) {
+        cleanPermissions.students = true;
+        cleanPermissions.attendance = true;
+    }
     try {
         let account;
         try {
@@ -144,13 +154,31 @@ exports.assignUserAccess = (0, https_1.onCall)(async (request) => {
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
         }, { merge: true });
+        await admin.auth().setCustomUserClaims(account.uid, {
+            role,
+            admin: role === "admin",
+            permissions: cleanPermissions,
+            activityIds,
+        });
         return { success: true, uid: account.uid };
     }
     catch (error) {
         if (error instanceof https_1.HttpsError)
             throw error;
         console.error("assignUserAccess failed", error);
-        throw new https_1.HttpsError("internal", "Unable to assign user access.");
+        const code = typeof error === "object" && error !== null && "code" in error
+            ? String(error.code)
+            : "";
+        if (code === "auth/email-already-exists") {
+            throw new https_1.HttpsError("already-exists", "An Authentication account already exists for this email.");
+        }
+        if (code === "auth/invalid-password") {
+            throw new https_1.HttpsError("invalid-argument", "The password does not meet Firebase requirements.");
+        }
+        if (code === "auth/invalid-email") {
+            throw new https_1.HttpsError("invalid-argument", "The email address is invalid.");
+        }
+        throw new https_1.HttpsError("internal", "Unable to assign user access. Check that the Functions deployment is up to date and review the Firebase Functions logs.");
     }
 });
 async function reverseJournalEntry(reference) {

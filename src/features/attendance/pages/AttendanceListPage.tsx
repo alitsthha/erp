@@ -35,7 +35,7 @@ import AttendanceFilters from "@/features/attendance/components/AttendanceFilter
 import AttendanceTable from "@/features/attendance/components/AttendanceTable";
 
 import { useAuth } from "@/app/providers/AuthProvider";
-import { isActivityAllowedForRole } from "@/lib/rbac";
+import { isActivityAllowedForRole, isTeacherRole } from "@/lib/rbac";
 import { getStudentById } from "@/features/students/services/student.service";
 import { queueEmail } from "@/features/finance/services/email.service";
 
@@ -614,7 +614,7 @@ export default function AttendanceListPage() {
       {/* =====================================================
           ACTIVITY CORRESPONDENCE / TABS (Hidden for specific roled staff)
       ====================================================== */}
-      {(role === "admin" || role === "teacher") && availableActivities.length > 0 && (
+      {(role === "admin" || isTeacherRole(role)) && availableActivities.length > 0 && (
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
           <div className="mb-3 flex items-center justify-between">
             <div className="flex items-center gap-2">

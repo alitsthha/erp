@@ -24,7 +24,7 @@ import {
 import { getCurrentBSDate } from "@/utils/nepali-date";
 import NepaliDatePickerInput from "@/components/forms/NepaliDatePickerInput";
 import { useAuth } from "@/app/providers/AuthProvider";
-import { isActivityAllowedForRole } from "@/lib/rbac";
+import { isActivityAllowedForRole, isTeacherRole } from "@/lib/rbac";
 
 interface ActivityOption {
   id: string;
@@ -590,7 +590,7 @@ export default function AttendanceForm({
           </div>
         </div>
 
-        {(role === "admin" || role === "teacher") && (
+        {(role === "admin" || isTeacherRole(role)) && (
           <div className="mt-5 grid gap-4 md:grid-cols-[1fr_220px]">
             <div>
               <label htmlFor="attendance-activity" className="mb-2 block text-sm font-medium text-slate-700">

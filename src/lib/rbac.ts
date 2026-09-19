@@ -1,6 +1,7 @@
 export type AppRole =
   | "admin"
   | "teacher"
+  | "multiple_activities_teacher"
   | "music_teacher"
   | "dance_teacher"
   | "art_teacher"
@@ -42,6 +43,7 @@ export const moduleOptions: { value: ModuleName; label: string }[] = [
 export const roleOptions: { value: AppRole; label: string; classFocus?: string }[] = [
   { value: "admin", label: "Admin", classFocus: "All modules" },
   { value: "teacher", label: "Teacher", classFocus: "Assigned activities" },
+  { value: "multiple_activities_teacher", label: "Multiple Activities Teacher", classFocus: "Multiple assigned activities" },
   { value: "music_teacher", label: "Music Teacher", classFocus: "Music activities" },
   { value: "dance_teacher", label: "Dance Teacher", classFocus: "Dance activities" },
   { value: "art_teacher", label: "Art Teacher", classFocus: "Art activities" },
@@ -66,6 +68,20 @@ export const defaultPermissionsByRole: Record<AppRole, ModulePermissions> = {
   teacher: {
     dashboard: false,
     students: false,
+    activities: false,
+    enrollments: false,
+    attendance: true,
+    billing: false,
+    expenses: false,
+    staff: false,
+    payroll: false,
+    reports: false,
+    settings: false,
+    teacherInfo: true,
+  },
+  multiple_activities_teacher: {
+    dashboard: false,
+    students: true,
     activities: false,
     enrollments: false,
     attendance: true,
@@ -175,6 +191,10 @@ export function getRoleClassFocus(role: AppRole | null | undefined): string {
   return roleOptions.find((option) => option.value === role)?.classFocus ?? "General access";
 }
 
+export function isTeacherRole(role: AppRole | null | undefined): boolean {
+  return role === "teacher" || role === "multiple_activities_teacher" || role === "music_teacher" || role === "dance_teacher" || role === "art_teacher" || role === "sports_teacher";
+}
+
 export function hasModuleAccess(
   role: AppRole | null | undefined,
   moduleName: ModuleName,
@@ -264,6 +284,9 @@ export function isActivityAllowedForRole(
         full.includes("futsal") ||
         full.includes("volleyball")
       );
+
+    case "multiple_activities_teacher":
+      return true;
 
     default:
       return true;

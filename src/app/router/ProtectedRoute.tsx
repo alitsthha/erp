@@ -2,7 +2,7 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
-import { getLandingRouteForRole } from "@/lib/rbac";
+import { getLandingRouteForRole, isTeacherRole } from "@/lib/rbac";
 
 export default function ProtectedRoute() {
   const { user, role, loading } = useAuth();
@@ -24,7 +24,12 @@ export default function ProtectedRoute() {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  if (role === "teacher" && !location.pathname.startsWith("/attendance") && location.pathname !== "/settings") {
+  if (
+    isTeacherRole(role) &&
+    !location.pathname.startsWith("/attendance") &&
+    !location.pathname.startsWith("/students") &&
+    location.pathname !== "/settings"
+  ) {
     return <Navigate to="/attendance" replace />;
   }
 

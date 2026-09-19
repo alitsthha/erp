@@ -8,6 +8,7 @@ service cloud.firestore {
     function isAdmin() {
       return isSignedIn() && (
         request.auth.token.admin == true ||
+        request.auth.token.role == 'admin' ||
         (
           request.auth.token.email != null &&
           exists(/databases/$(database)/documents/user_roles/$(request.auth.token.email)) &&
@@ -23,9 +24,14 @@ service cloud.firestore {
     function hasModuleAccess(moduleName) {
       return isAdmin() || (
         isSignedIn() &&
-        request.auth.token.email != null &&
-        exists(/databases/$(database)/documents/user_roles/$(request.auth.token.email)) &&
-        get(/databases/$(database)/documents/user_roles/$(request.auth.token.email)).data.permissions[moduleName] == true
+        (
+          request.auth.token.permissions[moduleName] == true ||
+          (
+            request.auth.token.email != null &&
+            exists(/databases/$(database)/documents/user_roles/$(request.auth.token.email)) &&
+            get(/databases/$(database)/documents/user_roles/$(request.auth.token.email)).data.permissions[moduleName] == true
+          )
+        )
       );
     }
 

@@ -65,7 +65,6 @@ export default function RoleAssignmentPage() {
   // Modal & Password State
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [password, setPassword] = useState("");
-  const [newUserPassword, setNewUserPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -133,9 +132,13 @@ export default function RoleAssignmentPage() {
         if (active) {
           if (record) {
             setExistingUserRole(record);
-            setRole(record.role);
-            setPermissions(normalizePermissions(record.permissions, record.role));
-            setAssignedActivityIds(record.activityIds ?? []);
+            const savedActivityIds = record.activityIds ?? [];
+            const savedRole = savedActivityIds.length > 1
+              ? "multiple_activities_teacher"
+              : record.role;
+            setRole(savedRole);
+            setPermissions(normalizePermissions(record.permissions, savedRole));
+            setAssignedActivityIds(savedActivityIds);
           } else {
             setExistingUserRole(null);
             setRole("admin");
@@ -179,6 +182,24 @@ export default function RoleAssignmentPage() {
     setAssignedActivityIds((current) => activityId && !current.includes(activityId) ? [...current, activityId] : current);
   };
 
+  const toggleActivityAssignment = (activityId: string) => {
+    setAssignedActivityIds((current) => {
+      const nextActivityIds = current.includes(activityId)
+        ? current.filter((id) => id !== activityId)
+        : [...current, activityId];
+      const nextRole = nextActivityIds.length > 1
+        ? "multiple_activities_teacher"
+        : nextActivityIds.length === 1
+          ? "teacher"
+          : role === "multiple_activities_teacher"
+            ? "teacher"
+            : role;
+      setRole(nextRole);
+      setPermissions(createDefaultPermissions(nextRole));
+      return nextActivityIds;
+    });
+  };
+
   const handlePermissionToggle = (moduleName: ModuleName) => {
     setPermissions((prev) => ({
       ...prev,
@@ -200,7 +221,6 @@ export default function RoleAssignmentPage() {
     setMessage(null);
     setModalError(null);
     setCreatedCredentials(null);
-    setNewUserPassword("");
 
     if (!targetEmail) {
       setError("Please select a staff member or enter a valid email address.");
@@ -224,19 +244,14 @@ export default function RoleAssignmentPage() {
       return;
     }
 
-    if (existingUserRole && newUserPassword && newUserPassword.length < 6) {
-      setModalError("The new user password must be at least 6 characters long.");
-      return;
-    }
-
     setSubmitting(true);
 
     try {
       if (existingUserRole) {
         await verifyAdminPassword(password);
-        await assignUserAccess({
+        const accessResult = await assignUserAccess({
           email: targetEmail,
-          password: newUserPassword || undefined,
+          existingAccount: true,
           role,
           label: role,
           permissions,
@@ -250,15 +265,18 @@ export default function RoleAssignmentPage() {
           permissions,
           activityIds: assignedActivityIds,
         });
-        setMessage(`Module access and login password updated for ${targetName}.`);
-        setCreatedCredentials({ email: targetEmail, password: newUserPassword });
+        setMessage(
+          accessResult.passwordResetSent
+            ? `Module access updated for ${targetName}. A password reset email was sent to ${targetEmail}.`
+            : `Module access updated for ${targetName}.`
+        );
+        setCreatedCredentials(null);
         setIsPasswordModalOpen(false);
         setPassword("");
-        setNewUserPassword("");
         return;
       }
 
-      await assignUserAccess({
+      const accessResult = await assignUserAccess({
         email: targetEmail,
         password,
         role,
@@ -268,9 +286,13 @@ export default function RoleAssignmentPage() {
       });
 
       const selectedRoleObj = roleOptions.find((item) => item.value === role);
-      setCreatedCredentials({ email: targetEmail, password });
+      setCreatedCredentials(
+        accessResult.passwordResetSent ? null : { email: targetEmail, password }
+      );
       setMessage(
-        `Success! Credentials configured & access assigned to ${targetName} (${targetEmail}) as ${selectedRoleObj?.label ?? role}.`
+        accessResult.passwordResetSent
+          ? `Access assigned to ${targetName}. A password reset email was sent to ${targetEmail}.`
+          : `Success! Credentials configured & access assigned to ${targetName} (${targetEmail}) as ${selectedRoleObj?.label ?? role}.`
       );
 
       // Refresh existing role record state
@@ -285,7 +307,6 @@ export default function RoleAssignmentPage() {
       // Reset modal state
       setIsPasswordModalOpen(false);
       setPassword("");
-      setNewUserPassword("");
     } catch (submitError) {
       console.error("Error creating user access:", submitError);
       const errMsg =
@@ -653,7 +674,7 @@ export default function RoleAssignmentPage() {
                     <input
                       type="checkbox"
                       checked={activity.id ? assignedActivityIds.includes(activity.id) : false}
-                      onChange={() => setAssignedActivityIds((current) => activity.id && current.includes(activity.id) ? current.filter((id) => id !== activity.id) : activity.id ? [...current, activity.id] : current)}
+                      onChange={() => activity.id && toggleActivityAssignment(activity.id)}
                       className="h-4 w-4 rounded border-slate-300 text-blue-600"
                     />
                   </label>
@@ -792,26 +813,6 @@ export default function RoleAssignmentPage() {
                     : "This password will be set in Firebase Auth. Give this password to the staff member to log in. It can be shown temporarily while this dialog is open."}
                 </p>
               </div>
-
-              {existingUserRole && (
-                <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-700">
-                    Set New User Password (optional)
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={newUserPassword}
-                      onChange={(e) => setNewUserPassword(e.target.value)}
-                      placeholder="Minimum 6 characters"
-                      className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs font-medium text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                    />
-                  </div>
-                  <p className="mt-1 text-[11px] text-slate-500">
-                    Leave blank to keep the existing login password.
-                  </p>
-                </div>
-              )}
 
             </div>
 

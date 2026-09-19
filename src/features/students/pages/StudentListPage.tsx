@@ -19,7 +19,7 @@ import { deleteStudent } from "../services/student-delete.service";
 import type { Student } from "../types/student.types";
 
 import { useAuth } from "@/app/providers/AuthProvider";
-import { isActivityAllowedForRole } from "@/lib/rbac";
+import { isActivityAllowedForRole, isTeacherRole } from "@/lib/rbac";
 import { getAllEnrollments } from "@/features/enrollments/services/enrollment.service";
 import type { Enrollment } from "@/features/enrollments/types/enrollment.types";
 
@@ -65,9 +65,14 @@ export default function StudentListPage() {
 
   // Allowed Student IDs for specialized teacher role
   const allowedStudentIds = useMemo(() => {
-    if (!role || role === "admin" || role === "teacher") {
+    if (!role || role === "admin") {
       return null;
     }
+
+    if (activityIds.length === 0 && isTeacherRole(role)) {
+      return null;
+    }
+
     const ids = new Set<string>();
     for (const e of enrollments) {
       if (isActivityAllowedForRole(role, e.activityName, e.activityCode, activityIds, e.activityId)) {
@@ -75,7 +80,7 @@ export default function StudentListPage() {
       }
     }
     return ids;
-  }, [enrollments, role]);
+  }, [enrollments, role, activityIds]);
 
   // --------------------------------------------------
   // FILTER STUDENTS

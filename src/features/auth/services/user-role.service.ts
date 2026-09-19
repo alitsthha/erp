@@ -4,6 +4,7 @@ import {
   getAuth,
   createUserWithEmailAndPassword,
   reauthenticateWithCredential,
+  sendPasswordResetEmail,
   signOut,
 } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
@@ -28,7 +29,7 @@ export async function createTeacherAccount({
 }: {
   email: string;
   password: string;
-}): Promise<void> {
+}): Promise<{ created: boolean }> {
   const normalizedEmail = email.trim().toLowerCase();
 
   if (!normalizedEmail || !password) {
@@ -46,11 +47,12 @@ export async function createTeacherAccount({
   try {
     await createUserWithEmailAndPassword(secondaryAuth, normalizedEmail, password);
     await signOut(secondaryAuth);
+    return { created: true };
   } catch (error: unknown) {
     const err = error as { code?: string; message?: string };
     if (err.code === "auth/email-already-in-use") {
       console.warn("Account already exists in Firebase Auth. Role and permissions will be updated.");
-      return;
+      return { created: false };
     }
     if (err.code === "auth/invalid-email") {
       throw new Error("Invalid email format.");
@@ -136,17 +138,26 @@ export async function getUserRoleForEmail(
   if (
     role === "admin" ||
     role === "teacher" ||
+    role === "multiple_activities_teacher" ||
     role === "music_teacher" ||
     role === "dance_teacher" ||
     role === "art_teacher" ||
     role === "sports_teacher"
   ) {
+    const activityIds = Array.isArray(match.activityIds) ? match.activityIds : [];
+    const normalizedRole: AppRole = activityIds.length > 1 ? "multiple_activities_teacher" : role;
+    const permissions = { ...(match.permissions ?? {}) };
+    if (activityIds.length > 0) {
+      permissions.students = true;
+      permissions.attendance = true;
+    }
+
     return {
       email: normalizedEmail,
-      role,
-      label: match.label ?? role,
-      permissions: match.permissions ?? {},
-      activityIds: Array.isArray(match.activityIds) ? match.activityIds : [],
+      role: normalizedRole,
+      label: match.label ?? normalizedRole,
+      permissions,
+      activityIds,
     };
   }
 
@@ -176,6 +187,11 @@ export async function upsertUserRole({
 }): Promise<void> {
   const normalizedEmail = email.trim().toLowerCase();
   const userRef = doc(db, "user_roles", normalizedEmail);
+  const savedPermissions = { ...(permissions ?? {}) };
+  if (activityIds && activityIds.length > 0) {
+    savedPermissions.students = true;
+    savedPermissions.attendance = true;
+  }
 
   await setDoc(
     userRef,
@@ -183,7 +199,7 @@ export async function upsertUserRole({
       email: normalizedEmail,
       role,
       label: label ?? role,
-      permissions: permissions ?? {},
+      permissions: savedPermissions,
       activityIds: activityIds ?? [],
       updatedAt: serverTimestamp(),
       createdAt: serverTimestamp(),
@@ -195,6 +211,7 @@ export async function upsertUserRole({
 export async function assignUserAccess({
   email,
   password,
+  existingAccount = false,
   role,
   label,
   permissions,
@@ -202,18 +219,63 @@ export async function assignUserAccess({
 }: {
   email: string;
   password?: string;
+  existingAccount?: boolean;
   role: AppRole;
   label?: string;
   permissions?: Partial<Record<keyof ModulePermissions, boolean>>;
   activityIds?: string[];
-}): Promise<void> {
+}): Promise<{ passwordResetSent: boolean }> {
   const assign = httpsCallable(functions, "assignUserAccess");
-  await assign({
-    email: email.trim().toLowerCase(),
-    password: password ?? "",
-    role,
-    label: label ?? role,
-    permissions: permissions ?? {},
-    activityIds: activityIds ?? [],
-  });
+  try {
+    await assign({
+      email: email.trim().toLowerCase(),
+      password: password ?? "",
+      role,
+      label: label ?? role,
+      permissions: permissions ?? {},
+      activityIds: activityIds ?? [],
+    });
+    return { passwordResetSent: false };
+  } catch (error: unknown) {
+    const callableError = error as { code?: string; message?: string; details?: unknown };
+    const code = callableError.code?.replace("functions/", "");
+    const message = callableError.message?.trim();
+    if (code === "permission-denied") {
+      throw new Error("Your admin session is not authorized. Sign out and sign in again.");
+    }
+    if (code === "failed-precondition" || code === "unavailable" || code === "internal" || code === "not-found") {
+      await upsertUserRole({
+        email,
+        role,
+        label,
+        permissions,
+        activityIds,
+      });
+
+      if (existingAccount && password) {
+        try {
+          await sendPasswordResetEmail(auth, email.trim().toLowerCase());
+          return { passwordResetSent: true };
+        } catch (resetError: unknown) {
+          const resetCode = typeof resetError === "object" && resetError !== null && "code" in resetError
+            ? String(resetError.code)
+            : "";
+          if (resetCode !== "auth/user-not-found") {
+            throw resetError;
+          }
+        }
+      }
+
+      if (password) {
+        const accountResult = await createTeacherAccount({ email, password });
+        if (!accountResult.created) {
+          await sendPasswordResetEmail(auth, email.trim().toLowerCase());
+          return { passwordResetSent: true };
+        }
+      }
+
+      return { passwordResetSent: false };
+    }
+    throw new Error(message || "Unable to assign user access. Check the Firebase Functions deployment and logs.");
+  }
 }

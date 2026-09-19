@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
 
 import { useAuth } from "@/app/providers/AuthProvider";
@@ -136,6 +136,7 @@ export default function Sidebar({
   open,
   onClose,
 }: SidebarProps) {
+  const navigate = useNavigate();
   const { role, isAdmin, permissions } = useAuth();
   const [expanded, setExpanded] = useState<
     Record<string, boolean>
@@ -262,47 +263,36 @@ export default function Sidebar({
                 return (
                   <div key={item.title}>
                     {/* Parent menu button */}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        toggleMenu(item.title)
-                      }
-                      className="
-                        flex w-full items-center justify-between
-                        rounded-xl px-3 py-2.5
-                        text-sm font-medium
-                        text-slate-600
-                        transition
-                        hover:bg-slate-50
-                        hover:text-slate-900
-                      "
-                    >
-                      <span className="flex items-center gap-3">
-                        <Icon
-                          size={18}
-                          strokeWidth={1.8}
-                          className="shrink-0"
-                        />
+                    <div className="flex w-full items-center rounded-xl text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (item.path) {
+                            navigate(item.path);
+                            onClose();
+                            return;
+                          }
+                          toggleMenu(item.title);
+                        }}
+                        className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2.5 text-left"
+                      >
+                        <Icon size={18} strokeWidth={1.8} className="shrink-0" />
+                        <span>{item.title}</span>
+                      </button>
 
-                        <span>
-                          {item.title}
-                        </span>
-                      </span>
-
-                      {isExpanded ? (
-                        <ChevronDown
-                          size={16}
-                          strokeWidth={1.8}
-                          className="text-slate-400"
-                        />
-                      ) : (
-                        <ChevronRight
-                          size={16}
-                          strokeWidth={1.8}
-                          className="text-slate-400"
-                        />
-                      )}
-                    </button>
+                      <button
+                        type="button"
+                        aria-label={`${isExpanded ? "Collapse" : "Expand"} ${item.title}`}
+                        onClick={() => toggleMenu(item.title)}
+                        className="px-3 py-2.5 text-slate-400 hover:text-slate-700"
+                      >
+                        {isExpanded ? (
+                          <ChevronDown size={16} strokeWidth={1.8} />
+                        ) : (
+                          <ChevronRight size={16} strokeWidth={1.8} />
+                        )}
+                      </button>
+                    </div>
 
                     {/* Child menu */}
                     {isExpanded && (

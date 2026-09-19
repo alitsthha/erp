@@ -17,6 +17,7 @@ import { auth } from "@/lib/firebase";
 import {
   createDefaultPermissions,
   normalizePermissions,
+  isTeacherRole,
   type AppRole,
   type ModulePermissions,
 } from "@/lib/rbac";
@@ -30,6 +31,19 @@ type LoginAttempt = {
   count: number;
   lockedUntil: number;
 };
+
+function normalizeActivityIds(activityIds?: unknown): string[] {
+  if (!Array.isArray(activityIds)) {
+    return [];
+  }
+
+  return [...new Set(
+    activityIds
+      .filter((activityId): activityId is string => typeof activityId === "string")
+      .map((activityId) => activityId.trim())
+      .filter(Boolean)
+  )];
+}
 
 function getLoginAttempt(email: string): LoginAttempt {
   if (typeof window === "undefined") return { count: 0, lockedUntil: 0 };
@@ -113,6 +127,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const email = currentUser.email?.trim().toLowerCase() ?? "";
+      const tokenResult = await currentUser.getIdTokenResult();
+      const tokenClaims = tokenResult.claims as {
+        role?: AppRole;
+        permissions?: Partial<ModulePermissions>;
+        activityIds?: string[];
+      };
       const fallbackAdminEmails = [
         "admin@academy.edu",
         "admin@gmail.com",
@@ -125,16 +145,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ? { role: "admin" as AppRole, permissions: createDefaultPermissions("admin"), activityIds: [] }
           : await getUserRoleForEmail(email);
 
-      const nextRole = profile?.role ?? "teacher";
+      const nextRole = profile?.role ?? tokenClaims.role ?? "teacher";
       const nextPermissions =
         nextRole === "admin"
           ? createDefaultPermissions("admin")
-          : normalizePermissions(profile?.permissions, nextRole);
+          : normalizePermissions(profile?.permissions ?? tokenClaims.permissions, nextRole);
+      const profileActivityIds = profile && "activityIds" in profile ? profile.activityIds : undefined;
+      const nextActivityIds = normalizeActivityIds(profileActivityIds ?? tokenClaims.activityIds);
+      if (nextActivityIds.length > 0) {
+        nextPermissions.students = true;
+        nextPermissions.attendance = true;
+      }
 
       setUser(currentUser);
       setRole(nextRole);
       setPermissions(nextPermissions);
-      setActivityIds(profile?.activityIds ?? []);
+      setActivityIds(nextActivityIds);
       setLoading(false);
     });
 
@@ -171,11 +197,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const userCredential = await signInWithEmailAndPassword(
         auth,
-        emailInput,
+        normalizedEmail,
         passwordInput
       );
       const currentUser = userCredential.user;
       const email = currentUser.email?.trim().toLowerCase() ?? "";
+      const tokenResult = await currentUser.getIdTokenResult(true);
+      const tokenClaims = tokenResult.claims as {
+        role?: AppRole;
+        permissions?: Partial<ModulePermissions>;
+        activityIds?: string[];
+      };
 
       const fallbackAdminEmails = [
         "admin@academy.edu",
@@ -189,15 +221,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ? { role: "admin" as AppRole, permissions: createDefaultPermissions("admin") }
           : await getUserRoleForEmail(email);
 
-      const nextRole = profile?.role ?? "teacher";
+      const nextRole = profile?.role ?? tokenClaims.role ?? "teacher";
       const nextPermissions =
         nextRole === "admin"
           ? createDefaultPermissions("admin")
-          : normalizePermissions(profile?.permissions, nextRole);
+          : normalizePermissions(profile?.permissions ?? tokenClaims.permissions, nextRole);
+      const profileActivityIds = profile && "activityIds" in profile ? profile.activityIds : undefined;
+      const nextActivityIds = normalizeActivityIds(profileActivityIds ?? tokenClaims.activityIds);
+      if (nextActivityIds.length > 0) {
+        nextPermissions.students = true;
+        nextPermissions.attendance = true;
+      }
 
       setUser(currentUser);
       setRole(nextRole);
       setPermissions(nextPermissions);
+      setActivityIds(nextActivityIds);
       setLoading(false);
       clearLoginAttempt(normalizedEmail);
       return { success: true, role: nextRole };
@@ -266,11 +305,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       isAdmin: role === "admin",
       isTeacher:
-        role === "teacher" ||
-        role === "music_teacher" ||
-        role === "dance_teacher" ||
-        role === "art_teacher" ||
-        role === "sports_teacher",
+        isTeacherRole(role),
       login,
       logout,
     }),
