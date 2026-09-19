@@ -64,6 +64,81 @@ export async function exportFirestoreBackup(
   };
 }
 
+function escapeExcelXml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function flattenRecord(value: unknown, prefix = "", result: Record<string, string> = {}): Record<string, string> {
+  if (value === null || value === undefined) {
+    if (prefix) result[prefix] = "";
+    return result;
+  }
+
+  if (value instanceof Date) {
+    result[prefix] = value.toISOString();
+    return result;
+  }
+
+  if (typeof value === "object" && !Array.isArray(value)) {
+    for (const [key, nestedValue] of Object.entries(value)) {
+      flattenRecord(nestedValue, prefix ? `${prefix}.${key}` : key, result);
+    }
+    return result;
+  }
+
+  result[prefix] = Array.isArray(value) ? JSON.stringify(value) : String(value);
+  return result;
+}
+
+function excelCell(value: string, header = false): string {
+  const style = header ? ' ss:StyleID="Header"' : "";
+  return `<Cell${style}><Data ss:Type="String">${escapeExcelXml(value)}</Data></Cell>`;
+}
+
+function safeWorksheetName(name: string): string {
+  return name.replace(/[\\/:?*\[\]]/g, "-").slice(0, 31) || "Sheet";
+}
+
+export function createExcelBackupFile(backup: FirestoreBackup): Blob {
+  const worksheets: string[] = [];
+  const summaryRows = [
+    ["Collection", "Records"],
+    ...Object.entries(backup.collections).map(([name, records]) => [name, String(records.length)]),
+    ["Exported at", backup.exportedAt],
+  ];
+
+  worksheets.push(`<Worksheet ss:Name="Summary"><Table>${summaryRows
+    .map((row, index) => `<Row>${row.map((value) => excelCell(value, index === 0)).join("")}</Row>`)
+    .join("")}</Table></Worksheet>`);
+
+  for (const [collectionName, records] of Object.entries(backup.collections)) {
+    const flattenedRecords: Record<string, string>[] = records.map((record) => ({
+      documentId: record.id,
+      ...flattenRecord(record.data),
+    }));
+    const columns = Array.from(new Set(flattenedRecords.flatMap((record) => Object.keys(record))));
+    const rows = [
+      `<Row>${columns.map((column) => excelCell(column, true)).join("")}</Row>`,
+      ...flattenedRecords.map((record) => `<Row>${columns.map((column) => excelCell(record[column] ?? "")).join("")}</Row>`),
+    ];
+    worksheets.push(`<Worksheet ss:Name="${escapeExcelXml(safeWorksheetName(collectionName))}"><Table>${rows.join("")}</Table></Worksheet>`);
+  }
+
+  const workbook = `<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+  <Styles><Style ss:ID="Header"><Font ss:Bold="1"/><Interior ss:Color="#D9EAF7" ss:Pattern="Solid"/></Style></Styles>
+  ${worksheets.join("\n  ")}
+</Workbook>`;
+
+  return new Blob([workbook], { type: "application/vnd.ms-excel" });
+}
+
 export async function restoreFirestoreBackup(
   backup: FirestoreBackup,
   onProgress?: (message: string) => void,

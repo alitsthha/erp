@@ -1,8 +1,9 @@
 import { useRef, useState } from "react";
-import { Download, RefreshCw, Upload } from "lucide-react";
+import { Download, FileSpreadsheet, RefreshCw, Upload } from "lucide-react";
 
 import {
   BACKUP_COLLECTIONS,
+  createExcelBackupFile,
   exportFirestoreBackup,
   restoreFirestoreBackup,
   type FirestoreBackup,
@@ -46,6 +47,36 @@ export default function FirestoreBackupPanel() {
       setStatus("Backup downloaded successfully.");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Backup failed.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleExcelBackup() {
+    if (selectedCollections.length === 0) {
+      setStatus("Select at least one section to download.");
+      return;
+    }
+
+    if (!window.confirm(`Download Excel backup for ${selectedCollections.length} selected section(s)?`)) {
+      return;
+    }
+
+    try {
+      setShowBackupOptions(false);
+      setBusy(true);
+      setStatus("Preparing Excel backup...");
+      const backup = await exportFirestoreBackup(selectedCollections, setStatus);
+      const blob = createExcelBackupFile(backup);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `academy-erp-backup-${new Date().toISOString().slice(0, 10)}.xls`;
+      link.click();
+      URL.revokeObjectURL(url);
+      setStatus("Excel backup downloaded successfully. It includes a summary and a detailed sheet for each section.");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Excel backup failed.");
     } finally {
       setBusy(false);
     }
@@ -163,6 +194,7 @@ export default function FirestoreBackupPanel() {
                 <div className="flex justify-end gap-3 border-t border-slate-200 px-5 py-4 sm:px-6">
                   <button type="button" onClick={() => setShowBackupOptions(false)} className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
                   <button type="button" onClick={() => void handleBackup()} disabled={selectedCollections.length === 0} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"><Download size={16} />Confirm & Download</button>
+                  <button type="button" onClick={() => void handleExcelBackup()} disabled={selectedCollections.length === 0} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"><FileSpreadsheet size={16} />Download Excel</button>
                 </div>
               </div>
             </div>

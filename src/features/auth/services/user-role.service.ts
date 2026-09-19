@@ -1,8 +1,14 @@
 import { initializeApp, deleteApp } from "firebase/app";
-import { getAuth, createUserWithEmailAndPassword, signOut } from "firebase/auth";
+import {
+  EmailAuthProvider,
+  getAuth,
+  createUserWithEmailAndPassword,
+  reauthenticateWithCredential,
+  signOut,
+} from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 
-import { db, firebaseConfig } from "@/lib/firebase";
+import { auth, db, firebaseConfig } from "@/lib/firebase";
 import type { AppRole, ModulePermissions } from "@/lib/rbac";
 
 export type UserRoleRecord = {
@@ -58,6 +64,32 @@ export async function createTeacherAccount({
     } catch {
       // Ignore cleanup error
     }
+  }
+}
+
+export async function verifyAdminPassword(password: string): Promise<void> {
+  const currentUser = auth.currentUser;
+  const email = currentUser?.email?.trim().toLowerCase();
+
+  if (!currentUser || !email) {
+    throw new Error("Your admin session has expired. Please sign in again.");
+  }
+
+  if (!password) {
+    throw new Error("Admin password is required.");
+  }
+
+  try {
+    const credential = EmailAuthProvider.credential(email, password);
+    await reauthenticateWithCredential(currentUser, credential);
+  } catch (error: unknown) {
+    const code = typeof error === "object" && error !== null && "code" in error
+      ? String(error.code)
+      : "";
+    if (code === "auth/invalid-credential" || code === "auth/wrong-password") {
+      throw new Error("The admin password is incorrect.");
+    }
+    throw new Error("Admin password verification failed. Please sign in again and retry.");
   }
 }
 

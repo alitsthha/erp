@@ -17,7 +17,9 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [resetSubmitting, setResetSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && user) {
@@ -33,6 +35,7 @@ export default function LoginPage() {
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
+    setNotice(null);
     setSubmitting(true);
 
     try {
@@ -59,16 +62,22 @@ export default function LoginPage() {
     const normalizedEmail = email.trim().toLowerCase();
 
     if (!normalizedEmail) {
+      setNotice(null);
       setError("Enter your email address first, then select Forgot password.");
       return;
     }
 
     try {
+      setError(null);
+      setNotice(null);
+      setResetSubmitting(true);
       await sendPasswordResetEmail(auth, normalizedEmail);
-      setError("If an account exists for this email, a password reset link has been sent.");
+      setNotice("If an account exists for this email, a password reset link has been sent. Check your inbox and spam folder.");
     } catch (err) {
       console.error(err);
-      setError("Unable to send the password reset email. Check the email address and try again.");
+      setError("Unable to send the reset email. Check the email address and try again.");
+    } finally {
+      setResetSubmitting(false);
     }
   };
 
@@ -100,6 +109,12 @@ export default function LoginPage() {
         {error && (
           <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
             <p className="text-sm text-red-700">{error}</p>
+          </div>
+        )}
+
+        {notice && (
+          <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+            <p className="text-sm text-emerald-700">{notice}</p>
           </div>
         )}
 
@@ -161,9 +176,10 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={handlePasswordReset}
-              className="text-sm font-medium text-blue-600 hover:text-blue-700"
+              disabled={resetSubmitting}
+              className="text-sm font-medium text-blue-600 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Forgot password?
+              {resetSubmitting ? "Sending reset link..." : "Forgot password?"}
             </button>
           </div>
 

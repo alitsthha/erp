@@ -8,6 +8,7 @@ import {
   Eye,
   EyeOff,
   UserCheck,
+  Copy,
   Search,
   X,
   ShieldCheck,
@@ -34,6 +35,7 @@ import {
   upsertUserRole,
   createTeacherAccount,
   getUserRoleForEmail,
+  verifyAdminPassword,
   type UserRoleRecord,
 } from "@/features/auth/services/user-role.service";
 
@@ -69,6 +71,7 @@ export default function RoleAssignmentPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [modalError, setModalError] = useState<string | null>(null);
+  const [createdCredentials, setCreatedCredentials] = useState<{ email: string; password: string } | null>(null);
 
   useEffect(() => {
     void getActivities()
@@ -116,6 +119,7 @@ export default function RoleAssignmentPage() {
     let active = true;
     if (!targetEmail) {
       setExistingUserRole(null);
+      setCreatedCredentials(null);
       setRole("admin");
       setPermissions(createDefaultPermissions("teacher"));
       setAssignedActivityIds([]);
@@ -195,48 +199,14 @@ export default function RoleAssignmentPage() {
     setError(null);
     setMessage(null);
     setModalError(null);
+    setCreatedCredentials(null);
 
     if (!targetEmail) {
       setError("Please select a staff member or enter a valid email address.");
       return;
     }
 
-    if (existingUserRole) {
-      void handleUpdateExistingRole();
-      return;
-    }
-
     setIsPasswordModalOpen(true);
-  };
-
-  const handleUpdateExistingRole = async () => {
-    setSubmitting(true);
-    setError(null);
-    setMessage(null);
-
-    try {
-      await upsertUserRole({
-        email: targetEmail,
-        role,
-        label: role,
-        permissions,
-        activityIds: assignedActivityIds,
-      });
-
-      setExistingUserRole({
-        email: targetEmail,
-        role,
-        label: role,
-        permissions,
-        activityIds: assignedActivityIds,
-      });
-      setMessage(`Module access updated for ${targetName}. Their existing Gmail and password were kept unchanged.`);
-    } catch (updateError) {
-      console.error("Error updating user permissions:", updateError);
-      setError(updateError instanceof Error ? updateError.message : "Unable to update user permissions.");
-    } finally {
-      setSubmitting(false);
-    }
   };
 
   // Confirm password and create account + role assignment
@@ -256,6 +226,29 @@ export default function RoleAssignmentPage() {
     setSubmitting(true);
 
     try {
+      if (existingUserRole) {
+        await verifyAdminPassword(password);
+        await upsertUserRole({
+          email: targetEmail,
+          role,
+          label: role,
+          permissions,
+          activityIds: assignedActivityIds,
+        });
+
+        setExistingUserRole({
+          email: targetEmail,
+          role,
+          label: role,
+          permissions,
+          activityIds: assignedActivityIds,
+        });
+        setMessage(`Module access updated for ${targetName}. Existing login credentials were unchanged.`);
+        setIsPasswordModalOpen(false);
+        setPassword("");
+        return;
+      }
+
       // 1. Create Firebase Auth credentials using secondary app
       await createTeacherAccount({
         email: targetEmail,
@@ -272,6 +265,7 @@ export default function RoleAssignmentPage() {
       });
 
       const selectedRoleObj = roleOptions.find((item) => item.value === role);
+      setCreatedCredentials({ email: targetEmail, password });
       setMessage(
         `Success! Credentials configured & access assigned to ${targetName} (${targetEmail}) as ${selectedRoleObj?.label ?? role}.`
       );
@@ -344,6 +338,42 @@ export default function RoleAssignmentPage() {
             <p className="font-semibold">Access Assigned Successfully</p>
             <p className="mt-0.5">{message}</p>
           </div>
+        </div>
+      )}
+
+      {createdCredentials && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="font-semibold">New login credentials</p>
+              <p className="mt-1 text-xs text-amber-800">Save these now. The password is shown only for this newly created account and cannot be retrieved later.</p>
+            </div>
+            <button
+              type="button"
+              title="Copy credentials"
+              onClick={() => void navigator.clipboard?.writeText(`Email: ${createdCredentials.email}\nPassword: ${createdCredentials.password}`)}
+              className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-amber-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100"
+            >
+              <Copy size={14} /> Copy
+            </button>
+          </div>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <div className="rounded-lg border border-amber-200 bg-white px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Email</p>
+              <p className="break-all font-medium text-slate-900">{createdCredentials.email}</p>
+            </div>
+            <div className="rounded-lg border border-amber-200 bg-white px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Password</p>
+              <p className="break-all font-medium text-slate-900">{createdCredentials.password}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setCreatedCredentials(null)}
+            className="mt-3 text-xs font-semibold text-amber-800 underline hover:text-amber-950"
+          >
+            Hide credentials
+          </button>
         </div>
       )}
 
@@ -687,10 +717,12 @@ export default function RoleAssignmentPage() {
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-slate-900">
-                    Set Login Password
+                    {existingUserRole ? "Confirm Admin Access" : "Set Login Password"}
                   </h3>
                   <p className="text-xs text-slate-500">
-                    Configure credentials for {targetName}
+                    {existingUserRole
+                      ? `Authorize module access changes for ${targetName}`
+                      : `Configure credentials for ${targetName}`}
                   </p>
                 </div>
               </div>
@@ -730,14 +762,14 @@ export default function RoleAssignmentPage() {
               {/* Password Input */}
               <div>
                 <label className="mb-1 block text-xs font-semibold text-slate-700">
-                  Enter Login Password *
+                  {existingUserRole ? "Enter Your Admin Password *" : "Enter Login Password *"}
                 </label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Minimum 6 characters"
+                    placeholder={existingUserRole ? "Your current admin password" : "Minimum 6 characters"}
                     className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-3 pr-10 text-xs font-medium text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                     autoFocus
                   />
@@ -750,7 +782,9 @@ export default function RoleAssignmentPage() {
                   </button>
                 </div>
                 <p className="mt-1 text-[11px] text-slate-500">
-                  This password will be set in Firebase Auth. Give this password to the staff member to log in.
+                  {existingUserRole
+                    ? "This verifies your admin identity. The staff member's existing password will remain unchanged and cannot be displayed by Firebase."
+                    : "This password will be set in Firebase Auth. Give this password to the staff member to log in. It can be shown temporarily while this dialog is open."}
                 </p>
               </div>
 
@@ -773,12 +807,12 @@ export default function RoleAssignmentPage() {
                 disabled={submitting || !password}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-semibold text-white shadow transition hover:bg-blue-700 disabled:opacity-50"
               >
-                {submitting ? (
-                  <>Setting Up Account...</>
+                    {submitting ? (
+                  <>{existingUserRole ? "Verifying & Updating..." : "Setting Up Account..."}</>
                 ) : (
                   <>
                     <UserCheck size={15} />
-                    Confirm & Create Login
+                    {existingUserRole ? "Confirm & Update Access" : "Confirm & Create Login"}
                   </>
                 )}
               </button>
