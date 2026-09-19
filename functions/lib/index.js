@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteStudentCascade = void 0;
+exports.setUserPassword = exports.deleteStudentCascade = void 0;
 const admin = __importStar(require("firebase-admin"));
 const https_1 = require("firebase-functions/v2/https");
 admin.initializeApp();
@@ -220,4 +220,30 @@ exports.deleteStudentCascade = (0, https_1.onCall)(async (request) => {
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
     return { success: true };
+});
+exports.setUserPassword = (0, https_1.onCall)(async (request) => {
+    if (!(await isAdminRequest(request))) {
+        throw new https_1.HttpsError("permission-denied", "Only administrators can change user passwords.");
+    }
+    const email = typeof request.data?.email === "string"
+        ? request.data.email.trim().toLowerCase()
+        : "";
+    const password = typeof request.data?.password === "string" ? request.data.password : "";
+    if (!email || !password || password.length < 6) {
+        throw new https_1.HttpsError("invalid-argument", "A valid email and password of at least 6 characters are required.");
+    }
+    try {
+        const account = await admin.auth().getUserByEmail(email);
+        await admin.auth().updateUser(account.uid, { password });
+        return { success: true };
+    }
+    catch (error) {
+        const code = typeof error === "object" && error !== null && "code" in error
+            ? String(error.code)
+            : "";
+        if (code === "auth/user-not-found") {
+            throw new https_1.HttpsError("not-found", "No Firebase Authentication account exists for this email.");
+        }
+        throw new https_1.HttpsError("internal", "Unable to update the user password.");
+    }
 });

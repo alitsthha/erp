@@ -209,3 +209,32 @@ export const deleteStudentCascade = onCall(async (request) => {
 
   return { success: true };
 });
+
+export const setUserPassword = onCall(async (request) => {
+  if (!(await isAdminRequest(request))) {
+    throw new HttpsError("permission-denied", "Only administrators can change user passwords.");
+  }
+
+  const email = typeof request.data?.email === "string"
+    ? request.data.email.trim().toLowerCase()
+    : "";
+  const password = typeof request.data?.password === "string" ? request.data.password : "";
+
+  if (!email || !password || password.length < 6) {
+    throw new HttpsError("invalid-argument", "A valid email and password of at least 6 characters are required.");
+  }
+
+  try {
+    const account = await admin.auth().getUserByEmail(email);
+    await admin.auth().updateUser(account.uid, { password });
+    return { success: true };
+  } catch (error: unknown) {
+    const code = typeof error === "object" && error !== null && "code" in error
+      ? String(error.code)
+      : "";
+    if (code === "auth/user-not-found") {
+      throw new HttpsError("not-found", "No Firebase Authentication account exists for this email.");
+    }
+    throw new HttpsError("internal", "Unable to update the user password.");
+  }
+});

@@ -36,6 +36,7 @@ import {
   createTeacherAccount,
   getUserRoleForEmail,
   verifyAdminPassword,
+  setUserPassword,
   type UserRoleRecord,
 } from "@/features/auth/services/user-role.service";
 
@@ -66,6 +67,7 @@ export default function RoleAssignmentPage() {
   // Modal & Password State
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [password, setPassword] = useState("");
+  const [newUserPassword, setNewUserPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -200,6 +202,7 @@ export default function RoleAssignmentPage() {
     setMessage(null);
     setModalError(null);
     setCreatedCredentials(null);
+    setNewUserPassword("");
 
     if (!targetEmail) {
       setError("Please select a staff member or enter a valid email address.");
@@ -214,12 +217,17 @@ export default function RoleAssignmentPage() {
     setModalError(null);
 
     if (!password) {
-      setModalError("Password is required to set authentication credentials.");
+      setModalError(existingUserRole ? "Your admin password is required." : "Password is required to set authentication credentials.");
       return;
     }
 
-    if (password.length < 6) {
+    if (!existingUserRole && password.length < 6) {
       setModalError("Password must be at least 6 characters long.");
+      return;
+    }
+
+    if (existingUserRole && newUserPassword.length < 6) {
+      setModalError("The new user password must be at least 6 characters long.");
       return;
     }
 
@@ -228,6 +236,7 @@ export default function RoleAssignmentPage() {
     try {
       if (existingUserRole) {
         await verifyAdminPassword(password);
+        await setUserPassword(targetEmail, newUserPassword);
         await upsertUserRole({
           email: targetEmail,
           role,
@@ -243,9 +252,11 @@ export default function RoleAssignmentPage() {
           permissions,
           activityIds: assignedActivityIds,
         });
-        setMessage(`Module access updated for ${targetName}. Existing login credentials were unchanged.`);
+        setMessage(`Module access and login password updated for ${targetName}.`);
+        setCreatedCredentials({ email: targetEmail, password: newUserPassword });
         setIsPasswordModalOpen(false);
         setPassword("");
+        setNewUserPassword("");
         return;
       }
 
@@ -281,6 +292,7 @@ export default function RoleAssignmentPage() {
       // Reset modal state
       setIsPasswordModalOpen(false);
       setPassword("");
+      setNewUserPassword("");
     } catch (submitError) {
       console.error("Error creating user access:", submitError);
       const errMsg =
@@ -788,6 +800,26 @@ export default function RoleAssignmentPage() {
                 </p>
               </div>
 
+              {existingUserRole && (
+                <div>
+                  <label className="mb-1 block text-xs font-semibold text-slate-700">
+                    Set New User Password *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={newUserPassword}
+                      onChange={(e) => setNewUserPassword(e.target.value)}
+                      placeholder="Minimum 6 characters"
+                      className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-xs font-medium text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    />
+                  </div>
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    This becomes the user&apos;s new login password.
+                  </p>
+                </div>
+              )}
+
             </div>
 
             {/* Modal Actions */}
@@ -804,7 +836,7 @@ export default function RoleAssignmentPage() {
               <button
                 type="button"
                 onClick={handleConfirmRoleAssignment}
-                disabled={submitting || !password}
+                disabled={submitting || !password || (Boolean(existingUserRole) && !newUserPassword)}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-semibold text-white shadow transition hover:bg-blue-700 disabled:opacity-50"
               >
                     {submitting ? (

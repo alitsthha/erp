@@ -8,7 +8,8 @@ import {
 } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 
-import { auth, db, firebaseConfig } from "@/lib/firebase";
+import { auth, db, firebaseConfig, functions } from "@/lib/firebase";
+import { httpsCallable } from "firebase/functions";
 import type { AppRole, ModulePermissions } from "@/lib/rbac";
 
 export type UserRoleRecord = {
@@ -91,6 +92,14 @@ export async function verifyAdminPassword(password: string): Promise<void> {
     }
     throw new Error("Admin password verification failed. Please sign in again and retry.");
   }
+}
+
+export async function setUserPassword(email: string, password: string): Promise<void> {
+  const updatePassword = httpsCallable<{ email: string; password: string }, { success: boolean }>(
+    functions,
+    "setUserPassword"
+  );
+  await updatePassword({ email: email.trim().toLowerCase(), password });
 }
 
 export async function getUserRoleForEmail(
