@@ -1,48 +1,60 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, CalendarDays, ClipboardCheck, Loader2, Pencil, UserCheck, UserX } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 import type { Attendance } from "@/features/attendance/types/attendance.types";
 import { getAttendanceByStudentId } from "@/features/attendance/services/attendance.service";
+import { useAuth } from "@/app/providers/AuthProvider";
+import { isActivityAllowedForRole } from "@/lib/rbac";
+import { getBSWeekday } from "@/utils/nepali-date";
+import { getAttendedClasses } from "../utils/attendance-tracking";
 
 export default function StudentAttendanceDetailPage() {
+  const { isAdmin, role, activityIds } = useAuth();
   const navigate = useNavigate();
   const { studentId, dateBS } = useParams();
 
-  const [records, setRecords] = useState<Attendance[]>([]);
+  const [allRecords, setAllRecords] = useState<Attendance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     const loadData = async () => {
       if (!studentId) {
-        setRecords([]);
+        setAllRecords([]);
         setIsLoading(false);
         return;
       }
 
       try {
         setIsLoading(true);
-        const allRecords = await getAttendanceByStudentId(studentId);
-        const targetDate = dateBS ? decodeURIComponent(dateBS) : "";
-
-        const filtered = targetDate
-          ? allRecords.filter((item) => item.sessionDateBS === targetDate)
-          : allRecords;
-
-        setRecords(filtered);
+        const data = await getAttendanceByStudentId(studentId);
+        if (!cancelled) setAllRecords(data);
       } catch (error) {
         console.error("Error loading student attendance:", error);
-        setRecords([]);
+        if (!cancelled) setAllRecords([]);
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
     void loadData();
-  }, [studentId, dateBS]);
+    return () => { cancelled = true; };
+  }, [studentId]);
 
-  const studentName = useMemo(() => records[0]?.studentName || "Student", [records]);
-  const studentCode = useMemo(() => records[0]?.studentCode || "", [records]);
+  const studentRecords = useMemo(() => allRecords.filter((record) =>
+    record.studentId === studentId && !!role &&
+    isActivityAllowedForRole(role, record.activityName, record.activityCode, activityIds, record.activityId)
+  ), [allRecords, studentId, role, activityIds]);
+  const targetDate = dateBS ?? "";
+  const records = studentRecords.filter((record) =>
+    !targetDate || (record.sessionDateBS || record.sessionDate) === targetDate
+  );
+  const attendedClasses = useMemo(() =>
+    getAttendedClasses(studentRecords)[studentId ?? ""] ?? [],
+  [studentRecords, studentId]);
+  const studentName = studentRecords[0]?.studentName || "Student";
+  const studentCode = studentRecords[0]?.studentCode || "";
 
   if (isLoading) {
     return (
@@ -55,7 +67,7 @@ export default function StudentAttendanceDetailPage() {
     );
   }
 
-  if (!records.length) {
+  if (!studentRecords.length) {
     return (
       <div className="mx-auto flex min-h-[60vh] max-w-xl items-center justify-center px-4">
         <div className="w-full rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
@@ -65,7 +77,7 @@ export default function StudentAttendanceDetailPage() {
 
           <h1 className="mt-4 text-xl font-bold text-slate-900">No attendance found</h1>
           <p className="mt-2 text-sm text-slate-500">
-            There are no attendance records for this student on the selected date.
+            There are no attendance records available for this student.
           </p>
 
           <button
@@ -103,25 +115,65 @@ export default function StudentAttendanceDetailPage() {
 
             <div className="inline-flex items-center gap-2 rounded-xl bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700">
               <CalendarDays size={16} />
-              {dateBS ? decodeURIComponent(dateBS) : records[0].sessionDateBS}
+              {targetDate ? `${targetDate} BS · ${getBSWeekday(targetDate)}` : "All dates"}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <details open className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <summary className="cursor-pointer font-semibold text-blue-700">
+          View dates · {attendedClasses.length} {attendedClasses.length === 1 ? "class" : "classes"} attended
+        </summary>
+        <p className="mt-2 text-sm text-slate-500">
+          {studentName}'s attended classes, newest first. Select a date to review or edit its attendance below.
+        </p>
+        {attendedClasses.length > 0 ? (
+          <ul className="mt-4 grid max-h-80 gap-2 overflow-y-auto sm:grid-cols-2">
+            {attendedClasses.map((session) => {
+              const attendedDate = session.sessionDateBS || session.sessionDate;
+              const isSelected = attendedDate === targetDate;
+              return (
+                <li key={`${session.activityId}-${attendedDate}`}>
+                  <Link
+                    to={`/attendance/student/${encodeURIComponent(session.studentId)}/${encodeURIComponent(attendedDate)}`}
+                    aria-current={isSelected ? "date" : undefined}
+                    className={`block rounded-xl border p-3 text-sm transition ${isSelected
+                      ? "border-blue-300 bg-blue-50 text-blue-800"
+                      : "border-slate-200 text-slate-700 hover:bg-slate-50"}`}
+                  >
+                    <span className="block font-semibold">{attendedDate} BS · {getBSWeekday(attendedDate)}</span>
+                    <span className="mt-1 block text-xs">{session.activityName}{isSelected ? " · Selected date" : ""}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="mt-4 text-sm text-slate-500">No attended classes recorded yet.</p>
+        )}
+      </details>
+
+      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
         <table className="min-w-full text-left">
           <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
             <tr>
               <th className="px-5 py-4 font-semibold">Activity</th>
               <th className="px-5 py-4 font-semibold">Date</th>
               <th className="px-5 py-4 font-semibold">Status</th>
-              <th className="px-5 py-4 font-semibold">Fee</th>
+              {isAdmin && <th className="px-5 py-4 font-semibold">Fee</th>}
               <th className="px-5 py-4 font-semibold">Notes</th>
               <th className="px-5 py-4 font-semibold text-right">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
+            {records.length === 0 && (
+              <tr>
+                <td colSpan={isAdmin ? 6 : 5} className="px-5 py-8 text-center text-sm text-slate-500">
+                  No attendance recorded on this date. Select an attended date above to view its records.
+                </td>
+              </tr>
+            )}
             {records.map((record) => (
               <tr key={record.id || `${record.studentId}-${record.activityId}-${record.sessionDateBS}`} className="hover:bg-slate-50">
                 <td className="px-5 py-4 align-top">
@@ -130,8 +182,8 @@ export default function StudentAttendanceDetailPage() {
                 </td>
 
                 <td className="px-5 py-4 align-top text-sm text-slate-700">
-                  <div className="font-medium">{record.sessionDateBS}</div>
-                  <div className="text-xs text-slate-400">{record.sessionDate}</div>
+                  <div className="font-medium">{record.sessionDateBS || record.sessionDate} BS</div>
+                  <div className="text-xs text-slate-400">{getBSWeekday(record.sessionDateBS || record.sessionDate)}</div>
                 </td>
 
                 <td className="px-5 py-4 align-top">
@@ -147,9 +199,11 @@ export default function StudentAttendanceDetailPage() {
                   </span>
                 </td>
 
-                <td className="px-5 py-4 align-top text-sm text-slate-700">
-                  Rs. {Number(record.sessionFee || 0).toLocaleString("en-IN")}
-                </td>
+                {isAdmin && (
+                  <td className="px-5 py-4 align-top text-sm text-slate-700">
+                    Rs. {Number(record.sessionFee || 0).toLocaleString("en-IN")}
+                  </td>
+                )}
 
                 <td className="px-5 py-4 align-top text-sm text-slate-600">
                   {record.notes || "—"}

@@ -2,11 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Combobox } from "@base-ui/react/combobox";
 
 import {
   CheckCircle2,
+  ChevronDown,
   ClipboardList,
   FileText,
+  Search,
   User,
   Activity as ActivityIcon,
   BadgeDollarSign,
@@ -312,38 +315,73 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
               Student <span className="text-red-500">*</span>
             </label>
 
-            <div className="relative">
-              <User
-                size={17}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-              />
-
-              <select
-                id="studentId"
-                {...register("studentId")}
-                className={`h-11 w-full appearance-none rounded-xl border bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:ring-2 ${
-                  errors.studentId
-                    ? "border-red-300 focus:border-red-400 focus:ring-red-50"
-                    : "border-slate-300 focus:border-blue-500 focus:ring-blue-50"
-                }`}
-              >
-                <option value="">
-                  Select student
-                </option>
-
-                {students.map((student) => (
-                  <option
-                    key={student.id}
-                    value={student.id}
-                  >
-                    {student.studentCode} - {student.fullName}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Controller
+              name="studentId"
+              control={control}
+              render={({ field }) => (
+                <Combobox.Root
+                  items={students}
+                  value={students.find((student) => student.id === field.value) ?? null}
+                  onValueChange={(student) => field.onChange(student?.id ?? "")}
+                  itemToStringLabel={(student) => `${student.studentCode} - ${student.fullName}`}
+                  isItemEqualToValue={(student, value) => student.id === value.id}
+                  autoHighlight
+                  openOnInputClick
+                >
+                  <div className="relative">
+                    <Search
+                      size={17}
+                      aria-hidden="true"
+                      className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                    />
+                    <Combobox.Input
+                      id="studentId"
+                      ref={field.ref}
+                      onBlur={field.onBlur}
+                      placeholder="Type a student name or unique code"
+                      aria-required="true"
+                      aria-invalid={!!errors.studentId}
+                      aria-describedby={errors.studentId ? "studentId-error" : undefined}
+                      className={`h-11 w-full rounded-xl border bg-white pl-10 pr-10 text-sm text-slate-900 outline-none transition focus:ring-2 ${
+                        errors.studentId
+                          ? "border-red-300 focus:border-red-400 focus:ring-red-50"
+                          : "border-slate-300 focus:border-blue-500 focus:ring-blue-50"
+                      }`}
+                    />
+                    <Combobox.Trigger
+                      aria-label="Show student suggestions"
+                      className="absolute right-0 top-0 flex h-11 w-10 items-center justify-center rounded-r-xl text-slate-400 hover:text-slate-700"
+                    >
+                      <ChevronDown size={17} />
+                    </Combobox.Trigger>
+                  </div>
+                  <Combobox.Portal>
+                    <Combobox.Positioner sideOffset={6} className="z-50 w-[var(--anchor-width)]">
+                      <Combobox.Popup className="max-h-[var(--available-height)] overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg">
+                        <Combobox.Empty className="px-4 text-sm text-slate-500">
+                          <p className="py-4">No students found. Try another name or code.</p>
+                        </Combobox.Empty>
+                        <Combobox.List className="max-h-64 overflow-y-auto py-1">
+                          {(student: Student) => (
+                            <Combobox.Item
+                              key={student.id}
+                              value={student}
+                              className="cursor-pointer px-4 py-2.5 text-sm outline-none data-highlighted:bg-blue-50 data-selected:font-semibold"
+                            >
+                              <div className="text-slate-900">{student.fullName}</div>
+                              <div className="mt-0.5 text-xs text-slate-500">{student.studentCode}</div>
+                            </Combobox.Item>
+                          )}
+                        </Combobox.List>
+                      </Combobox.Popup>
+                    </Combobox.Positioner>
+                  </Combobox.Portal>
+                </Combobox.Root>
+              )}
+            />
 
             {errors.studentId && (
-              <p className="mt-1.5 text-xs font-medium text-red-500">
+              <p id="studentId-error" className="mt-1.5 text-xs font-medium text-red-500">
                 {errors.studentId.message}
               </p>
             )}
@@ -352,7 +390,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
               <div className="mt-2 text-xs text-slate-400">
                 Selected:{" "}
                 <span className="font-medium text-slate-600">
-                  {selectedStudent.fullName}
+                  {selectedStudent.studentCode} - {selectedStudent.fullName}
                 </span>
               </div>
             )}

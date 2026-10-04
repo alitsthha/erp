@@ -1,14 +1,15 @@
 import type { Attendance } from "@/features/attendance/types/attendance.types";
 import AttendanceActions from "@/features/attendance/components/AttendanceActions";
-import { formatBSDate } from "@/utils/nepali-date";
+import { formatBSDate, getBSWeekday } from "@/utils/nepali-date";
 import { UserCheck, UserX } from "lucide-react";
+import { useAuth } from "@/app/providers/AuthProvider";
 
 interface AttendanceTableProps {
   data: Attendance[];
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   isLoading?: boolean;
-  classCounts?: Record<string, number>;
+  classHistory?: Record<string, Attendance[]>;
 }
 
 export default function AttendanceTable({
@@ -16,8 +17,10 @@ export default function AttendanceTable({
   onEdit,
   onDelete,
   isLoading,
-  classCounts = {},
+  classHistory = {},
 }: AttendanceTableProps) {
+  const { isAdmin } = useAuth();
+
   if (data.length === 0) {
     return (
       <div className="rounded-xl border border-slate-200 bg-slate-50 p-8 text-center">
@@ -37,7 +40,7 @@ export default function AttendanceTable({
             <th className="px-5 py-3.5">Nepali Date (BS)</th>
             <th className="px-5 py-3.5">Status</th>
             <th className="px-5 py-3.5">Classes Taken</th>
-            <th className="px-5 py-3.5">Session Fee</th>
+            {isAdmin && <th className="px-5 py-3.5">Session Fee</th>}
             <th className="px-5 py-3.5">Notes</th>
             <th className="px-5 py-3.5 text-right">Actions</th>
           </tr>
@@ -46,7 +49,7 @@ export default function AttendanceTable({
           {data.map((record) => {
             const isPresent = record.status === "Present";
             const dateBS = record.sessionDateBS || record.sessionDate;
-            const classCount = classCounts[record.studentId] ?? 0;
+            const attendedClasses = classHistory[record.studentId] ?? [];
 
             return (
               <tr
@@ -104,6 +107,7 @@ export default function AttendanceTable({
                   <div className="text-xs text-slate-500">
                     {formatBSDate(dateBS, "full")}
                   </div>
+                  <div className="text-xs text-slate-500">{getBSWeekday(dateBS)}</div>
                 </td>
 
                 {/* Status */}
@@ -126,13 +130,15 @@ export default function AttendanceTable({
 
                 {/* Classes Taken */}
                 <td className="px-5 py-4 align-middle font-semibold text-blue-700">
-                  {classCount}
+                  {attendedClasses.length}
                 </td>
 
                 {/* Session Fee */}
-                <td className="px-5 py-4 align-middle font-medium text-slate-900">
-                  Rs. {Number(record.sessionFee || 0).toLocaleString("en-IN")}
-                </td>
+                {isAdmin && (
+                  <td className="px-5 py-4 align-middle font-medium text-slate-900">
+                    Rs. {Number(record.sessionFee || 0).toLocaleString("en-IN")}
+                  </td>
+                )}
 
                 {/* Notes */}
                 <td className="px-5 py-4 align-middle text-xs text-slate-500">

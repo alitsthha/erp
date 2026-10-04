@@ -10,6 +10,7 @@ import {
   getNextBSDate,
   formatBSDate,
   isTodayBS,
+  getBSWeekday,
 } from "@/utils/nepali-date";
 import NepaliDatePickerInput from "@/components/forms/NepaliDatePickerInput";
 
@@ -81,7 +82,7 @@ export default function AttendanceDateNavigator({
 
             <div className="mt-0.5 flex flex-wrap items-baseline gap-2">
               <h2 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
-                {formatBSDate(selectedDateBS, "full")}
+                {formatBSDate(selectedDateBS, "full")} · {getBSWeekday(selectedDateBS)}
               </h2>
               <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-mono font-semibold text-slate-600">
                 {selectedDateBS} BS

@@ -33,6 +33,8 @@ import AttendanceDateNavigator from "@/features/attendance/components/Attendance
 import AttendanceSearch from "@/features/attendance/components/AttendanceSearch";
 import AttendanceFilters from "@/features/attendance/components/AttendanceFilters";
 import AttendanceTable from "@/features/attendance/components/AttendanceTable";
+import AttendanceReminder from "@/features/attendance/components/AttendanceReminder";
+import { getAttendedClasses } from "../utils/attendance-tracking";
 
 import { useAuth } from "@/app/providers/AuthProvider";
 import { isActivityAllowedForRole, isTeacherRole } from "@/lib/rbac";
@@ -47,10 +49,10 @@ type GroupedAttendanceRow = Attendance & {
 
 export default function AttendanceListPage() {
   const navigate = useNavigate();
-  const { role, activityIds } = useAuth();
+  const { role, activityIds, isAdmin } = useAuth();
 
   // Current BS Date by default
-  const todayBS = useMemo(() => getCurrentBSDate(), []);
+  const [todayBS, setTodayBS] = useState(getCurrentBSDate);
   const [selectedDateBS, setSelectedDateBS] = useState<string>(todayBS);
 
   // Daily records and all records
@@ -64,8 +66,14 @@ export default function AttendanceListPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("All");
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [sendingAlerts, setSendingAlerts] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setTodayBS(getCurrentBSDate()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   // Load recorded dates list on mount
   useEffect(() => {
@@ -86,6 +94,7 @@ export default function AttendanceListPage() {
 
     const loadData = async () => {
       setIsLoading(true);
+      setLoadError(false);
       try {
         if (viewMode === "daily") {
           const [data, history] = await Promise.all([
@@ -104,6 +113,7 @@ export default function AttendanceListPage() {
         }
       } catch (error) {
         console.error("Error loading attendance:", error);
+        if (!cancelled) setLoadError(true);
       } finally {
         if (!cancelled) {
           setIsLoading(false);
@@ -116,7 +126,7 @@ export default function AttendanceListPage() {
     return () => {
       cancelled = true;
     };
-  }, [selectedDateBS, viewMode]);
+  }, [selectedDateBS, viewMode, todayBS]);
 
   // Determine active raw records list based on view mode and role access
   const activeRecords: Attendance[] = useMemo(() => {
@@ -124,7 +134,7 @@ export default function AttendanceListPage() {
     return raw.filter((item) =>
       isActivityAllowedForRole(role, item.activityName, item.activityCode, activityIds, item.activityId)
     );
-  }, [viewMode, dailyData, allAttendances, role]);
+  }, [viewMode, dailyData, allAttendances, role, activityIds]);
 
   // Extract distinct activities available for selected date / dataset
   const availableActivities = useMemo(() => {
@@ -176,7 +186,7 @@ export default function AttendanceListPage() {
     return Array.from(map.values()).sort((a, b) =>
       a.activityName.localeCompare(b.activityName)
     );
-  }, [viewMode, dailyData, activeRecords]);
+  }, [viewMode, dailyData, activeRecords, role, activityIds]);
 
   const groupedDailyRecords = useMemo(() => {
     if (viewMode !== "daily") {
@@ -239,32 +249,16 @@ export default function AttendanceListPage() {
     return Array.from(map.values()).sort((a, b) =>
       (a.studentName || "").localeCompare(b.studentName || "")
     );
-  }, [viewMode, activeRecords, selectedDateBS]);
+  }, [viewMode, activeRecords]);
 
   const listRecords = viewMode === "daily" ? groupedDailyRecords : activeRecords;
 
-  const classCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    const seen = new Set<string>();
-
-    for (const record of allAttendances) {
-      if (
-        record.status !== "Present" ||
-        !record.studentId ||
-        !isActivityAllowedForRole(role, record.activityName, record.activityCode, activityIds, record.activityId) ||
-        (selectedActivityId !== "all" && record.activityId !== selectedActivityId)
-      ) {
-        continue;
-      }
-
-      const key = `${record.studentId}_${record.activityId}_${record.sessionDateBS || record.sessionDate}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      counts[record.studentId] = (counts[record.studentId] ?? 0) + 1;
-    }
-
-    return counts;
-  }, [allAttendances, role, selectedActivityId]);
+  const classHistory = useMemo(() => {
+    const allowedRecords = allAttendances.filter((record) =>
+      isActivityAllowedForRole(role, record.activityName, record.activityCode, activityIds, record.activityId)
+    );
+    return getAttendedClasses(allowedRecords, selectedActivityId);
+  }, [allAttendances, role, activityIds, selectedActivityId]);
 
   // Filter records by activity, search, and status
   const filteredAttendances = useMemo(() => {
@@ -366,11 +360,10 @@ export default function AttendanceListPage() {
           presentCount: updatedList.filter((r) => r.status === "Present").length,
           absentCount: updatedList.filter((r) => r.status === "Absent").length,
         });
-      } else {
-        setAllAttendances((previous) =>
-          previous.filter((item) => item.id !== recordId)
-        );
       }
+      setAllAttendances((previous) =>
+        previous.filter((item) => item.id !== recordId)
+      );
     } catch (error) {
       console.error("Error deleting attendance:", error);
       alert("Failed to delete attendance record.");
@@ -504,6 +497,13 @@ export default function AttendanceListPage() {
         </div>
       </div>
 
+      <AttendanceReminder records={allAttendances} todayBS={todayBS} ready={!isLoading && !loadError} />
+      {loadError && (
+        <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          Unable to load attendance. Refresh the page to try again.
+        </p>
+      )}
+
       {/* =====================================================
           BS CALENDAR DATE NAVIGATOR (DAILY VIEW ONLY)
       ====================================================== */}
@@ -519,7 +519,7 @@ export default function AttendanceListPage() {
       {/* =====================================================
           SUMMARY METRICS
       ====================================================== */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${isAdmin ? "xl:grid-cols-4" : "xl:grid-cols-3"}`}>
         
         {/* Total Students */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -591,24 +591,26 @@ export default function AttendanceListPage() {
         </div>
 
         {/* Session Fee Total */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                Session Fees Total
-              </p>
-              <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
-                Rs. {totalSessionFees.toLocaleString("en-IN")}
-              </p>
+        {isAdmin && (
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Session Fees Total
+                </p>
+                <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
+                  Rs. {totalSessionFees.toLocaleString("en-IN")}
+                </p>
+              </div>
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                <Wallet size={20} />
+              </div>
             </div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-              <Wallet size={20} />
-            </div>
+            <p className="mt-3 text-xs text-slate-400">
+              Auto-billed from present sessions
+            </p>
           </div>
-          <p className="mt-3 text-xs text-slate-400">
-            Auto-billed from present sessions
-          </p>
-        </div>
+        )}
       </div>
 
       {/* =====================================================
@@ -859,7 +861,7 @@ export default function AttendanceListPage() {
               onEdit={handleEdit}
               onDelete={handleDelete}
               isLoading={isLoading}
-              classCounts={classCounts}
+              classHistory={classHistory}
             />
           )}
         </div>

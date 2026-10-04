@@ -125,7 +125,7 @@ export default function AttendanceForm({
     }
   }, [attendanceDate]);
 
-  const { role, activityIds } = useAuth();
+  const { role, activityIds, isAdmin } = useAuth();
 
   /*
    * Active enrollments.
@@ -688,7 +688,7 @@ export default function AttendanceForm({
                 <tr>
                   <th className="px-5 py-4 font-semibold">Student</th>
                   <th className="px-5 py-4 font-semibold">Activity</th>
-                  <th className="px-5 py-4 font-semibold">Session fee</th>
+                  {isAdmin && <th className="px-5 py-4 font-semibold">Session fee</th>}
                   <th className="px-5 py-4 font-semibold">Status</th>
                   <th className="px-5 py-4 font-semibold">Notes</th>
                 </tr>
@@ -696,7 +696,7 @@ export default function AttendanceForm({
               <tbody className="divide-y divide-slate-100">
                 {filteredRoster.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-5 py-12 text-center text-sm text-slate-500">
+                    <td colSpan={isAdmin ? 5 : 4} className="px-5 py-12 text-center text-sm text-slate-500">
                       No students found for this selection.
                     </td>
                   </tr>
@@ -713,9 +713,11 @@ export default function AttendanceForm({
                         <div className="mt-1 text-xs text-slate-400">{item.activityCode}</div>
                       </td>
 
-                      <td className="px-5 py-4 align-top text-sm text-slate-700">
-                        Rs. {Number(item.sessionFee || 0).toLocaleString("en-IN")}
-                      </td>
+                      {isAdmin && (
+                        <td className="px-5 py-4 align-top text-sm text-slate-700">
+                          Rs. {Number(item.sessionFee || 0).toLocaleString("en-IN")}
+                        </td>
+                      )}
 
                       <td className="px-5 py-4 align-top">
                         <div className="flex flex-wrap gap-2">

@@ -38,6 +38,16 @@ export function getCurrentBSDate(): string {
   return `${bsYear}-${bsMonth}-${bsDay}`;
 }
 
+export function getBSWeekday(bsDate: string): string {
+  try {
+    const [year, month, day] = bsDate.split('-').map(Number);
+    const date = new NepaliDate(year, month - 1, day).toJsDate();
+    return new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(date);
+  } catch {
+    return '—';
+  }
+}
+
 export function formatBSDate(bsDate: string, format: 'full' | 'short' = 'full'): string {
   try {
     const [year, month, day] = bsDate.split('-').map(Number);
