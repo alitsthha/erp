@@ -1,3 +1,4 @@
+import ListSortControl from "@/components/common/ListSortControl";
 import {
   useEffect,
   useMemo,
@@ -180,11 +181,11 @@ export default function EnrollmentListPage() {
       {/* HEADER */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">
+          <p className="text-xs font-semibold uppercase tracking-wider text-brand-600">
             Academy Management
           </p>
 
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
+          <h1 className="ui-page-title mt-1">
             Enrollments
           </h1>
 
@@ -200,7 +201,7 @@ export default function EnrollmentListPage() {
           onClick={() =>
             navigate("/enrollments/add")
           }
-          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 sm:w-auto"
+          className="ui-button inline-flex w-full items-center justify-center gap-2 bg-brand-600 text-white shadow-sm transition hover:bg-brand-700 sm:w-auto"
         >
           <Plus size={17} />
 
@@ -210,9 +211,9 @@ export default function EnrollmentListPage() {
 
       {/* SUMMARY CARDS */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="ui-surface p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
               <Users size={18} />
             </div>
 
@@ -228,7 +229,7 @@ export default function EnrollmentListPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="ui-surface p-4">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
               <CheckCircle2 size={18} />
@@ -246,7 +247,7 @@ export default function EnrollmentListPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="ui-surface p-4">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
               <Users size={18} />
@@ -264,7 +265,7 @@ export default function EnrollmentListPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="ui-surface p-4">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
               <ActivityIcon size={18} />
@@ -285,12 +286,14 @@ export default function EnrollmentListPage() {
       </div>
 
       {/* SEARCH / FILTER */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="ui-surface p-4">
         <div className="flex flex-col gap-3 md:flex-row">
           <EnrollmentSearch
             value={search}
             onChange={setSearch}
           />
+
+          <ListSortControl />
 
           <EnrollmentFilters
             value={statusFilter}
@@ -319,7 +322,7 @@ export default function EnrollmentListPage() {
                 setSearch("");
                 setStatusFilter("all");
               }}
-              className="text-xs font-medium text-blue-600 hover:text-blue-700"
+              className="text-xs font-medium text-brand-600 hover:text-brand-700"
             >
               Clear filters
             </button>
@@ -329,15 +332,15 @@ export default function EnrollmentListPage() {
 
       {/* CONTENT */}
       {loading ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
-          <div className="mx-auto h-7 w-7 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
+        <div className="ui-surface p-10 text-center">
+          <div className="mx-auto h-7 w-7 animate-spin rounded-full border-2 border-slate-200 border-t-brand-600" />
 
           <p className="mt-3 text-sm text-slate-500">
             Loading enrollments...
           </p>
         </div>
       ) : error ? (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-8 text-center">
           <p className="text-sm font-medium text-red-700">
             {error}
           </p>
@@ -347,7 +350,7 @@ export default function EnrollmentListPage() {
             onClick={() =>
               void loadEnrollments()
             }
-            className="mt-3 rounded-lg bg-white px-4 py-2 text-sm font-medium text-red-700 shadow-sm ring-1 ring-red-200 hover:bg-red-50"
+            className="min-h-11 mt-3 rounded-lg bg-white px-4 py-2 text-sm font-medium text-red-700 shadow-sm ring-1 ring-red-200 hover:bg-red-50"
           >
             Try Again
           </button>

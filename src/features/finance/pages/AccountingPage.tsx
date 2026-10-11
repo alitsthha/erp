@@ -1,3 +1,4 @@
+import PaginatedList from "@/components/common/PaginatedList";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, BookOpen, Calculator } from "lucide-react";
@@ -36,8 +37,8 @@ export default function AccountingPage() {
         ]);
 
         setSummary(financeSummary);
-        setInvoices(invoiceList.slice(0, 6));
-        setExpenses(expenseList.slice(0, 6));
+        setInvoices(invoiceList);
+        setExpenses(expenseList);
       } catch (error) {
         console.error("Failed to load accounting data:", error);
       } finally {
@@ -67,7 +68,7 @@ export default function AccountingPage() {
 
   return (
     <div className="min-h-full bg-slate-50">
-      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="ui-page mx-auto w-full">
         <div className="mb-6">
           <button
             type="button"
@@ -78,62 +79,62 @@ export default function AccountingPage() {
             Back to Finance
           </button>
 
-          <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">Accounting</h1>
-          <p className="mt-1 text-sm text-slate-500 sm:text-base">
+          <h1 className="ui-page-title">Accounting</h1>
+          <p className="mt-1 text-sm text-slate-500">
             Manage transactions, journal entries, accounts, and cash/bank records.
           </p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-2xl border bg-white p-5 shadow-sm">
-            <BookOpen size={22} className="mb-4 text-blue-600" />
+          <div className="ui-surface p-5">
+            <BookOpen size={22} className="mb-4 text-brand-600" />
             <p className="text-sm text-slate-500">Income</p>
             <p className="mt-2 text-2xl font-bold">Rs. {summary.totalIncome.toLocaleString("en-IN")}</p>
           </div>
-          <div className="rounded-2xl border bg-white p-5 shadow-sm">
+          <div className="ui-surface p-5">
             <Calculator size={22} className="mb-4 text-red-600" />
             <p className="text-sm text-slate-500">Expenses</p>
             <p className="mt-2 text-2xl font-bold">Rs. {summary.totalExpenses.toLocaleString("en-IN")}</p>
           </div>
-          <div className="rounded-2xl border bg-white p-5 shadow-sm">
+          <div className="ui-surface p-5">
             <BookOpen size={22} className="mb-4 text-emerald-600" />
             <p className="text-sm text-slate-500">Cash</p>
             <p className="mt-2 text-2xl font-bold">Rs. {summary.cashBalance.toLocaleString("en-IN")}</p>
           </div>
-          <div className="rounded-2xl border bg-white p-5 shadow-sm">
-            <Calculator size={22} className="mb-4 text-violet-600" />
+          <div className="ui-surface p-5">
+            <Calculator size={22} className="mb-4 text-brand-600" />
             <p className="text-sm text-slate-500">Outstanding</p>
             <p className="mt-2 text-2xl font-bold">Rs. {summary.outstandingAmount.toLocaleString("en-IN")}</p>
           </div>
         </div>
 
-        <div className="mt-6 rounded-2xl border bg-white p-4 shadow-sm sm:p-6">
+        <div className="ui-surface mt-6 p-4 sm:p-6">
           {loading ? (
             <div className="flex min-h-[220px] items-center justify-center text-sm text-slate-500">
               Loading accounting ledger...
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-slate-50 text-slate-600">
+              <table className="ui-table">
+                <thead className="ui-table-head">
                   <tr>
-                    <th className="px-3 py-3 font-medium">Type</th>
-                    <th className="px-3 py-3 font-medium">Reference</th>
-                    <th className="px-3 py-3 font-medium">Date</th>
-                    <th className="px-3 py-3 font-medium">Name</th>
-                    <th className="px-3 py-3 font-medium text-right">Amount</th>
+                    <th className="px-4 py-3 font-medium">Type</th>
+                    <th className="px-4 py-3 font-medium">Reference</th>
+                    <th className="px-4 py-3 font-medium">Date</th>
+                    <th className="px-4 py-3 font-medium">Name</th>
+                    <th className="px-4 py-3 font-medium text-right">Amount</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {ledgerRows.map((row, index) => (
+                  {<PaginatedList items={ledgerRows} table>{(row, index) => (
                     <tr key={`${row.type}-${row.ref}-${index}`} className="border-t border-slate-200">
-                      <td className="px-3 py-3 text-slate-700">{row.type}</td>
-                      <td className="px-3 py-3 text-slate-700">{row.ref}</td>
-                      <td className="px-3 py-3 text-slate-700">{row.date}</td>
-                      <td className="px-3 py-3 text-slate-700">{row.name}</td>
-                      <td className="px-3 py-3 text-right font-semibold text-slate-900">Rs. {Number(row.amount ?? 0).toLocaleString("en-IN")}</td>
+                      <td className="px-4 py-3 text-slate-700">{row.type}</td>
+                      <td className="px-4 py-3 text-slate-700">{row.ref}</td>
+                      <td className="px-4 py-3 text-slate-700">{row.date}</td>
+                      <td className="px-4 py-3 text-slate-700">{row.name}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-slate-900">Rs. {Number(row.amount ?? 0).toLocaleString("en-IN")}</td>
                     </tr>
-                  ))}
+                  )}</PaginatedList>}
                 </tbody>
               </table>
             </div>

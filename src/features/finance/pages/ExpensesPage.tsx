@@ -1,3 +1,4 @@
+import PaginatedList from "@/components/common/PaginatedList";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -134,7 +135,7 @@ export default function ExpensesPage() {
 
   return (
     <div className="min-h-full bg-slate-50">
-      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="ui-page mx-auto w-full">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <button
@@ -146,11 +147,11 @@ export default function ExpensesPage() {
               Back to Finance
             </button>
 
-            <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+            <h1 className="ui-page-title">
               Daily Expenses
             </h1>
 
-            <p className="mt-1 text-sm text-slate-500 sm:text-base">
+            <p className="mt-1 text-sm text-slate-500">
               Record daily operating expenses and keep the finance ledger current.
             </p>
           </div>
@@ -169,7 +170,7 @@ export default function ExpensesPage() {
         )}
 
         <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="ui-surface p-5">
             <p className="text-sm text-slate-500">Total Expenses</p>
             <div className="mt-2 flex items-center justify-between">
               <p className="text-2xl font-bold text-slate-900">{formatCurrency(totalExpenses)}</p>
@@ -179,25 +180,25 @@ export default function ExpensesPage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="ui-surface p-5">
             <p className="text-sm text-slate-500">This Month</p>
             <p className="mt-2 text-2xl font-bold text-slate-900">{formatCurrency(thisMonthExpenses)}</p>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="ui-surface p-5">
             <p className="text-sm text-slate-500">Transactions</p>
             <p className="mt-2 text-2xl font-bold text-slate-900">{expenses.length}</p>
           </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[420px_minmax(0,1fr)]">
-          <form onSubmit={handleSubmit} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <form onSubmit={handleSubmit} className="ui-surface p-5">
             <div className="mb-4 flex items-center gap-3">
-              <div className="rounded-xl bg-slate-900 p-2.5 text-white">
+              <div className="rounded-xl bg-brand-600 p-2.5 text-white">
                 <Plus size={18} />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">Add Expense</h2>
+                <h2 className="ui-section-title">Add Expense</h2>
                 <p className="text-sm text-slate-500">Record a new daily expense entry</p>
               </div>
             </div>
@@ -210,7 +211,7 @@ export default function ExpensesPage() {
                 <select
                   value={form.category}
                   onChange={(event) => setForm((current) => ({ ...current, category: event.target.value as ExpenseCategory }))}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:bg-white"
+                  className="ui-field w-full bg-slate-50 px-3 text-slate-900 outline-none transition focus:border-slate-400 focus:bg-white"
                 >
                   {expenseCategories.map((item) => (
                     <option key={item} value={item}>{item}</option>
@@ -224,7 +225,7 @@ export default function ExpensesPage() {
                   value={form.description}
                   onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
                   placeholder="Rent, staff meals, electricity, etc."
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:bg-white"
+                  className="ui-field w-full bg-slate-50 px-3 text-slate-900 outline-none transition focus:border-slate-400 focus:bg-white"
                   required
                 />
               </div>
@@ -238,7 +239,7 @@ export default function ExpensesPage() {
                   value={form.amount}
                   onChange={(event) => setForm((current) => ({ ...current, amount: event.target.value }))}
                   placeholder="0.00"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:bg-white"
+                  className="ui-field w-full bg-slate-50 px-3 text-slate-900 outline-none transition focus:border-slate-400 focus:bg-white"
                   required
                 />
               </div>
@@ -249,7 +250,7 @@ export default function ExpensesPage() {
                   value={form.vendor}
                   onChange={(event) => setForm((current) => ({ ...current, vendor: event.target.value }))}
                   placeholder="Optional"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:bg-white"
+                  className="ui-field w-full bg-slate-50 px-3 text-slate-900 outline-none transition focus:border-slate-400 focus:bg-white"
                 />
               </div>
 
@@ -259,7 +260,7 @@ export default function ExpensesPage() {
                   <select
                     value={form.paymentMethod}
                     onChange={(event) => setForm((current) => ({ ...current, paymentMethod: event.target.value }))}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:bg-white"
+                    className="ui-field w-full bg-slate-50 px-3 text-slate-900 outline-none transition focus:border-slate-400 focus:bg-white"
                   >
                     <option value="Cash">Cash</option>
                     <option value="Bank">Bank</option>
@@ -275,7 +276,7 @@ export default function ExpensesPage() {
                     value={form.referenceNumber}
                     onChange={(event) => setForm((current) => ({ ...current, referenceNumber: event.target.value }))}
                     placeholder="Optional"
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:bg-white"
+                    className="ui-field w-full bg-slate-50 px-3 text-slate-900 outline-none transition focus:border-slate-400 focus:bg-white"
                   />
                 </div>
               </div>
@@ -287,14 +288,14 @@ export default function ExpensesPage() {
                   onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
                   rows={3}
                   placeholder="Optional details"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:bg-white"
+                  className="ui-field w-full bg-slate-50 px-3 text-slate-900 outline-none transition focus:border-slate-400 focus:bg-white"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={submitting}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                className="ui-button inline-flex w-full items-center justify-center gap-2 bg-brand-600 py-3 text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Plus size={18} />
                 {submitting ? "Saving..." : "Save Expense"}
@@ -302,16 +303,16 @@ export default function ExpensesPage() {
             </div>
           </form>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="ui-surface p-5">
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">Expense Ledger</h2>
+                <h2 className="ui-section-title">Expense Ledger</h2>
                 <p className="text-sm text-slate-500">Recent daily expenses</p>
               </div>
 
             </div>
 
-            <ListToolbar search={search} onSearchChange={setSearch} placeholder="Search description, vendor, or reference..." resultCount={filteredExpenses.length} onClear={() => { setSearch(""); setCategoryFilter("all"); }} filter={<select aria-label="Filter expenses by category" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm"><option value="all">All categories</option>{expenseCategories.map((category) => <option key={category}>{category}</option>)}</select>} />
+            <ListToolbar search={search} onSearchChange={setSearch} placeholder="Search description, vendor, or reference..." resultCount={filteredExpenses.length} onClear={() => { setSearch(""); setCategoryFilter("all"); }} filter={<select aria-label="Filter expenses by category" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="ui-field w-full px-3"><option value="all">All categories</option>{expenseCategories.map((category) => <option key={category}>{category}</option>)}</select>} />
 
             {loading ? (
               <ListSkeleton rows={5} columns={4} />
@@ -320,8 +321,8 @@ export default function ExpensesPage() {
             ) : (
               <div className="overflow-hidden rounded-xl border border-slate-200">
                 <div className="overflow-x-auto">
-                  <table className="min-w-full text-left text-sm">
-                    <thead className="bg-slate-50 text-slate-500">
+                  <table className="ui-table">
+                    <thead className="ui-table-head">
                       <tr>
                         <th className="px-4 py-3 font-semibold">Date</th>
                         <th className="px-4 py-3 font-semibold">Category</th>
@@ -330,7 +331,7 @@ export default function ExpensesPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200 bg-white">
-                      {filteredExpenses.map((expense) => (
+                      {<PaginatedList showSort={false} items={filteredExpenses} table>{(expense) => (
                         <tr key={expense.id} className="hover:bg-slate-50">
                           <td className="px-4 py-3 text-slate-700">{expense.expenseDate}</td>
                           <td className="px-4 py-3 text-slate-700">{expense.category}</td>
@@ -342,7 +343,7 @@ export default function ExpensesPage() {
                             {formatCurrency(expense.amount)}
                           </td>
                         </tr>
-                      ))}
+                      )}</PaginatedList>}
                     </tbody>
                   </table>
                 </div>

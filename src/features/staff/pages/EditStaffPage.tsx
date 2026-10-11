@@ -54,9 +54,9 @@ export default function EditStaffPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-60 items-center justify-center">
         <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-slate-300 border-t-blue-600"></div>
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-slate-300 border-t-brand-600"></div>
           <p className="mt-2 text-sm text-slate-500">Loading staff member...</p>
         </div>
       </div>
@@ -65,13 +65,13 @@ export default function EditStaffPage() {
 
   if (error) {
     return (
-      <div className="min-h-full space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-5xl">
+      <div className="min-h-full space-y-6">
+        <div className="ui-page mx-auto">
           <div className="rounded-lg border border-red-200 bg-red-50 p-4">
             <p className="text-sm text-red-700">{error}</p>
             <button
               onClick={() => navigate("/staff")}
-              className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+              className="ui-button mt-4 bg-red-600 py-2 text-white hover:bg-red-700"
             >
               Back to Staff
             </button>
@@ -83,13 +83,13 @@ export default function EditStaffPage() {
 
   if (!staff) {
     return (
-      <div className="min-h-full space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-5xl">
+      <div className="min-h-full space-y-6">
+        <div className="ui-page mx-auto">
           <div className="rounded-lg border border-red-200 bg-red-50 p-4">
             <p className="text-sm text-red-700">Staff member not found</p>
             <button
               onClick={() => navigate("/staff")}
-              className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+              className="ui-button mt-4 bg-red-600 py-2 text-white hover:bg-red-700"
             >
               Back to Staff
             </button>
@@ -100,7 +100,7 @@ export default function EditStaffPage() {
   }
 
   return (
-    <div className="min-h-full space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+    <div className="min-h-full space-y-6">
       <StaffForm
         initialData={{
           staffCode: staff.staffCode,

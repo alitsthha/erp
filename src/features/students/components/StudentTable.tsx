@@ -1,3 +1,4 @@
+import PaginatedList from "@/components/common/PaginatedList";
 import type { Student } from "../types/student.types";
 import StudentActions from "./StudentActions";
 
@@ -16,7 +17,7 @@ export default function StudentTable({
 }: Props) {
   if (students.length === 0) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+      <div className="ui-surface p-10 text-center">
         <p className="text-sm font-medium text-slate-700">
           No students found.
         </p>
@@ -29,53 +30,53 @@ export default function StudentTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div className="ui-surface overflow-hidden">
       {/* Mobile horizontal scroll */}
       <div className="w-full overflow-x-auto">
-        <table className="w-full min-w-[850px] text-left">
-          <thead className="border-b border-slate-200 bg-slate-50">
+        <table className="ui-table min-w-[850px]">
+          <thead className="ui-table-head border-b border-slate-200">
             <tr>
-              <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Code
               </th>
 
-              <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Student
               </th>
 
-              <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Guardian
               </th>
 
-              <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Phone
               </th>
 
-              <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Status
               </th>
 
-              <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Actions
               </th>
             </tr>
           </thead>
 
           <tbody className="divide-y divide-slate-100">
-            {students.map((student) => (
+            {<PaginatedList showSort={false} items={students} table>{(student) => (
               <tr
                 key={student.id}
                 className="transition hover:bg-slate-50"
               >
                 {/* Student Code */}
-                <td className="whitespace-nowrap px-5 py-4">
+                <td className="whitespace-nowrap px-4 py-3">
                   <span className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
                     {student.studentCode || "-"}
                   </span>
                 </td>
 
                 {/* Student */}
-                <td className="px-5 py-4">
+                <td className="px-4 py-3">
                   <div className="font-medium text-slate-900">
                     {student.fullName}
                   </div>
@@ -88,17 +89,17 @@ export default function StudentTable({
                 </td>
 
                 {/* Guardian */}
-                <td className="px-5 py-4 text-sm text-slate-600">
+                <td className="px-4 py-3 text-sm text-slate-600">
                   {student.guardianName || student.parentName || "-"}
                 </td>
 
                 {/* Guardian Phone */}
-                <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-600">
+                <td className="whitespace-nowrap px-4 py-3 text-sm text-slate-600">
                   {student.guardianPhone || "-"}
                 </td>
 
                 {/* Status */}
-                <td className="px-5 py-4">
+                <td className="px-4 py-3">
                   <span
                     className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
                       student.status === "Active"
@@ -111,7 +112,7 @@ export default function StudentTable({
                 </td>
 
                 {/* Actions */}
-                <td className="px-5 py-4">
+                <td className="px-4 py-3">
                   <div className="flex justify-end">
                     <StudentActions
                       onView={() => onViewStudent(student)}
@@ -121,7 +122,7 @@ export default function StudentTable({
                   </div>
                 </td>
               </tr>
-            ))}
+            )}</PaginatedList>}
           </tbody>
         </table>
       </div>

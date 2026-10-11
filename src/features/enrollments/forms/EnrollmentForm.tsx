@@ -20,6 +20,7 @@ import type { EnrollmentFormData } from "../schemas/enrollment.schema";
 
 import {
   addEnrollment,
+  DuplicateEnrollmentError,
   getActivitiesForEnrollment,
   getStudentsForEnrollment,
   getEnrollmentById,
@@ -28,6 +29,8 @@ import {
 
 import type { Activity } from "@/features/activities/types/activity.types";
 import type { Student } from "@/features/students/types/student.types";
+import type { Enrollment } from "../types/enrollment.types";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 import { convertADToBS, getCurrentBSDate } from "@/utils/nepali-date";
 import NepaliDatePickerInput from "@/components/forms/NepaliDatePickerInput";
@@ -54,6 +57,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
   const [students, setStudents] = useState<Student[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [duplicateEnrollment, setDuplicateEnrollment] = useState<Enrollment | null>(null);
 
   const {
     register,
@@ -242,6 +246,10 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
       navigate("/enrollments");
     } catch (error) {
       console.error(error);
+      if (error instanceof DuplicateEnrollmentError) {
+        setDuplicateEnrollment(error.enrollment);
+        return;
+      }
       alert(
         error instanceof Error
           ? error.message
@@ -258,8 +266,8 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
 
   if (loadingData) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
-        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
+      <div className="ui-surface p-10 text-center">
+        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-brand-600" />
 
         <p className="mt-4 text-sm font-medium text-slate-700">
           Loading enrollment data...
@@ -281,17 +289,17 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
           MAIN INFORMATION
       ======================================================= */}
 
-      <section className="relative overflow-visible rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <section className="ui-surface relative overflow-visible">
         {/* Section Header */}
 
-        <div className="border-b border-slate-200 px-6 py-5 sm:px-8">
+        <div className="border-b border-slate-200 px-4 py-4 sm:px-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
               <ClipboardList size={19} />
             </div>
 
             <div>
-              <h2 className="text-base font-semibold text-slate-900">
+              <h2 className="ui-section-title">
                 Enrollment Details
               </h2>
 
@@ -304,7 +312,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
 
         {/* Form Body */}
 
-        <div className="grid grid-cols-1 gap-6 p-6 sm:p-8 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 p-4 sm:p-5 lg:grid-cols-2">
           {/* Student */}
 
           <div>
@@ -342,10 +350,10 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
                       aria-required="true"
                       aria-invalid={!!errors.studentId}
                       aria-describedby={errors.studentId ? "studentId-error" : undefined}
-                      className={`h-11 w-full rounded-xl border bg-white pl-10 pr-10 text-sm text-slate-900 outline-none transition focus:ring-2 ${
+                      className={`ui-field w-full bg-white pl-10 pr-10 text-sm text-slate-900 outline-none transition focus:ring-2 ${
                         errors.studentId
                           ? "border-red-300 focus:border-red-400 focus:ring-red-50"
-                          : "border-slate-300 focus:border-blue-500 focus:ring-blue-50"
+                          : "border-slate-300 focus:border-brand-600 focus:ring-brand-50"
                       }`}
                     />
                     <Combobox.Trigger
@@ -366,7 +374,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
                             <Combobox.Item
                               key={student.id}
                               value={student}
-                              className="cursor-pointer px-4 py-2.5 text-sm outline-none data-highlighted:bg-blue-50 data-selected:font-semibold"
+                              className="cursor-pointer px-4 py-2.5 text-sm outline-none data-highlighted:bg-brand-50 data-selected:font-semibold"
                             >
                               <div className="text-slate-900">{student.fullName}</div>
                               <div className="mt-0.5 text-xs text-slate-500">{student.studentCode}</div>
@@ -418,7 +426,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
                 className={`h-11 w-full appearance-none rounded-xl border bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:ring-2 ${
                   errors.activityId
                     ? "border-red-300 focus:border-red-400 focus:ring-red-50"
-                    : "border-slate-300 focus:border-blue-500 focus:ring-blue-50"
+                    : "border-slate-300 focus:border-brand-600 focus:ring-brand-50"
                 }`}
               >
                 <option value="">
@@ -503,10 +511,10 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
                 min="0"
                 step="0.01"
                 {...register(selectedActivity?.countedMonthly ? "monthlyFee" : "sessionFee")}
-                className={`h-11 w-full rounded-xl border bg-white pl-14 pr-4 text-sm font-medium text-slate-900 outline-none transition focus:ring-2 ${
+                className={`ui-field w-full bg-white pl-14 pr-4 text-sm font-medium text-slate-900 outline-none transition focus:ring-2 ${
                   errors.sessionFee
                     ? "border-red-300 focus:border-red-400 focus:ring-red-50"
-                    : "border-slate-300 focus:border-blue-500 focus:ring-blue-50"
+                    : "border-slate-300 focus:border-brand-600 focus:ring-brand-50"
                 }`}
                 placeholder={selectedActivity?.countedMonthly ? "Monthly amount" : "Session amount"}
               />
@@ -546,7 +554,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
                 {...register("notes")}
                 rows={3}
                 placeholder="Add any useful notes about this enrollment..."
-                className="w-full resize-none rounded-xl border border-slate-300 bg-white py-3 pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-50"
+                className="ui-field w-full resize-none pl-10 pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
               />
             </div>
           </div>
@@ -560,9 +568,9 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Student Summary */}
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="ui-surface p-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
               <User size={17} />
             </div>
 
@@ -586,9 +594,9 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
 
         {/* Activity Summary */}
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="ui-surface p-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-50 text-violet-600">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
               <ActivityIcon size={17} />
             </div>
 
@@ -612,14 +620,14 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
 
         {/* Session Fee Summary */}
 
-        <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-5 shadow-sm">
+        <div className="rounded-xl border border-brand-100 bg-brand-50/60 p-5 shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-blue-600 shadow-sm">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-brand-600 shadow-sm">
               <BadgeDollarSign size={17} />
             </div>
 
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-blue-600">
+              <p className="text-xs font-medium uppercase tracking-wide text-brand-600">
                 {selectedActivity?.countedMonthly ? "Fee per Month" : "Session Fee"}
               </p>
 
@@ -635,7 +643,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
           STATUS
       ======================================================= */}
 
-      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <section className="ui-surface">
         <div className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-7">
           <div className="flex items-center gap-3">
             <div
@@ -649,7 +657,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
             </div>
 
             <div>
-              <h2 className="text-sm font-semibold text-slate-900">
+              <h2 className="ui-section-title text-sm">
                 Enrollment Status
               </h2>
 
@@ -661,7 +669,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
 
           <select
             {...register("status")}
-            className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-50 sm:w-44"
+            className="ui-field w-full px-4 font-medium text-slate-900 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-50 sm:w-44"
           >
             <option value="Active">
               Active
@@ -684,7 +692,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
             type="button"
             onClick={() => navigate("/enrollments")}
             disabled={isSubmitting}
-            className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-6 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="ui-button inline-flex items-center justify-center border border-slate-300 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Cancel
           </button>
@@ -692,7 +700,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="inline-flex h-11 items-center justify-center rounded-xl bg-blue-600 px-7 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            className="ui-button inline-flex items-center justify-center bg-brand-600 text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting
               ? "Saving..."
@@ -702,6 +710,26 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
           </button>
         </div>
       </div>
+      <ConfirmDialog
+        open={Boolean(duplicateEnrollment)}
+        title="Student already enrolled"
+        isDestructive={false}
+        confirmLabel="Open Existing Enrollment"
+        description={<>
+          <p className="rounded-lg bg-amber-50 p-3 text-amber-900">
+            <strong>{duplicateEnrollment?.studentName || selectedStudent?.fullName}</strong>
+            {duplicateEnrollment?.status === "Inactive" ? " already has an inactive enrollment in " : " is currently enrolled in "}
+            <strong>{duplicateEnrollment?.activityName || selectedActivity?.activityName}</strong>.
+          </p>
+          <p className="mt-3">A duplicate enrollment will not be created. Open the existing enrollment to review or update it?</p>
+        </>}
+        onCancel={() => setDuplicateEnrollment(null)}
+        onConfirm={() => {
+          const existingId = duplicateEnrollment?.id;
+          setDuplicateEnrollment(null);
+          if (existingId) navigate(`/enrollments/edit/${existingId}`);
+        }}
+      />
     </form>
   );
 }

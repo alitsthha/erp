@@ -23,13 +23,13 @@ export default function AddRolePage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="ui-page mx-auto space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">
+        <h1 className="ui-page-title">
           Add Staff Role
         </h1>
 
-        <p className="mt-2 text-gray-500">
+        <p className="mt-2 text-slate-500">
           Create staff roles for your academy.
         </p>
       </div>

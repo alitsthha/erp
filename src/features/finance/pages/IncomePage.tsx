@@ -1,3 +1,4 @@
+import PaginatedList from "@/components/common/PaginatedList";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, TrendingUp, Wallet } from "lucide-react";
@@ -128,7 +129,7 @@ export default function IncomePage() {
 
   return (
     <div className="min-h-full bg-slate-50">
-      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="ui-page mx-auto w-full">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <button
@@ -140,8 +141,8 @@ export default function IncomePage() {
               Back to Finance
             </button>
 
-            <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">Income</h1>
-            <p className="mt-1 text-sm text-slate-500 sm:text-base">
+            <h1 className="ui-page-title">Income</h1>
+            <p className="mt-1 text-sm text-slate-500">
               Manage student fee income and payment records.
             </p>
           </div>
@@ -161,7 +162,7 @@ export default function IncomePage() {
         )}
 
         <div className="mb-6 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-2xl border bg-white p-5 shadow-sm">
+          <div className="ui-surface p-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Total Income</p>
@@ -173,31 +174,31 @@ export default function IncomePage() {
             </div>
           </div>
 
-          <div className="rounded-2xl border bg-white p-5 shadow-sm">
+          <div className="ui-surface p-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-slate-500">Student Fees</p>
                 <p className="mt-2 text-2xl font-bold text-slate-900">{formatCurrency(studentFeeIncome)}</p>
               </div>
-              <div className="rounded-xl bg-blue-100 p-3 text-blue-700">
+              <div className="rounded-xl bg-brand-100 p-3 text-brand-700">
                 <Wallet size={22} />
               </div>
             </div>
           </div>
         </div>
 
-        <div className="mb-6 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
+        <div className="mb-6 rounded-xl border border-brand-100 bg-brand-50 p-4 text-sm text-brand-800">
           Student-fee income is recorded automatically when an invoice payment is received. Student advances are stored as advance payments and are deducted automatically from future generated bills.
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[420px_minmax(0,1fr)]">
-          <form onSubmit={handleAddIncome} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <form onSubmit={handleAddIncome} className="ui-surface p-5">
             <div className="mb-4 flex items-center gap-3">
-              <div className="rounded-xl bg-slate-900 p-2.5 text-white">
+              <div className="rounded-xl bg-brand-600 p-2.5 text-white">
                 <Plus size={18} />
               </div>
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">Add Income</h2>
+                <h2 className="ui-section-title">Add Income</h2>
                 <p className="text-sm text-slate-500">Record a new student advance payment</p>
               </div>
             </div>
@@ -209,7 +210,7 @@ export default function IncomePage() {
                   <select
                     value={incomeCategory}
                     onChange={(event) => setIncomeCategory(event.target.value as IncomeCategory)}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    className="ui-field w-full px-3 text-slate-900 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
                   >
                     <option value="Student Fee (Advance)">Student Fee (Advance)</option>
                   </select>
@@ -223,7 +224,7 @@ export default function IncomePage() {
                 <select
                   value={selectedStudentId}
                   onChange={(event) => setSelectedStudentId(event.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  className="ui-field w-full px-3 text-slate-900 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
                 >
                   <option value="">Select student</option>
                   {students.map((student) => (
@@ -242,7 +243,7 @@ export default function IncomePage() {
                     value={amount}
                     onChange={(event) => setAmount(event.target.value)}
                     placeholder="1000"
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    className="ui-field w-full px-3 text-slate-900 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
                   />
                 </div>
 
@@ -251,7 +252,7 @@ export default function IncomePage() {
                   <select
                     value={paymentMethod}
                     onChange={(event) => setPaymentMethod(event.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    className="ui-field w-full px-3 text-slate-900 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
                   >
                     <option value="Cash">Cash</option>
                     <option value="Bank">Bank</option>
@@ -268,7 +269,7 @@ export default function IncomePage() {
                   type="text"
                   value={selectedStudentId ? (students.find((student) => student.id === selectedStudentId)?.fullName ?? "") : ""}
                   readOnly
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none"
+                  className="ui-field w-full bg-slate-50 px-3 text-slate-900 shadow-sm outline-none"
                 />
               </div>
 
@@ -283,14 +284,14 @@ export default function IncomePage() {
                     setIncomeDate(getCurrentBSDate());
                     setPaymentMethod("Cash");
                   }}
-                  className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  className="ui-button border border-slate-200 bg-white py-2.5 text-slate-700 hover:bg-slate-50"
                 >
                   Reset
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+                  className="ui-button bg-brand-600 py-2.5 text-white hover:bg-brand-700 disabled:opacity-50"
                 >
                   {submitting ? "Saving..." : "Save Income"}
                 </button>
@@ -298,7 +299,7 @@ export default function IncomePage() {
             </div>
           </form>
 
-          <div className="rounded-2xl border bg-white p-4 shadow-sm sm:p-6">
+          <div className="ui-surface p-4 sm:p-6">
             <ListToolbar
               search={search}
               onSearchChange={setSearch}
@@ -313,7 +314,7 @@ export default function IncomePage() {
                   aria-label="Filter income by category"
                   value={categoryFilter}
                   onChange={(event) => setCategoryFilter(event.target.value)}
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm"
+                  className="ui-field w-full px-3"
                 >
                   <option value="all">All categories</option>
                   <option value="Student Fee">Student Fee</option>
@@ -331,26 +332,26 @@ export default function IncomePage() {
               />
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full text-left text-sm">
-                  <thead className="bg-slate-50 text-slate-600">
+                <table className="ui-table">
+                  <thead className="ui-table-head">
                     <tr>
-                      <th className="px-3 py-3 font-medium">Date</th>
-                      <th className="px-3 py-3 font-medium">Category</th>
-                      <th className="px-3 py-3 font-medium">Description</th>
-                      <th className="px-3 py-3 font-medium">Source</th>
-                      <th className="px-3 py-3 font-medium text-right">Amount</th>
+                      <th className="px-4 py-3 font-medium">Date</th>
+                      <th className="px-4 py-3 font-medium">Category</th>
+                      <th className="px-4 py-3 font-medium">Description</th>
+                      <th className="px-4 py-3 font-medium">Source</th>
+                      <th className="px-4 py-3 font-medium text-right">Amount</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredRecords.map((record) => (
+                    {<PaginatedList showSort={false} items={filteredRecords} table>{(record) => (
                       <tr key={record.id ?? record.incomeNumber} className="border-t border-slate-200">
-                        <td className="px-3 py-3 text-slate-700">{record.incomeDate}</td>
-                        <td className="px-3 py-3 text-slate-700">{record.category}</td>
-                        <td className="px-3 py-3 text-slate-700">{record.description}</td>
-                        <td className="px-3 py-3 text-slate-700">{record.source ?? "—"}</td>
-                        <td className="px-3 py-3 text-right font-semibold text-slate-900">{formatCurrency(record.amount ?? 0)}</td>
+                        <td className="px-4 py-3 text-slate-700">{record.incomeDate}</td>
+                        <td className="px-4 py-3 text-slate-700">{record.category}</td>
+                        <td className="px-4 py-3 text-slate-700">{record.description}</td>
+                        <td className="px-4 py-3 text-slate-700">{record.source ?? "—"}</td>
+                        <td className="px-4 py-3 text-right font-semibold text-slate-900">{formatCurrency(record.amount ?? 0)}</td>
                       </tr>
-                    ))}
+                    )}</PaginatedList>}
                   </tbody>
                 </table>
               </div>

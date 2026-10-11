@@ -1,3 +1,4 @@
+import PaginatedList from "@/components/common/PaginatedList";
 import {
   CheckCircle2,
   Clock,
@@ -29,7 +30,7 @@ const STATUS_STYLES: Record<
   },
   "Partially Paid": {
     label: "Partial",
-    className: "bg-blue-50 text-blue-700 ring-1 ring-blue-200",
+    className: "bg-brand-50 text-brand-700 ring-1 ring-brand-200",
     icon: <CreditCard size={12} />,
   },
   Paid: {
@@ -73,7 +74,7 @@ export default function InvoiceTable({
 }: InvoiceTableProps) {
   if (isLoading) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="ui-surface">
         <div className="space-y-3 p-6">
           {[1, 2, 3, 4].map((i) => (
             <div
@@ -88,7 +89,7 @@ export default function InvoiceTable({
 
   if (invoices.length === 0) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+      <div className="ui-surface p-10 text-center">
         <p className="text-sm font-medium text-slate-500">No invoices found</p>
         <p className="mt-1 text-xs text-slate-400">
           Generate invoices from attendance or create them manually.
@@ -100,36 +101,36 @@ export default function InvoiceTable({
   return (
     <div className="space-y-3">
       {/* Desktop */}
-      <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:block">
+      <div className="ui-surface hidden overflow-hidden md:block">
         <div className="overflow-x-auto">
-          <table className="min-w-[900px] w-full">
-            <thead className="border-b border-slate-200 bg-slate-50">
+          <table className="ui-table min-w-[900px]">
+            <thead className="ui-table-head border-b border-slate-200">
               <tr>
-                <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Invoice
                 </th>
-                <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Student
                 </th>
-                <th className="px-5 py-4 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Total
                 </th>
-                <th className="px-5 py-4 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Paid
                 </th>
-                <th className="px-5 py-4 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Due
                 </th>
-                <th className="px-5 py-4 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Status
                 </th>
-                <th className="px-5 py-4 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {invoices.map((invoice) => {
+              {<PaginatedList items={invoices} table>{(invoice) => {
                 const style = STATUS_STYLES[invoice.status] ?? STATUS_STYLES.Unpaid;
 
                 return (
@@ -137,14 +138,14 @@ export default function InvoiceTable({
                     key={invoice.id}
                     className="transition hover:bg-slate-50/70"
                   >
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-3">
                       <p className="font-mono text-sm font-semibold text-slate-900">
                         {invoice.invoiceNumber}
                       </p>
                       <p className="text-xs text-slate-400">{formatBSDate(invoice.invoiceDate)}</p>
                     </td>
 
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-3">
                       <p className="text-sm font-medium text-slate-900">
                         {invoice.studentName}
                       </p>
@@ -153,19 +154,19 @@ export default function InvoiceTable({
                       </p>
                     </td>
 
-                    <td className="px-5 py-4 text-right">
+                    <td className="px-4 py-3 text-right">
                       <span className="font-semibold text-slate-900">
                         {formatCurrency(invoice.totalAmount)}
                       </span>
                     </td>
 
-                    <td className="px-5 py-4 text-right">
+                    <td className="px-4 py-3 text-right">
                       <span className="text-emerald-700 font-medium">
                         {formatCurrency(invoice.paidAmount)}
                       </span>
                     </td>
 
-                    <td className="px-5 py-4 text-right">
+                    <td className="px-4 py-3 text-right">
                       <span
                         className={
                           invoice.dueAmount > 0
@@ -177,7 +178,7 @@ export default function InvoiceTable({
                       </span>
                     </td>
 
-                    <td className="px-5 py-4 text-center">
+                    <td className="px-4 py-3 text-center">
                       <span
                         className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${style.className}`}
                       >
@@ -186,7 +187,7 @@ export default function InvoiceTable({
                       </span>
                     </td>
 
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-3">
                       <div className="flex justify-end gap-2">
                         {onView && (
                           <button
@@ -245,7 +246,7 @@ export default function InvoiceTable({
                     </td>
                   </tr>
                 );
-              })}
+              }}</PaginatedList>}
             </tbody>
           </table>
         </div>
@@ -253,13 +254,13 @@ export default function InvoiceTable({
 
       {/* Mobile */}
       <div className="space-y-3 md:hidden">
-        {invoices.map((invoice) => {
+        {<PaginatedList items={invoices}>{(invoice) => {
           const style = STATUS_STYLES[invoice.status] ?? STATUS_STYLES.Unpaid;
 
           return (
             <div
               key={invoice.id}
-              className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+              className="ui-surface p-4"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -349,7 +350,7 @@ export default function InvoiceTable({
               </div>
             </div>
           );
-        })}
+        }}</PaginatedList>}
       </div>
     </div>
   );

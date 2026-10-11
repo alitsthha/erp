@@ -1,15 +1,17 @@
 import { useFormContext } from "react-hook-form";
 import type { StudentFormData } from "../../schemas/student.schema";
+import { formatPersonName } from "@/utils/person-name";
 
 export default function ParentInformation() {
   const {
     register,
+    setValue,
     formState: { errors },
   } = useFormContext<StudentFormData>();
 
   return (
-    <div className="rounded-xl bg-white p-6 shadow">
-      <h2 className="mb-6 text-xl font-semibold">
+    <div className="sm:p-5 p-4 ui-surface">
+      <h2 className="ui-section-title mb-6">
         Parent Information
       </h2>
 
@@ -22,9 +24,11 @@ export default function ParentInformation() {
           </label>
 
           <input
-            {...register("parentName")}
+            {...register("parentName", {
+              onBlur: (event) => setValue("parentName", formatPersonName(event.target.value), { shouldValidate: true }),
+            })}
             placeholder="Enter parent name"
-            className="w-full rounded-lg border border-gray-300 p-3 focus:border-blue-500 focus:outline-none"
+            className="ui-field w-full p-3 focus:border-brand-600 focus:outline-none"
           />
 
           {errors.parentName && (
@@ -43,8 +47,11 @@ export default function ParentInformation() {
 
           <input
             {...register("parentPhone")}
+            type="tel"
+            inputMode="numeric"
+            maxLength={10}
             placeholder="98XXXXXXXX"
-            className="w-full rounded-lg border border-gray-300 p-3 focus:border-blue-500 focus:outline-none"
+            className="ui-field w-full p-3 focus:border-brand-600 focus:outline-none"
           />
 
           {errors.parentPhone && (
@@ -65,7 +72,7 @@ export default function ParentInformation() {
             type="email"
             {...register("parentEmail")}
             placeholder="parent@email.com"
-            className="w-full rounded-lg border border-gray-300 p-3 focus:border-blue-500 focus:outline-none"
+            className="ui-field w-full p-3 focus:border-brand-600 focus:outline-none"
           />
 
           {errors.parentEmail && (

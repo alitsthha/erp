@@ -53,7 +53,7 @@ export default function IncomeForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className="mb-1.5 block text-sm font-medium text-slate-700">
@@ -62,7 +62,7 @@ export default function IncomeForm({
           <select
             value={category}
             onChange={(event) => setCategory(event.target.value as IncomeFormData["category"])}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            className="ui-field w-full px-3 text-slate-900 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
             required
           >
             {CATEGORIES.map((item) => (
@@ -80,7 +80,7 @@ export default function IncomeForm({
         <input
           value={description}
           onChange={(event) => setDescription(event.target.value)}
-          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          className="ui-field w-full px-3 text-slate-900 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
           placeholder={isAdvance ? "Advance payment for selected student" : "Student fee collection or camp income"}
           required={!isAdvance}
         />
@@ -97,7 +97,7 @@ export default function IncomeForm({
             step="0.01"
             value={amount}
             onChange={(event) => setAmount(Number(event.target.value))}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            className="ui-field w-full px-3 text-slate-900 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
             required
           />
         </div>
@@ -109,7 +109,7 @@ export default function IncomeForm({
           <input
             value={source}
             onChange={(event) => setSource(event.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            className="ui-field w-full px-3 text-slate-900 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
             placeholder="Student, school, event, donor"
           />
         </div>
@@ -123,7 +123,7 @@ export default function IncomeForm({
           <select
             value={paymentMethod}
             onChange={(event) => setPaymentMethod(event.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            className="ui-field w-full px-3 text-slate-900 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
           >
             <option value="Cash">Cash</option>
             <option value="Bank">Bank</option>
@@ -140,7 +140,7 @@ export default function IncomeForm({
           <input
             value={referenceNumber}
             onChange={(event) => setReferenceNumber(event.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            className="ui-field w-full px-3 text-slate-900 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
             placeholder="Receipt / transaction ID"
           />
         </div>
@@ -154,7 +154,7 @@ export default function IncomeForm({
           value={notes}
           onChange={(event) => setNotes(event.target.value)}
           rows={3}
-          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          className="ui-field w-full px-3 text-slate-900 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
           placeholder="Additional notes..."
         />
       </div>
@@ -164,7 +164,7 @@ export default function IncomeForm({
           type="button"
           onClick={onCancel}
           disabled={isSubmitting}
-          className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          className="ui-button border border-slate-200 bg-white py-2.5 text-slate-700 hover:bg-slate-50 disabled:opacity-50"
         >
           Cancel
         </button>
@@ -172,7 +172,7 @@ export default function IncomeForm({
         <button
           type="submit"
           disabled={isSubmitting}
-          className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+          className="ui-button inline-flex items-center gap-2 bg-emerald-600 py-2.5 text-white hover:bg-emerald-700 disabled:opacity-50"
         >
           {isSubmitting && <Loader2 size={15} className="animate-spin" />}
           {isSubmitting ? "Saving..." : initialData ? "Update Income" : "Add Income"}

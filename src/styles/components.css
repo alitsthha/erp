@@ -1,0 +1,97 @@
+/* Shared page recipes. Keep data-driven activity and status colors in components. */
+@layer components {
+  .ui-page {
+    width: 100%;
+    min-width: 0;
+    margin-inline: auto;
+  }
+
+  .ui-page-title {
+    font-size: 1.5rem;
+    line-height: 2rem;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    color: var(--foreground);
+    overflow-wrap: anywhere;
+  }
+
+  .ui-section-title {
+    font-size: 1rem;
+    line-height: 1.5rem;
+    font-weight: 600;
+    color: var(--foreground);
+  }
+
+  .ui-surface {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    background-color: var(--card);
+    box-shadow: none;
+  }
+
+  .ui-field {
+    width: 100%;
+    min-width: 0;
+    height: 2.75rem;
+    border: 1px solid var(--input);
+    border-radius: var(--radius-lg);
+    background-color: var(--card);
+    padding: 0.625rem 0.75rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--foreground);
+    outline: none;
+  }
+
+  .ui-field:focus {
+    border-color: var(--color-brand-600);
+    box-shadow: 0 0 0 3px var(--color-brand-100);
+  }
+
+  .ui-field:disabled {
+    cursor: not-allowed;
+    background-color: var(--muted);
+    color: var(--muted-foreground);
+  }
+
+  textarea.ui-field {
+    height: auto;
+    min-height: 6rem;
+  }
+
+  .ui-button {
+    min-height: 2.75rem;
+    border-radius: var(--radius-lg);
+    padding-inline: 1rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    transition: background-color 150ms, border-color 150ms, color 150ms;
+  }
+
+  .ui-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .ui-table {
+    width: 100%;
+    text-align: left;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+
+  .ui-table-head {
+    background-color: var(--muted);
+    color: var(--muted-foreground);
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.035em;
+    text-transform: uppercase;
+  }
+
+  .ui-table-head th {
+    font-weight: inherit;
+  }
+}

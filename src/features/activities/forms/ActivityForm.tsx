@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import {
@@ -23,6 +23,9 @@ import {
   updateActivity,
 } from "../services/activity.service";
 
+import { ensureActivityColors, subscribeActivityColors, ActivityColorConflict } from "../services/activity-color.service";
+import { nextActivityColor, normalizeActivityColor, type ActivityColors } from "../utils/activity-color";
+
 import { formatCurrency } from "@/utils/currency";
 import { getStaff } from "@/features/staff/services/staff.service";
 import type { Staff } from "@/features/staff/types/staff.types";
@@ -33,6 +36,7 @@ type Props = {
 
 const defaultValues: ActivityFormData = {
   activityCode: "",
+  color: "",
   activityName: "",
   category: "",
   coachStaffId: "",
@@ -47,19 +51,23 @@ const defaultValues: ActivityFormData = {
 export default function ActivityForm({ activityId }: Props) {
   const navigate = useNavigate();
   const [staff, setStaff] = useState<Staff[]>([]);
+  const [colors, setColors] = useState<ActivityColors>({});
+  const [loadingColors, setLoadingColors] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   const {
     register,
     handleSubmit,
     reset,
     setValue,
-    watch,
+    setError,
+    control,
     formState: {
       errors,
       isSubmitting,
     },
   } = useForm<ActivityFormData>({
-    resolver: zodResolver(activitySchema) as any,
+    resolver: zodResolver(activitySchema),
 
     defaultValues,
   });
@@ -68,13 +76,16 @@ export default function ActivityForm({ activityId }: Props) {
     void getStaff().then((items) => setStaff(items.filter((item) => item.status !== "Inactive")));
   }, []);
 
-  const activityName = watch("activityName");
-  const category = watch("category");
-  const coachName = watch("coachName");
-  const feePerSession = watch("feePerSession");
-  const countedMonthly = watch("countedMonthly");
-  const feePerMonth = watch("feePerMonth");
-  const status = watch("status");
+  const color = useWatch({ control, name: "color" });
+  const colorInUse = Object.entries(colors).some(([id, item]) => id !== activityId && item.color === normalizeActivityColor(color));
+  const autoSelectColor = () => setValue("color", nextActivityColor(Object.entries(colors).filter(([id]) => id !== activityId).map(([, item]) => item.color)), { shouldValidate: true, shouldDirty: true });
+  const activityName = useWatch({ control, name: "activityName" });
+  const category = useWatch({ control, name: "category" });
+  const coachName = useWatch({ control, name: "coachName" });
+  const feePerSession = useWatch({ control, name: "feePerSession" });
+  const countedMonthly = useWatch({ control, name: "countedMonthly" });
+  const feePerMonth = useWatch({ control, name: "feePerMonth" });
+  const status = useWatch({ control, name: "status" });
 
   /*
   ============================================================
@@ -83,14 +94,20 @@ export default function ActivityForm({ activityId }: Props) {
   */
 
   useEffect(() => {
-    if (!activityId) {
-      reset(defaultValues);
-      return;
-    }
-
+    let cancelled = false;
+    let unsubscribe: (() => void) | undefined;
     const loadActivity = async () => {
       try {
+        const assignedColors = await ensureActivityColors();
+        if (cancelled) return;
+        setColors(assignedColors);
+        unsubscribe = subscribeActivityColors(setColors, () => setLoadError("Could not check activity colors. Reload the page to retry."));
+        if (!activityId) {
+          reset({ ...defaultValues, color: nextActivityColor(Object.values(assignedColors).map((item) => item.color)) });
+          return;
+        }
         const activity = await getActivityById(activityId);
+        if (cancelled) return;
 
         if (!activity) {
           alert("Activity not found.");
@@ -106,6 +123,7 @@ export default function ActivityForm({ activityId }: Props) {
 
         reset({
           activityCode: activity.activityCode ?? "",
+          color: activity.color || assignedColors[activityId]?.color || "",
           activityName: activity.activityName ?? "",
           category: activity.category ?? "",
           coachStaffId: activity.coachStaffId ?? "",
@@ -127,13 +145,14 @@ export default function ActivityForm({ activityId }: Props) {
       } catch (error) {
         console.error("Failed to load activity:", error);
 
-        alert("Failed to load activity.");
-
-        navigate("/activities");
+        if (!cancelled) setLoadError("Could not load the activity and its colors. Reload the page to retry.");
+      } finally {
+        if (!cancelled) setLoadingColors(false);
       }
     };
 
     void loadActivity();
+    return () => { cancelled = true; unsubscribe?.(); };
   }, [activityId, navigate, reset]);
 
   /*
@@ -143,6 +162,8 @@ export default function ActivityForm({ activityId }: Props) {
   */
 
   const onSubmit = async (data: ActivityFormData) => {
+    if (loadingColors || loadError) return;
+    if (colorInUse) { setError("color", { message: "This color is already used. Choose another or use Auto-select." }); return; }
     try {
       if (activityId) {
         await updateActivity(activityId, data);
@@ -158,9 +179,8 @@ export default function ActivityForm({ activityId }: Props) {
     } catch (error) {
       console.error("Failed to save activity:", error);
 
-      alert(
-          "Failed to save activity. Please try again."
-      );
+      if (error instanceof ActivityColorConflict) setError("color", { message: error.message });
+      else alert(error instanceof Error ? error.message : "Failed to save activity. Please try again.");
     }
   };
 
@@ -171,17 +191,17 @@ export default function ActivityForm({ activityId }: Props) {
   */
 
   const inputClass = (hasError = false) =>
-      `h-11 w-full rounded-xl border bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 ${
+      `ui-field w-full bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 ${
           hasError
               ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-50"
-              : "border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-50"
+              : "border-slate-300 focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
       }`;
 
   const textareaClass = (hasError = false) =>
-      `w-full resize-none rounded-xl border bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 ${
+      `w-full resize-none rounded-lg border bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 ${
           hasError
               ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-50"
-              : "border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-50"
+              : "border-slate-300 focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
       }`;
 
   const numericFeePerSession = useMemo(() => {
@@ -202,25 +222,25 @@ export default function ActivityForm({ activityId }: Props) {
   return (
       <form
           onSubmit={handleSubmit(onSubmit)}
-          className="mx-auto w-full max-w-5xl space-y-6"
+          className="ui-page mx-auto w-full space-y-6"
       >
         {/* =====================================================
           PAGE HEADER
       ====================================================== */}
 
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <section className="ui-surface overflow-hidden">
           <div className="flex flex-col gap-5 p-5 sm:p-6 md:flex-row md:items-center md:justify-between">
             <div className="flex min-w-0 items-center gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
                 <ActivityIcon size={24} />
               </div>
 
               <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">
+                <p className="text-xs font-semibold uppercase tracking-wider text-brand-600">
                   Academy Management
                 </p>
 
-                <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                <h1 className="ui-page-title mt-1">
                   {activityId
                       ? "Edit Activity"
                       : "Add Activity"}
@@ -244,19 +264,22 @@ export default function ActivityForm({ activityId }: Props) {
           </div>
         </section>
 
+        {loadError && <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-700">{loadError}</p>}
+        {loadingColors && <p role="status" className="text-sm text-slate-500">Assigning available activity colors…</p>}
+
         {/* =====================================================
           ACTIVITY INFORMATION
       ====================================================== */}
 
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <section className="ui-surface overflow-hidden">
           <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
                 <Layers3 size={18} />
               </div>
 
               <div>
-                <h2 className="text-base font-semibold text-slate-900">
+                <h2 className="ui-section-title">
                   Activity Information
                 </h2>
 
@@ -324,6 +347,17 @@ export default function ActivityForm({ activityId }: Props) {
               )}
             </div>
 
+            <div className="md:col-span-2">
+              <label htmlFor="activity-color-hex" className="mb-2 block text-sm font-medium text-slate-700">Activity color <span className="text-red-500">*</span></label>
+              <div className="flex flex-wrap items-center gap-3">
+                <input type="color" aria-label="Choose activity color" value={normalizeActivityColor(color) || "#2563EB"} disabled={loadingColors || Boolean(loadError)} onChange={(event) => setValue("color", event.target.value.toUpperCase(), { shouldValidate: true, shouldDirty: true })} className="h-11 w-14 cursor-pointer rounded-lg border border-slate-300 bg-white p-1" />
+                <div className="w-40"><input id="activity-color-hex" required maxLength={7} placeholder="#2563EB" spellCheck={false} aria-describedby="activity-color-help" aria-invalid={Boolean(errors.color) || colorInUse} {...register("color")} className={inputClass(Boolean(errors.color) || colorInUse)} /></div>
+                <button type="button" disabled={loadingColors || Boolean(loadError)} onClick={autoSelectColor} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium disabled:opacity-50">Auto-select</button>
+              </div>
+              <p id="activity-color-help" className="mt-2 text-xs text-slate-500">An unused color is selected automatically. Every activity has its own color on the calendar.</p>
+              {(errors.color || colorInUse) && <p role="alert" className="mt-1 text-xs font-medium text-red-600">{colorInUse ? "This color is already used by another activity." : errors.color?.message}</p>}
+            </div>
+
             {/* Coach */}
 
             <div>
@@ -346,7 +380,7 @@ export default function ActivityForm({ activityId }: Props) {
                         const selected = staff.find((item) => item.id === event.target.value);
                         setValue("coachName", selected?.fullName ?? "");
                       } })}
-                    className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-50"
+                    className="ui-field w-full pl-10 pr-4 text-slate-900 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
                 >
                   <option value="">Select instructor</option>
                   {staff.map((member) => <option key={member.id} value={member.id}>{member.fullName} ({member.staffCode})</option>)}
@@ -394,7 +428,7 @@ export default function ActivityForm({ activityId }: Props) {
           PRICING (SINGLE ACTIVITY FEE PER SESSION)
       ====================================================== */}
 
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <section className="ui-surface overflow-hidden">
           <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
@@ -402,7 +436,7 @@ export default function ActivityForm({ activityId }: Props) {
               </div>
 
               <div>
-                <h2 className="text-base font-semibold text-slate-900">
+                <h2 className="ui-section-title">
                   Activity Pricing
                 </h2>
 
@@ -424,7 +458,7 @@ export default function ActivityForm({ activityId }: Props) {
                     id="countedMonthly"
                     type="checkbox"
                     {...register("countedMonthly")}
-                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
                 />
                 <label
                     htmlFor="countedMonthly"
@@ -460,7 +494,7 @@ export default function ActivityForm({ activityId }: Props) {
                         step="0.01"
                         placeholder="0.00"
                         {...register("feePerSession")}
-                        className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-12 pr-4 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-50"
+                        className="ui-field w-full pl-12 pr-4 font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
                     />
                 ) : (
                     <input
@@ -470,7 +504,7 @@ export default function ActivityForm({ activityId }: Props) {
                         step="0.01"
                         placeholder="0.00"
                         {...register("feePerMonth")}
-                        className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-12 pr-4 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-50"
+                        className="ui-field w-full pl-12 pr-4 font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
                     />
                 )}
               </div>
@@ -502,9 +536,9 @@ export default function ActivityForm({ activityId }: Props) {
         <section className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
           {/* Activity */}
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="ui-surface p-5">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
                 <ActivityIcon size={17} />
               </div>
 
@@ -526,9 +560,9 @@ export default function ActivityForm({ activityId }: Props) {
 
           {/* Instructor */}
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="ui-surface p-5">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-50 text-violet-600">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
                 <UserRound size={17} />
               </div>
 
@@ -550,14 +584,14 @@ export default function ActivityForm({ activityId }: Props) {
 
           {/* Fee */}
 
-          <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-5 shadow-sm">
+          <div className="rounded-xl border border-brand-100 bg-brand-50/60 p-5 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-blue-600 shadow-sm">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-brand-600 shadow-sm">
                 <BadgeDollarSign size={17} />
               </div>
 
               <div className="min-w-0">
-                <p className="text-xs font-medium uppercase tracking-wide text-blue-600">
+                <p className="text-xs font-medium uppercase tracking-wide text-brand-600">
                   {countedMonthly ? "Fee per Month" : "Fee per Session"}
                 </p>
 
@@ -573,7 +607,7 @@ export default function ActivityForm({ activityId }: Props) {
           STATUS
       ====================================================== */}
 
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <section className="ui-surface overflow-hidden">
           <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
             <div className="flex items-center gap-3">
               <div
@@ -587,7 +621,7 @@ export default function ActivityForm({ activityId }: Props) {
               </div>
 
               <div>
-                <h2 className="text-base font-semibold text-slate-900">
+                <h2 className="ui-section-title">
                   Activity Status
                 </h2>
 
@@ -610,7 +644,7 @@ export default function ActivityForm({ activityId }: Props) {
               <select
                   id="status"
                   {...register("status")}
-                  className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-50"
+                  className="ui-field w-full px-4 font-medium text-slate-900 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
               >
                 <option value="Active">
                   Active
@@ -633,20 +667,20 @@ export default function ActivityForm({ activityId }: Props) {
       ====================================================== */}
 
         <div className="sticky bottom-0 z-20 -mx-3 border-t border-slate-200 bg-slate-50/95 px-3 py-4 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-          <div className="mx-auto flex w-full max-w-5xl flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <div className="ui-page mx-auto flex w-full flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <button
                 type="button"
                 onClick={() => navigate("/activities")}
                 disabled={isSubmitting}
-                className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-6 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                className="ui-button inline-flex w-full items-center justify-center border border-slate-300 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
             >
               Cancel
             </button>
 
             <button
                 type="submit"
-                disabled={isSubmitting}
-                className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-blue-600 px-7 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                disabled={isSubmitting || loadingColors || Boolean(loadError) || colorInUse}
+                className="ui-button inline-flex w-full items-center justify-center bg-brand-600 text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             >
               {isSubmitting
                   ? "Saving..."

@@ -50,23 +50,23 @@ export default function StaffForm({
   return (
     <form
       onSubmit={handleSubmit(onSave)}
-      className="mx-auto w-full max-w-5xl space-y-5"
+      className="ui-page mx-auto w-full space-y-6"
     >
       {/* ===== PAGE HEADER ===== */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 px-5 py-6 sm:px-7">
+      <div className="ui-surface overflow-hidden">
+        <div className="border-b border-slate-100 px-4 py-4 sm:px-5">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white shadow-sm">
                 <Briefcase size={22} />
               </div>
 
               <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">
+                <p className="text-xs font-semibold uppercase tracking-wider text-brand-600">
                   Staff Management
                 </p>
 
-                <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                <h1 className="ui-page-title mt-1">
                   {initialData?.fullName ? "Edit Staff" : "Add Staff"}
                 </h1>
 
@@ -87,15 +87,15 @@ export default function StaffForm({
       </div>
 
       {/* ===== PERSONAL INFORMATION SECTION ===== */}
-      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 px-5 py-5 sm:px-7">
+      <section className="ui-surface">
+        <div className="border-b border-slate-100 px-4 py-4 sm:px-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
               <User size={18} />
             </div>
 
             <div>
-              <h2 className="text-base font-semibold text-slate-900">
+              <h2 className="ui-section-title">
                 Personal Information
               </h2>
 
@@ -115,15 +115,15 @@ export default function StaffForm({
       </section>
 
       {/* ===== EMPLOYMENT INFORMATION SECTION ===== */}
-      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 px-5 py-5 sm:px-7">
+      <section className="ui-surface">
+        <div className="border-b border-slate-100 px-4 py-4 sm:px-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
               <Briefcase size={18} />
             </div>
 
             <div>
-              <h2 className="text-base font-semibold text-slate-900">
+              <h2 className="ui-section-title">
                 Employment Information
               </h2>
 
@@ -150,7 +150,7 @@ export default function StaffForm({
           <button
             type="button"
             onClick={onCancel}
-            className="flex flex-1 items-center justify-center rounded-lg border border-slate-300 px-6 py-3 font-medium text-slate-700 transition hover:bg-slate-50 sm:flex-none"
+            className="ui-button flex flex-1 items-center justify-center border border-slate-300 py-3 text-slate-700 transition hover:bg-slate-50 sm:flex-none"
           >
             Cancel
           </button>
@@ -158,7 +158,7 @@ export default function StaffForm({
         <button
           type="submit"
           disabled={isSubmitting}
-          className="flex flex-1 items-center justify-center rounded-lg bg-blue-600 px-6 py-3 font-medium text-white transition hover:bg-blue-700 disabled:opacity-50 sm:flex-none"
+          className="ui-button flex flex-1 items-center justify-center bg-brand-600 py-3 text-white transition hover:bg-brand-700 disabled:opacity-50 sm:flex-none"
         >
           {isSubmitting ? "Saving..." : submitLabel}
         </button>

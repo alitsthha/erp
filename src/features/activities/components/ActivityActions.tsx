@@ -20,7 +20,7 @@ export default function ActivityActions({
       <button
         type="button"
         onClick={onView}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-blue-600"
+        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-brand-600"
         aria-label="View activity"
         title="View"
       >

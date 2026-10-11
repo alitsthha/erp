@@ -61,7 +61,7 @@ export default function AddSalaryConfigPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+    <div className="ui-page mx-auto w-full space-y-6">
       <PageHeader
         title="Add Salary Configuration"
         description="Assign a salary structure to a specific staff member."
@@ -69,16 +69,16 @@ export default function AddSalaryConfigPage() {
 
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"
+        className="ui-surface space-y-5 p-5 sm:p-7"
       >
         {/* Basic Information */}
         <div className="border-b border-slate-200 pb-5">
           <div className="mb-5 flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
               <Briefcase size={18} />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-slate-900">
+              <h2 className="ui-section-title">
                 Staff Salary Information
               </h2>
               <p className="mt-0.5 text-xs text-slate-500">
@@ -102,7 +102,7 @@ export default function AddSalaryConfigPage() {
                 className={`w-full rounded-lg border px-4 py-2.5 text-sm outline-none transition ${
                   errors.staffId
                     ? "border-red-300 focus:ring-red-50"
-                    : "border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-50"
+                    : "border-slate-300 focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
                 }`}
                 required
               >
@@ -127,7 +127,7 @@ export default function AddSalaryConfigPage() {
               <select
                 id="salaryType"
                 {...register("salaryType")}
-                className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-50"
+                className="ui-field w-full px-4 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
               >
                 <option value="Monthly">Monthly</option>
                 <option value="Hourly">Hourly</option>
@@ -146,7 +146,7 @@ export default function AddSalaryConfigPage() {
               <select
                 id="status"
                 {...register("status")}
-                className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-50"
+                className="ui-field w-full px-4 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
               >
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
@@ -162,7 +162,7 @@ export default function AddSalaryConfigPage() {
               <DollarSign size={18} />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-slate-900">
+              <h2 className="ui-section-title">
                 Salary Components
               </h2>
               <p className="mt-0.5 text-xs text-slate-500">
@@ -189,7 +189,7 @@ export default function AddSalaryConfigPage() {
                 className={`w-full rounded-lg border px-4 py-2.5 text-sm outline-none transition ${
                   errors.basicSalary
                     ? "border-red-300 focus:ring-red-50"
-                    : "border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-50"
+                    : "border-slate-300 focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
                 }`}
               />
               {errors.basicSalary && (
@@ -215,7 +215,7 @@ export default function AddSalaryConfigPage() {
                 step="0.01"
                 placeholder="0"
                 {...register("allowance")}
-                className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-50"
+                className="ui-field w-full px-4 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
               />
             </div>
 
@@ -233,7 +233,7 @@ export default function AddSalaryConfigPage() {
                 step="0.01"
                 placeholder="0"
                 {...register("overtimeRate")}
-                className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-50"
+                className="ui-field w-full px-4 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
               />
             </div>
 
@@ -251,7 +251,7 @@ export default function AddSalaryConfigPage() {
                 step="0.01"
                 placeholder="0"
                 {...register("bonus")}
-                className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-50"
+                className="ui-field w-full px-4 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
               />
             </div>
 
@@ -269,7 +269,7 @@ export default function AddSalaryConfigPage() {
                 step="0.01"
                 placeholder="0"
                 {...register("deduction")}
-                className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-50"
+                className="ui-field w-full px-4 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
               />
             </div>
 
@@ -287,7 +287,7 @@ export default function AddSalaryConfigPage() {
                 step="0.01"
                 placeholder="0"
                 {...register("tax")}
-                className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-50"
+                className="ui-field w-full px-4 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
               />
             </div>
           </div>
@@ -299,7 +299,7 @@ export default function AddSalaryConfigPage() {
             type="button"
             onClick={() => navigate("/accounting/salary-config")}
             disabled={isSubmitting}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-6 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 sm:w-auto"
+            className="ui-button inline-flex items-center justify-center gap-2 border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 sm:w-auto"
           >
             <X size={16} />
             Cancel
@@ -307,7 +307,7 @@ export default function AddSalaryConfigPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-50 sm:w-auto"
+            className="ui-button inline-flex items-center justify-center gap-2 bg-brand-600 text-white transition hover:bg-brand-700 disabled:opacity-50 sm:w-auto"
           >
             <Save size={16} />
             {isSubmitting ? "Saving..." : "Save Configuration"}

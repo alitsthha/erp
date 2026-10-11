@@ -16,6 +16,7 @@ import {
   type StudentFormData,
 } from "../schemas/student.schema";
 import NepaliDatePickerInput from "@/components/forms/NepaliDatePickerInput";
+import { formatPersonName } from "@/utils/person-name";
 
 type StudentFormProps = {
   initialData?: Partial<StudentFormData>;
@@ -35,12 +36,14 @@ export default function StudentForm({
     control,
     handleSubmit,
     reset,
+    setValue,
     formState: {
       errors,
       isSubmitting,
     },
   } = useForm<StudentFormData>({
     resolver: zodResolver(studentSchema),
+    mode: "onBlur",
     defaultValues: {
       fullName: "",
       guardianName: "",
@@ -85,25 +88,25 @@ export default function StudentForm({
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="mx-auto w-full max-w-5xl space-y-5"
+      className="ui-page mx-auto w-full space-y-6"
     >
       {/* =====================================================
           PAGE HEADER
       ====================================================== */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 px-5 py-6 sm:px-7">
+      <div className="ui-surface overflow-hidden">
+        <div className="border-b border-slate-100 px-4 py-4 sm:px-5">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white shadow-sm">
                 <User size={22} />
               </div>
 
               <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">
+                <p className="text-xs font-semibold uppercase tracking-wider text-brand-600">
                   Student Management
                 </p>
 
-                <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                <h1 className="ui-page-title mt-1">
                   Add Student
                 </h1>
 
@@ -125,15 +128,15 @@ export default function StudentForm({
       {/* =====================================================
           BASIC INFORMATION
       ====================================================== */}
-      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 bg-gradient-to-r from-blue-50 to-blue-25 px-5 py-5 sm:px-7">
+      <section className="ui-surface">
+        <div className="border-b border-slate-100 bg-slate-50 px-4 py-4 sm:px-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-100 text-brand-600">
               <User size={18} />
             </div>
 
             <div>
-              <h2 className="text-base font-semibold text-slate-900">
+              <h2 className="ui-section-title">
                 Basic Information
               </h2>
 
@@ -165,11 +168,13 @@ export default function StudentForm({
                 type="text"
                 placeholder="Enter student's full name"
                 autoComplete="name"
-                {...register("fullName")}
-                className={`h-11 w-full rounded-xl border bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
+                {...register("fullName", {
+                  onBlur: (event) => setValue("fullName", formatPersonName(event.target.value), { shouldValidate: true }),
+                })}
+                className={`ui-field w-full bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
                   errors.fullName
                     ? "border-red-300 focus:border-red-400 focus:ring-red-50"
-                    : "border-slate-300 focus:border-blue-500 focus:ring-blue-50"
+                    : "border-slate-300 focus:border-brand-600 focus:ring-brand-50"
                 }`}
               />
             </div>
@@ -199,7 +204,7 @@ export default function StudentForm({
               <select
                 id="status"
                 {...register("status")}
-                className="h-11 w-full appearance-none rounded-xl border border-slate-300 bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-50"
+                className="ui-field w-full appearance-none pl-10 pr-4 text-slate-900 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
               >
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
@@ -248,15 +253,15 @@ export default function StudentForm({
       {/* =====================================================
           GUARDIAN INFORMATION
       ====================================================== */}
-      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 bg-gradient-to-r from-violet-50 to-violet-25 px-5 py-5 sm:px-7">
+      <section className="ui-surface">
+        <div className="border-b border-slate-100 bg-slate-50 px-4 py-4 sm:px-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-600">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-100 text-brand-600">
               <Users size={18} />
             </div>
 
             <div>
-              <h2 className="text-base font-semibold text-slate-900">
+              <h2 className="ui-section-title">
                 Guardian Information
               </h2>
 
@@ -288,11 +293,13 @@ export default function StudentForm({
                 type="text"
                 placeholder="Enter guardian name"
                 autoComplete="name"
-                {...register("guardianName")}
-                className={`h-11 w-full rounded-xl border bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
+                {...register("guardianName", {
+                  onBlur: (event) => setValue("guardianName", formatPersonName(event.target.value), { shouldValidate: true }),
+                })}
+                className={`ui-field w-full bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
                   errors.guardianName
                     ? "border-red-300 focus:border-red-400 focus:ring-red-50"
-                    : "border-slate-300 focus:border-blue-500 focus:ring-blue-50"
+                    : "border-slate-300 focus:border-brand-600 focus:ring-brand-50"
                 }`}
               />
             </div>
@@ -322,18 +329,24 @@ export default function StudentForm({
               <input
                 id="guardianPhone"
                 type="tel"
-                inputMode="tel"
+                inputMode="numeric"
+                maxLength={10}
+                aria-describedby="guardianPhone-help"
+                aria-invalid={Boolean(errors.guardianPhone)}
                 placeholder="98XXXXXXXX"
                 autoComplete="tel"
                 {...register("guardianPhone")}
-                className={`h-11 w-full rounded-xl border bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
+                className={`ui-field w-full bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
                   errors.guardianPhone
                     ? "border-red-300 focus:border-red-400 focus:ring-red-50"
-                    : "border-slate-300 focus:border-blue-500 focus:ring-blue-50"
+                    : "border-slate-300 focus:border-brand-600 focus:ring-brand-50"
                 }`}
               />
             </div>
 
+            <p id="guardianPhone-help" className="mt-1.5 text-xs text-slate-500">
+              Enter 10 digits starting with 98, for example 9812345678.
+            </p>
             {errors.guardianPhone && (
               <p className="mt-1.5 text-xs font-medium text-red-500">
                 {errors.guardianPhone.message}
@@ -342,6 +355,24 @@ export default function StudentForm({
           </div>
 
           {/* Guardian Email */}
+          {initialData?.parentPhone && (
+            <div>
+              <label htmlFor="parentPhone" className="mb-2 block text-sm font-medium text-slate-700">
+                Additional Parent Contact (Optional)
+              </label>
+              <input
+                id="parentPhone"
+                type="tel"
+                inputMode="numeric"
+                maxLength={10}
+                placeholder="98XXXXXXXX"
+                {...register("parentPhone")}
+                aria-invalid={Boolean(errors.parentPhone)}
+                className="ui-field w-full px-4 outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
+              />
+              {errors.parentPhone && <p className="mt-1.5 text-xs text-red-500">{errors.parentPhone.message}</p>}
+            </div>
+          )}
           <div className="md:col-span-2">
             <label
               htmlFor="guardianEmail"
@@ -365,10 +396,10 @@ export default function StudentForm({
                 placeholder="guardian@example.com"
                 autoComplete="email"
                 {...register("guardianEmail")}
-                className={`h-11 w-full rounded-xl border bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
+                className={`ui-field w-full bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
                   errors.guardianEmail
                     ? "border-red-300 focus:border-red-400 focus:ring-red-50"
-                    : "border-slate-300 focus:border-blue-500 focus:ring-blue-50"
+                    : "border-slate-300 focus:border-brand-600 focus:ring-brand-50"
                 }`}
               />
             </div>
@@ -385,15 +416,15 @@ export default function StudentForm({
       {/* =====================================================
           ADDRESS
       ====================================================== */}
-      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 bg-gradient-to-r from-amber-50 to-amber-25 px-5 py-5 sm:px-7">
+      <section className="ui-surface">
+        <div className="border-b border-slate-100 bg-slate-50 px-4 py-4 sm:px-5">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-600">
               <MapPin size={18} />
             </div>
 
             <div>
-              <h2 className="text-base font-semibold text-slate-900">
+              <h2 className="ui-section-title">
                 Address
               </h2>
 
@@ -424,10 +455,10 @@ export default function StudentForm({
               placeholder="Enter current address"
               autoComplete="street-address"
               {...register("address")}
-              className={`w-full resize-none rounded-xl border bg-white py-3 pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
+              className={`w-full resize-none rounded-lg border bg-white py-3 pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
                 errors.address
                   ? "border-red-300 focus:border-red-400 focus:ring-red-50"
-                  : "border-slate-300 focus:border-blue-500 focus:ring-blue-50"
+                  : "border-slate-300 focus:border-brand-600 focus:ring-brand-50"
               }`}
             />
           </div>
@@ -443,15 +474,15 @@ export default function StudentForm({
       {/* =====================================================
           NOTE
       ====================================================== */}
-      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-slate-25 px-5 py-5 sm:px-7">
+      <section className="ui-surface">
+        <div className="border-b border-slate-100 bg-slate-50 px-4 py-4 sm:px-5">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-200 text-slate-700">
               <FileText size={18} />
             </div>
 
             <div>
-              <h2 className="text-base font-semibold text-slate-900">
+              <h2 className="ui-section-title">
                 Additional Notes
               </h2>
 
@@ -475,10 +506,10 @@ export default function StudentForm({
             rows={4}
             placeholder="Write any useful information about this student..."
             {...register("note")}
-            className={`w-full resize-none rounded-xl border bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
+            className={`w-full resize-none rounded-lg border bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
               errors.note
                 ? "border-red-300 focus:border-red-400 focus:ring-red-50"
-                : "border-slate-300 focus:border-blue-500 focus:ring-blue-50"
+                : "border-slate-300 focus:border-brand-600 focus:ring-brand-50"
             }`}
           />
 
@@ -498,7 +529,7 @@ export default function StudentForm({
           type="button"
           onClick={onCancel}
           disabled={isSubmitting}
-          className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-6 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:border-slate-400 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+          className="ui-button inline-flex w-full items-center justify-center border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-50 hover:border-slate-400 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
         >
           Cancel
         </button>
@@ -506,7 +537,7 @@ export default function StudentForm({
         <button
           type="submit"
           disabled={isSubmitting}
-          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 px-7 text-sm font-medium text-white shadow-sm transition hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-7 text-sm font-medium text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         >
           {isSubmitting ? "Saving..." : submitLabel}
         </button>

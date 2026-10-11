@@ -1,3 +1,4 @@
+import PaginatedList from "@/components/common/PaginatedList";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -352,8 +353,7 @@ export default function DashboardPage() {
         const dateB = getDateFromTimestamp(b.createdAt)?.getTime() ?? 0;
 
         return dateB - dateA;
-      })
-      .slice(0, 5);
+      });
   }, [students]);
 
   /*
@@ -369,8 +369,7 @@ export default function DashboardPage() {
         const dateB = getDateFromTimestamp(b.createdAt)?.getTime() ?? 0;
 
         return dateB - dateA;
-      })
-      .slice(0, 5);
+      });
   }, [enrollments]);
 
   /*
@@ -381,22 +380,22 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-7xl">
+      <div className="ui-page mx-auto">
         <div className="animate-pulse space-y-6">
-          <div className="h-32 rounded-3xl bg-slate-200" />
+          <div className="h-32 rounded-2xl bg-slate-200" />
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {Array.from({ length: 4 }).map((_, index) => (
               <div
                 key={index}
-                className="h-32 rounded-2xl bg-slate-200"
+                className="h-32 rounded-xl bg-slate-200"
               />
             ))}
           </div>
 
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-            <div className="h-96 rounded-2xl bg-slate-200 xl:col-span-2" />
-            <div className="h-96 rounded-2xl bg-slate-200" />
+            <div className="h-96 rounded-xl bg-slate-200 xl:col-span-2" />
+            <div className="h-96 rounded-xl bg-slate-200" />
           </div>
         </div>
       </div>
@@ -411,13 +410,13 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <div className="mx-auto max-w-7xl">
-        <div className="rounded-2xl border border-red-200 bg-white p-8 text-center shadow-sm">
+      <div className="ui-page mx-auto">
+        <div className="ui-surface border-red-200 p-8 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
             <XCircle className="h-6 w-6 text-red-600" />
           </div>
 
-          <h2 className="mt-4 text-lg font-semibold text-slate-900">
+          <h2 className="ui-section-title mt-4">
             Dashboard could not load
           </h2>
 
@@ -428,7 +427,7 @@ export default function DashboardPage() {
           <button
             type="button"
             onClick={() => void loadDashboardData()}
-            className="mt-5 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
+            className="ui-button mt-5 bg-brand-600 py-2.5 text-white transition hover:bg-brand-700"
           >
             Try Again
           </button>
@@ -438,17 +437,17 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
+    <div className="ui-page mx-auto space-y-6">
 
         {/* =====================================================
             HEADER
         ===================================================== */}
 
-        <section className="rounded-3xl border border-slate-200 bg-white px-5 py-6 shadow-sm sm:px-7">
+        <section className="rounded-2xl border border-slate-200 bg-white px-5 py-6 shadow-sm sm:px-7">
           <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
             <div>
               <div className="mb-2 flex items-center gap-2">
-                <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-blue-700">
+                <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-brand-700">
                   Academy Overview
                 </span>
 
@@ -457,7 +456,7 @@ export default function DashboardPage() {
                 </span>
               </div>
 
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+              <h1 className="ui-page-title">
                 Dashboard
               </h1>
 
@@ -471,7 +470,7 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => navigate("/students/add")}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                className="ui-button inline-flex items-center justify-center gap-2 border border-slate-200 bg-white py-2.5 text-slate-700 transition hover:bg-slate-50"
               >
                 <UserPlus size={17} />
                 Add Student
@@ -480,7 +479,7 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => navigate("/enrollments/add")}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
+                className="ui-button inline-flex items-center justify-center gap-2 bg-brand-600 py-2.5 text-white transition hover:bg-brand-700"
               >
                 <GraduationCap size={17} />
                 New Enrollment
@@ -496,19 +495,19 @@ export default function DashboardPage() {
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
 
           {/* Total Students */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="ui-surface p-5">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-500">
                   Total Students
                 </p>
 
-                <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
+                <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
                   {students.length}
                 </p>
               </div>
 
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
                 <Users size={21} />
               </div>
             </div>
@@ -527,14 +526,14 @@ export default function DashboardPage() {
           </div>
 
           {/* Active Students */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="ui-surface p-5">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-500">
                   Active Students
                 </p>
 
-                <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
+                <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
                   {activeStudents}
                 </p>
               </div>
@@ -560,19 +559,19 @@ export default function DashboardPage() {
           </div>
 
           {/* Enrollments */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="ui-surface p-5">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-500">
                   Enrollments
                 </p>
 
-                <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
+                <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
                   {enrollments.length}
                 </p>
               </div>
 
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
                 <GraduationCap size={21} />
               </div>
             </div>
@@ -591,14 +590,14 @@ export default function DashboardPage() {
           </div>
 
           {/* Activities */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="ui-surface p-5">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-500">
                   Activities
                 </p>
 
-                <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
+                <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
                   {activities.length}
                 </p>
               </div>
@@ -629,10 +628,10 @@ export default function DashboardPage() {
         <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
 
           {/* Recent Students */}
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm xl:col-span-2">
+          <div className="ui-surface overflow-hidden xl:col-span-2">
             <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
               <div>
-                <h2 className="font-semibold text-slate-900">
+                <h2 className="ui-section-title">
                   Recent Students
                 </h2>
 
@@ -644,7 +643,7 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={() => navigate("/students")}
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 transition hover:text-blue-700"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-600 transition hover:text-brand-700"
               >
                 View all
                 <ArrowRight size={15} />
@@ -665,13 +664,13 @@ export default function DashboardPage() {
                   </p>
                 </div>
               ) : (
-                recentStudents.map((student) => (
+                <PaginatedList items={recentStudents}>{(student) => (
                   <div
                     key={student.id}
                     className="flex items-center justify-between gap-4 px-5 py-4 transition hover:bg-slate-50"
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-sm font-semibold text-blue-700">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-sm font-semibold text-brand-700">
                         {student.fullName?.charAt(0)?.toUpperCase() ?? "S"}
                       </div>
 
@@ -702,15 +701,15 @@ export default function DashboardPage() {
                       </span>
                     </div>
                   </div>
-                ))
+                )}</PaginatedList>
               )}
             </div>
           </div>
 
           {/* Quick Summary */}
-          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="ui-surface">
             <div className="border-b border-slate-100 px-5 py-4">
-              <h2 className="font-semibold text-slate-900">
+              <h2 className="ui-section-title">
                 Academy Summary
               </h2>
 
@@ -723,7 +722,7 @@ export default function DashboardPage() {
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
                     <Users size={18} />
                   </div>
 
@@ -739,7 +738,7 @@ export default function DashboardPage() {
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-50 text-violet-600">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
                     <GraduationCap size={18} />
                   </div>
 
@@ -810,10 +809,10 @@ export default function DashboardPage() {
             RECENT ENROLLMENTS
         ===================================================== */}
 
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <section className="ui-surface overflow-hidden">
           <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="font-semibold text-slate-900">
+              <h2 className="ui-section-title">
                 Recent Enrollments
               </h2>
 
@@ -825,7 +824,7 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={() => navigate("/enrollments")}
-              className="inline-flex items-center gap-1.5 self-start text-sm font-medium text-blue-600 transition hover:text-blue-700 sm:self-auto"
+              className="inline-flex items-center gap-1.5 self-start text-sm font-medium text-brand-600 transition hover:text-brand-700 sm:self-auto"
             >
               View all
               <ArrowRight size={15} />
@@ -833,30 +832,30 @@ export default function DashboardPage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-left">
-              <thead className="border-b border-slate-100 bg-slate-50">
+            <table className="ui-table min-w-[760px]">
+              <thead className="ui-table-head border-b border-slate-100">
                 <tr>
-                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Enrollment
                   </th>
 
-                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Student
                   </th>
 
-                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Activity
                   </th>
 
-                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Date
                   </th>
 
-                  <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Fee
                   </th>
 
-                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Status
                   </th>
                 </tr>
@@ -867,24 +866,24 @@ export default function DashboardPage() {
                   <tr>
                     <td
                       colSpan={6}
-                      className="px-5 py-10 text-center text-sm text-slate-500"
+                      className="px-4 py-10 text-center text-sm text-slate-500"
                     >
                       No enrollments found.
                     </td>
                   </tr>
                 ) : (
-                  recentEnrollments.map((enrollment) => (
+                  <PaginatedList items={recentEnrollments} table>{(enrollment) => (
                     <tr
                       key={enrollment.id}
                       className="transition hover:bg-slate-50"
                     >
-                      <td className="px-5 py-4">
+                      <td className="px-4 py-3">
                         <span className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
                           {enrollment.enrollmentCode}
                         </span>
                       </td>
 
-                      <td className="px-5 py-4">
+                      <td className="px-4 py-3">
                         <p className="text-sm font-medium text-slate-900">
                           {enrollment.studentName}
                         </p>
@@ -894,7 +893,7 @@ export default function DashboardPage() {
                         </p>
                       </td>
 
-                      <td className="px-5 py-4">
+                      <td className="px-4 py-3">
                         <p className="text-sm font-medium text-slate-900">
                           {enrollment.activityName}
                         </p>
@@ -904,7 +903,7 @@ export default function DashboardPage() {
                         </p>
                       </td>
 
-                      <td className="px-5 py-4">
+                      <td className="px-4 py-3">
                         <div className="flex items-center gap-2 text-sm text-slate-600">
                           <CalendarDays
                             size={15}
@@ -915,13 +914,13 @@ export default function DashboardPage() {
                         </div>
                       </td>
 
-                      <td className="px-5 py-4 text-right">
+                      <td className="px-4 py-3 text-right">
                         <span className="text-sm font-semibold text-slate-900">
                           {formatCurrency(enrollment.sessionFee)}
                         </span>
                       </td>
 
-                      <td className="px-5 py-4">
+                      <td className="px-4 py-3">
                         <span
                           className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
                             enrollment.status === "Active"
@@ -933,7 +932,7 @@ export default function DashboardPage() {
                         </span>
                       </td>
                     </tr>
-                  ))
+                  )}</PaginatedList>
                 )}
               </tbody>
             </table>
@@ -949,16 +948,16 @@ export default function DashboardPage() {
           <button
             type="button"
             onClick={() => navigate("/students/add")}
-            className="group rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md"
+            className="group rounded-lg border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-md"
           >
             <div className="flex items-center justify-between">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
                 <UserPlus size={19} />
               </div>
 
               <ArrowRight
                 size={17}
-                className="text-slate-300 transition group-hover:translate-x-1 group-hover:text-blue-600"
+                className="text-slate-300 transition group-hover:translate-x-1 group-hover:text-brand-600"
               />
             </div>
 
@@ -974,7 +973,7 @@ export default function DashboardPage() {
           <button
             type="button"
             onClick={() => navigate("/activities/add")}
-            className="group rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-amber-200 hover:shadow-md"
+            className="group rounded-lg border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-amber-200 hover:shadow-md"
           >
             <div className="flex items-center justify-between">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
@@ -999,16 +998,16 @@ export default function DashboardPage() {
           <button
             type="button"
             onClick={() => navigate("/enrollments/add")}
-            className="group rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-md"
+            className="group rounded-lg border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-md"
           >
             <div className="flex items-center justify-between">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
                 <GraduationCap size={19} />
               </div>
 
               <ArrowRight
                 size={17}
-                className="text-slate-300 transition group-hover:translate-x-1 group-hover:text-violet-600"
+                className="text-slate-300 transition group-hover:translate-x-1 group-hover:text-brand-600"
               />
             </div>
 

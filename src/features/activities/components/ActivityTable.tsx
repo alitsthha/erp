@@ -1,3 +1,4 @@
+import PaginatedList from "@/components/common/PaginatedList";
 import {
   Activity as ActivityIcon,
   UserRound,
@@ -21,7 +22,7 @@ export default function ActivityTable({
 }: Props) {
   if (activities.length === 0) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+      <div className="ui-surface p-10 text-center">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
           <ActivityIcon size={22} />
         </div>
@@ -38,45 +39,45 @@ export default function ActivityTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div className="ui-surface overflow-hidden">
       {/* Desktop / Tablet Table */}
 
       <div className="hidden overflow-x-auto md:block">
-        <table className="w-full min-w-[900px] text-left">
-          <thead className="border-b border-slate-200 bg-slate-50">
+        <table className="ui-table min-w-[900px]">
+          <thead className="ui-table-head border-b border-slate-200">
             <tr>
-              <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Code
               </th>
 
-              <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Activity
               </th>
 
-              <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Category
               </th>
 
-              <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Coach
               </th>
 
-              <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Fee
               </th>
 
-              <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Status
               </th>
 
-              <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Actions
               </th>
             </tr>
           </thead>
 
           <tbody className="divide-y divide-slate-100">
-            {activities.map((activity) => {
+            {<PaginatedList showSort={false} items={activities} table>{(activity) => {
               const feeVal = activity.countedMonthly
                 ? activity.feePerMonth
                 : activity.feePerSession ??
@@ -88,15 +89,15 @@ export default function ActivityTable({
                   key={activity.id}
                   className="transition hover:bg-slate-50/70"
                 >
-                  <td className="whitespace-nowrap px-5 py-4">
+                  <td className="whitespace-nowrap px-4 py-3">
                     <span className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
                       {activity.activityCode || "-"}
                     </span>
                   </td>
 
-                  <td className="px-5 py-4">
+                  <td className="px-4 py-3">
                     <div className="font-medium text-slate-900">
-                      {activity.activityName}
+                      {activity.color && <span aria-label={`Color ${activity.color}`} title={activity.color} className="mr-2 inline-block h-2.5 w-2.5 rounded-full border border-black/20" style={{ backgroundColor: activity.color }} />}{activity.activityName}
                     </div>
 
                     {activity.description && (
@@ -106,11 +107,11 @@ export default function ActivityTable({
                     )}
                   </td>
 
-                  <td className="px-5 py-4 text-sm text-slate-600">
+                  <td className="px-4 py-3 text-sm text-slate-600">
                     {activity.category}
                   </td>
 
-                  <td className="px-5 py-4">
+                  <td className="px-4 py-3">
                     <div className="flex items-center gap-2 text-sm text-slate-600">
                       <UserRound
                         size={15}
@@ -121,17 +122,17 @@ export default function ActivityTable({
                     </div>
                   </td>
 
-                  <td className="whitespace-nowrap px-5 py-4 text-sm font-semibold text-slate-900">
+                  <td className="whitespace-nowrap px-4 py-3 text-sm font-semibold text-slate-900">
                     {typeof feeVal === "number"
                       ? `Rs. ${feeVal.toLocaleString()} ${activity.countedMonthly ? '/ month' : '/ session'}`
                       : "-"}
                   </td>
 
-                  <td className="px-5 py-4">
+                  <td className="px-4 py-3">
                     <StatusBadge status={activity.status} />
                   </td>
 
-                  <td className="px-5 py-4">
+                  <td className="px-4 py-3">
                     <ActivityActions
                       onView={() => onViewActivity(activity)}
                       onEdit={() => onEditActivity(activity)}
@@ -140,7 +141,7 @@ export default function ActivityTable({
                   </td>
                 </tr>
               );
-            })}
+            }}</PaginatedList>}
           </tbody>
         </table>
       </div>
@@ -148,7 +149,7 @@ export default function ActivityTable({
       {/* Mobile Cards */}
 
       <div className="divide-y divide-slate-100 md:hidden">
-        {activities.map((activity) => {
+        {<PaginatedList showSort={false} items={activities}>{(activity) => {
           const feeVal = activity.countedMonthly
             ? activity.feePerMonth
             : activity.feePerSession ??
@@ -162,13 +163,13 @@ export default function ActivityTable({
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-start gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
                     <ActivityIcon size={18} />
                   </div>
 
                   <div className="min-w-0">
                     <h3 className="truncate text-sm font-semibold text-slate-900">
-                      {activity.activityName}
+                      {activity.color && <span aria-label={`Color ${activity.color}`} title={activity.color} className="mr-2 inline-block h-2.5 w-2.5 rounded-full border border-black/20" style={{ backgroundColor: activity.color }} />}{activity.activityName}
                     </h3>
 
                     <p className="mt-1 text-xs text-slate-400">
@@ -216,7 +217,7 @@ export default function ActivityTable({
               </div>
             </div>
           );
-        })}
+        }}</PaginatedList>}
       </div>
     </div>
   );

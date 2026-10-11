@@ -1,3 +1,5 @@
+import ListSortControl from "@/components/common/ListSortControl";
+import PaginatedList from "@/components/common/PaginatedList";
 import { useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
@@ -49,7 +51,7 @@ interface AttendanceFormProps {
 
   onActivityChange?: (activityId: string) => void;
 
-  onSuccess?: () => void;
+  onSuccess?: (dateBS: string) => void;
 }
 
 interface RosterItem {
@@ -538,7 +540,7 @@ export default function AttendanceForm({
       }, 3000);
 
       if (onSuccess) {
-        onSuccess();
+        onSuccess(sessionDate);
       } else {
         navigate("/attendance");
       }
@@ -566,13 +568,13 @@ export default function AttendanceForm({
       onSubmit={handleSave}
       className="w-full space-y-6"
     >
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <div className="ui-surface p-5 sm:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
               Attendance roster
             </p>
-            <h2 className="mt-2 text-xl font-bold text-slate-900">
+            <h2 className="ui-section-title mt-2">
               {activityName}
             </h2>
             <p className="mt-1 text-sm text-slate-500">
@@ -601,7 +603,7 @@ export default function AttendanceForm({
                 value={activityId}
                 onChange={(event) => onActivityChange?.(event.target.value)}
                 disabled={isLoading || activities.length === 0}
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-100"
+                className="ui-field w-full px-3 text-slate-900 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-100"
               >
                 <option value="">All activities</option>
                 {activities.map((option) => (
@@ -628,15 +630,17 @@ export default function AttendanceForm({
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="Search student, code, or activity"
-              className="h-11 w-full rounded-xl border border-slate-300 bg-slate-50 pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:bg-white focus:ring-2 focus:ring-slate-200"
+              className="ui-field w-full bg-slate-50 pl-10 pr-4 text-slate-900 outline-none transition focus:border-brand-600 focus:bg-white focus:ring-2 focus:ring-slate-200"
             />
           </div>
+
+          <ListSortControl />
 
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => handleMarkAll("Present")}
-              className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100"
+              className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700 transition hover:bg-emerald-100"
             >
               <UserCheck size={16} />
               Mark All Present
@@ -644,7 +648,7 @@ export default function AttendanceForm({
             <button
               type="button"
               onClick={() => handleMarkAll("Absent")}
-              className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-100"
+              className="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-100"
             >
               <UserX size={16} />
               Mark All Absent
@@ -652,7 +656,7 @@ export default function AttendanceForm({
             <button
               type="button"
               onClick={handleClearAttendance}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
             >
               Clear Attendance
             </button>
@@ -675,7 +679,7 @@ export default function AttendanceForm({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="ui-surface overflow-hidden">
         {isFetchingAttendance ? (
           <div className="flex items-center justify-center gap-3 p-10 text-sm text-slate-500">
             <CalendarDays className="h-4 w-4 animate-pulse" />
@@ -683,43 +687,43 @@ export default function AttendanceForm({
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-left">
-              <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+            <table className="ui-table">
+              <thead className="ui-table-head">
                 <tr>
-                  <th className="px-5 py-4 font-semibold">Student</th>
-                  <th className="px-5 py-4 font-semibold">Activity</th>
-                  {isAdmin && <th className="px-5 py-4 font-semibold">Session fee</th>}
-                  <th className="px-5 py-4 font-semibold">Status</th>
-                  <th className="px-5 py-4 font-semibold">Notes</th>
+                  <th className="px-4 py-3 font-semibold">Student</th>
+                  <th className="px-4 py-3 font-semibold">Activity</th>
+                  {isAdmin && <th className="px-4 py-3 font-semibold">Session fee</th>}
+                  <th className="px-4 py-3 font-semibold">Status</th>
+                  <th className="px-4 py-3 font-semibold">Notes</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {filteredRoster.length === 0 ? (
                   <tr>
-                    <td colSpan={isAdmin ? 5 : 4} className="px-5 py-12 text-center text-sm text-slate-500">
+                    <td colSpan={isAdmin ? 5 : 4} className="px-4 py-12 text-center text-sm text-slate-500">
                       No students found for this selection.
                     </td>
                   </tr>
                 ) : (
-                  filteredRoster.map((item) => (
+                  <PaginatedList showSort={false} items={filteredRoster} table>{(item) => (
                     <tr key={item.enrollmentId} className="hover:bg-slate-50">
-                      <td className="px-5 py-4 align-top">
+                      <td className="px-4 py-3 align-top">
                         <div className="font-semibold text-slate-900">{item.studentName}</div>
                         <div className="mt-1 text-xs text-slate-400">{item.studentCode}</div>
                       </td>
 
-                      <td className="px-5 py-4 align-top">
+                      <td className="px-4 py-3 align-top">
                         <div className="font-medium text-slate-700">{item.activityName}</div>
                         <div className="mt-1 text-xs text-slate-400">{item.activityCode}</div>
                       </td>
 
                       {isAdmin && (
-                        <td className="px-5 py-4 align-top text-sm text-slate-700">
+                        <td className="px-4 py-3 align-top text-sm text-slate-700">
                           Rs. {Number(item.sessionFee || 0).toLocaleString("en-IN")}
                         </td>
                       )}
 
-                      <td className="px-5 py-4 align-top">
+                      <td className="px-4 py-3 align-top">
                         <div className="flex flex-wrap gap-2">
                           <button
                             type="button"
@@ -748,17 +752,17 @@ export default function AttendanceForm({
                         </div>
                       </td>
 
-                      <td className="px-5 py-4 align-top">
+                      <td className="px-4 py-3 align-top">
                         <input
                           type="text"
                           value={item.notes ?? ""}
                           onChange={(event) => handleNotesChange(item.enrollmentId, event.target.value)}
                           placeholder="Add note"
-                          className="h-10 w-full min-w-[180px] rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                          className="ui-field h-10 w-full min-w-[180px] px-3 text-slate-900 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-slate-200"
                         />
                       </td>
                     </tr>
-                  ))
+                  )}</PaginatedList>
                 )}
               </tbody>
             </table>
@@ -766,7 +770,7 @@ export default function AttendanceForm({
         )}
       </div>
 
-      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <div className="ui-surface flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-sm text-slate-500">
           {saveSuccess ? (
             <span className="font-medium text-emerald-600">{saveSuccess}</span>
@@ -778,7 +782,7 @@ export default function AttendanceForm({
         <button
           type="submit"
           disabled={roster.length === 0 || isSaving}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+          className="ui-button inline-flex items-center justify-center gap-2 bg-brand-600 py-3 text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSaving ? (
             <>

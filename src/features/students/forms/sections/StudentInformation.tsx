@@ -10,8 +10,8 @@ export default function StudentInformation() {
   } = useFormContext<StudentFormData>();
 
   return (
-    <section className="rounded-2xl bg-white p-6 shadow-sm md:p-8">
-      <h2 className="mb-6 text-2xl font-semibold text-gray-800">
+    <section className="sm:p-5 p-4 ui-surface md:p-8">
+      <h2 className="ui-section-title mb-6">
         Student Information
       </h2>
 
@@ -19,14 +19,14 @@ export default function StudentInformation() {
         {/* Full Name */}
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
+          <label className="mb-2 block text-sm font-medium text-slate-700">
             Full Name
           </label>
 
           <input
             {...register("fullName")}
             placeholder="Enter full name"
-            className="w-full rounded-xl border border-gray-300 px-4 py-3 transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+            className="ui-field w-full px-4 transition focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-200"
           />
 
           {errors.fullName && (
@@ -39,13 +39,13 @@ export default function StudentInformation() {
         {/* Gender */}
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
+          <label className="mb-2 block text-sm font-medium text-slate-700">
             Gender
           </label>
 
           <select
             {...register("gender")}
-            className="w-full rounded-xl border border-gray-300 px-4 py-3 transition focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+            className="ui-field w-full px-4 transition focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-200"
           >
             <option value="Male">Male</option>
             <option value="Female">Female</option>
@@ -56,7 +56,7 @@ export default function StudentInformation() {
         {/* DOB */}
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
+          <label className="mb-2 block text-sm font-medium text-slate-700">
             Date of Birth
           </label>
 
@@ -72,7 +72,7 @@ export default function StudentInformation() {
         {/* Admission Date */}
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">
+          <label className="mb-2 block text-sm font-medium text-slate-700">
             Admission Date
           </label>
 

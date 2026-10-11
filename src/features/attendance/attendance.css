@@ -1,0 +1,35 @@
+.attendance-page :is(button, a, input, select):focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 3px;
+}
+
+.attendance-page .attendance-toolbar :is(input, select) {
+  height: 2.75rem;
+  min-width: 0;
+  border-color: var(--border);
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.attendance-page :is(input, select):focus {
+  border-color: var(--color-brand-600);
+  --tw-ring-color: color-mix(in srgb, var(--color-brand-600) 15%, transparent);
+}
+
+.attendance-page table th {
+  white-space: nowrap;
+}
+
+.attendance-page button[aria-current="page"] {
+  border-color: var(--color-brand-600);
+  color: var(--color-brand-600);
+  background-color: var(--color-brand-50);
+  --tw-ring-color: var(--color-brand-600);
+}
+
+@media (max-width: 1279px) {
+  .attendance-page .attendance-toolbar label {
+    width: 100%;
+  }
+}

@@ -34,6 +34,7 @@ import EditEnrollmentPage from "@/features/enrollments/pages/EditEnrollmentPage"
 
 // ================= ATTENDANCE =================
 import AttendancePage from "@/features/attendance/pages/AttendancePage";
+import CalendarPage from "@/features/calendar/CalendarPage";
 import AddAttendancePage from "@/features/attendance/pages/AddAttendancePage";
 import EditAttendancePage from "@/features/attendance/pages/EditAttendancePage";
 import StudentAttendanceDetailPage from "@/features/attendance/pages/StudentAttendanceDetailPage";
@@ -108,6 +109,7 @@ export default function AppRouter() {
         <Route element={<ProtectedRoute />}>
 
           <Route element={<DashboardLayout />}>
+            <Route path="/calendar" element={<CalendarPage />} />
 
             <Route
               path="/admin/assign-role"

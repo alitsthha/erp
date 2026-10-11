@@ -1,3 +1,4 @@
+import PaginatedList from "@/components/common/PaginatedList";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
@@ -50,12 +51,12 @@ function SummaryCard({
   icon: Icon,
 }: SummaryCardProps) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="ui-surface p-5">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm font-medium text-slate-500">{title}</p>
 
-          <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
+          <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
             {value}
           </p>
 
@@ -381,9 +382,9 @@ export default function ReportsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-full bg-slate-50 p-4 sm:p-6 lg:p-8">
-        <div className="mx-auto max-w-7xl">
-          <div className="flex min-h-[300px] items-center justify-center rounded-2xl border border-slate-200 bg-white">
+      <div className="ui-page min-h-full">
+        <div className="ui-page mx-auto">
+          <div className="ui-surface flex min-h-[300px] items-center justify-center">
             <div className="text-center">
               <RefreshCw size={28} className="mx-auto animate-spin text-slate-400" />
 
@@ -397,9 +398,9 @@ export default function ReportsPage() {
 
   if (error || !report) {
     return (
-      <div className="min-h-full bg-slate-50 p-4 sm:p-6 lg:p-8">
-        <div className="mx-auto max-w-7xl">
-          <div className="rounded-2xl border border-red-200 bg-white p-8 text-center">
+      <div className="ui-page min-h-full">
+        <div className="ui-page mx-auto">
+          <div className="ui-surface border-red-200 p-8 text-center">
             <AlertCircle size={32} className="mx-auto text-red-500" />
 
             <p className="mt-3 font-medium text-slate-900">
@@ -409,7 +410,7 @@ export default function ReportsPage() {
             <button
               type="button"
               onClick={() => void loadReport()}
-              className="mt-4 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
+              className="ui-button mt-4 bg-brand-600 py-2.5 text-white hover:bg-brand-700"
             >
               Try Again
             </button>
@@ -422,14 +423,14 @@ export default function ReportsPage() {
   const { summary, activityEnrollments, recentEnrollments } = report;
 
   return (
-    <div className="min-h-full bg-slate-50 p-4 sm:p-6 lg:p-8">
-      <div ref={reportRef} className="mx-auto max-w-7xl space-y-6">
+    <div className="ui-page min-h-full">
+      <div ref={reportRef} className="ui-page mx-auto space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex items-center gap-2">
               <BarChart3 size={24} className="text-slate-700" />
 
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+              <h1 className="ui-page-title">
                 Financial & Academic Reports
               </h1>
             </div>
@@ -443,7 +444,7 @@ export default function ReportsPage() {
             <button
               type="button"
               onClick={() => void loadReport()}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+              className="ui-button inline-flex items-center justify-center gap-2 border border-slate-300 bg-white py-2.5 text-slate-700 shadow-sm transition hover:bg-slate-50"
             >
               <RefreshCw size={16} />
               Refresh
@@ -453,7 +454,7 @@ export default function ReportsPage() {
               type="button"
               onClick={handleExportPdf}
               disabled={exporting}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 disabled:opacity-60"
+              className="ui-button inline-flex items-center justify-center gap-2 bg-brand-600 py-2.5 text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-60"
             >
               <Download size={16} />
               {exporting ? "Generating..." : "Export PDF"}
@@ -491,10 +492,10 @@ export default function ReportsPage() {
           />
         </div>
 
-        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <section className="ui-surface">
           <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-4 sm:px-6 md:flex-row md:items-center md:justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-slate-900">Overall financial statement</h2>
+              <h2 className="ui-section-title">Overall financial statement</h2>
               <p className="mt-1 text-xs text-slate-500">
                 Income, expenses, profit/loss, and balance sheet summary.
               </p>
@@ -505,7 +506,7 @@ export default function ReportsPage() {
           </div>
 
           <div className="grid gap-4 p-5 sm:grid-cols-2 xl:grid-cols-4 sm:p-6">
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-emerald-700">Total income</p>
                 <ArrowUpCircle className="h-5 w-5 text-emerald-600" />
@@ -513,7 +514,7 @@ export default function ReportsPage() {
               <p className="mt-3 text-2xl font-bold text-slate-900">{formatCurrency(finance.totalIncome)}</p>
             </div>
 
-            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+            <div className="rounded-xl border border-rose-200 bg-rose-50 p-4">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-rose-700">Total expenses</p>
                 <ArrowDownCircle className="h-5 w-5 text-rose-600" />
@@ -521,15 +522,15 @@ export default function ReportsPage() {
               <p className="mt-3 text-2xl font-bold text-slate-900">{formatCurrency(finance.totalExpenses)}</p>
             </div>
 
-            <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4">
+            <div className="rounded-xl border border-brand-200 bg-brand-50 p-4">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-blue-700">Profit / loss</p>
-                <TrendingUp className="h-5 w-5 text-blue-600" />
+                <p className="text-sm text-brand-700">Profit / loss</p>
+                <TrendingUp className="h-5 w-5 text-brand-600" />
               </div>
               <p className="mt-3 text-2xl font-bold text-slate-900">{formatCurrency(finance.netProfit)}</p>
             </div>
 
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-amber-700">Outstanding</p>
                 <Building2 className="h-5 w-5 text-amber-600" />
@@ -539,18 +540,18 @@ export default function ReportsPage() {
           </div>
 
           <div className="grid gap-5 border-t border-slate-200 p-5 sm:p-6 lg:grid-cols-2">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
               <div className="mb-4 flex items-center gap-2">
                 <TrendingUp size={18} className="text-emerald-600" />
                 <h3 className="text-lg font-semibold text-slate-900">Income statement</h3>
               </div>
 
               <div className="space-y-3 text-sm">
-                <div className="flex items-center justify-between rounded-xl bg-white px-3 py-2">
+                <div className="ui-surface flex items-center justify-between px-3 py-2">
                   <span className="text-slate-600">Gross income</span>
                   <span className="font-semibold text-slate-900">{formatCurrency(finance.totalIncome)}</span>
                 </div>
-                <div className="flex items-center justify-between rounded-xl bg-white px-3 py-2">
+                <div className="ui-surface flex items-center justify-between px-3 py-2">
                   <span className="text-slate-600">Operating expenses</span>
                   <span className="font-semibold text-slate-900">{formatCurrency(finance.totalExpenses)}</span>
                 </div>
@@ -561,82 +562,82 @@ export default function ReportsPage() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
               <div className="mb-4 flex items-center gap-2">
-                <Landmark size={18} className="text-violet-600" />
+                <Landmark size={18} className="text-brand-600" />
                 <h3 className="text-lg font-semibold text-slate-900">Balance sheet</h3>
               </div>
 
               <div className="space-y-3 text-sm">
-                <div className="flex items-center justify-between rounded-xl bg-white px-3 py-2">
+                <div className="ui-surface flex items-center justify-between px-3 py-2">
                   <span className="text-slate-600">Cash balance</span>
                   <span className="font-semibold text-slate-900">{formatCurrency(finance.cashBalance)}</span>
                 </div>
-                <div className="flex items-center justify-between rounded-xl bg-white px-3 py-2">
+                <div className="ui-surface flex items-center justify-between px-3 py-2">
                   <span className="text-slate-600">Bank balance</span>
                   <span className="font-semibold text-slate-900">{formatCurrency(finance.bankBalance)}</span>
                 </div>
-                <div className="flex items-center justify-between rounded-xl bg-white px-3 py-2">
+                <div className="ui-surface flex items-center justify-between px-3 py-2">
                   <span className="text-slate-600">Outstanding receivables</span>
                   <span className="font-semibold text-slate-900">{formatCurrency(finance.outstandingAmount)}</span>
                 </div>
-                <div className="flex items-center justify-between rounded-xl bg-violet-100 px-3 py-2">
-                  <span className="text-violet-700">Total assets</span>
-                  <span className="font-semibold text-violet-800">{formatCurrency(balanceSheet.totalAssets)}</span>
+                <div className="flex items-center justify-between rounded-xl bg-brand-100 px-3 py-2">
+                  <span className="text-brand-700">Total assets</span>
+                  <span className="font-semibold text-brand-800">{formatCurrency(balanceSheet.totalAssets)}</span>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <section className="ui-surface">
           <div className="border-b border-slate-200 px-5 py-4 sm:px-6">
-            <h2 className="font-semibold text-slate-900">Enrollment by activity</h2>
+            <h2 className="ui-section-title">Enrollment by activity</h2>
             <p className="mt-1 text-xs text-slate-500">
               See how many students are enrolled in each activity.
             </p>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[650px] text-left">
-              <thead className="border-b border-slate-200 bg-slate-50">
+            <table className="ui-table min-w-[650px]">
+              <thead className="ui-table-head border-b border-slate-200">
                 <tr>
-                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Activity
                   </th>
-                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Code
                   </th>
-                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Total
                   </th>
-                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Active
                   </th>
                 </tr>
               </thead>
 
               <tbody className="divide-y divide-slate-100">
-                {activityEnrollments.map((activity) => (
+                {<PaginatedList items={activityEnrollments} table>{(activity) => (
                   <tr key={activity.activityId} className="transition hover:bg-slate-50">
-                    <td className="px-5 py-4 font-medium text-slate-900">{activity.activityName}</td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-3 font-medium text-slate-900">{activity.activityName}</td>
+                    <td className="px-4 py-3">
                       <span className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
                         {activity.activityCode}
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-sm text-slate-700">{activity.enrollmentCount}</td>
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-3 text-sm text-slate-700">{activity.enrollmentCount}</td>
+                    <td className="px-4 py-3">
                       <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
                         {activity.activeEnrollmentCount}
                       </span>
                     </td>
                   </tr>
-                ))}
+                )}</PaginatedList>}
 
                 {activityEnrollments.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-5 py-10 text-center text-sm text-slate-500">
+                    <td colSpan={4} className="px-4 py-10 text-center text-sm text-slate-500">
                       No activity data available.
                     </td>
                   </tr>
@@ -646,67 +647,67 @@ export default function ReportsPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <section className="ui-surface">
           <div className="border-b border-slate-200 px-5 py-4 sm:px-6">
-            <h2 className="font-semibold text-slate-900">Recent enrollments</h2>
+            <h2 className="ui-section-title">Recent enrollments</h2>
             <p className="mt-1 text-xs text-slate-500">
               Latest student activity enrollments.
             </p>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[800px] text-left">
-              <thead className="border-b border-slate-200 bg-slate-50">
+            <table className="ui-table min-w-[800px]">
+              <thead className="ui-table-head border-b border-slate-200">
                 <tr>
-                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Enrollment
                   </th>
-                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Student
                   </th>
-                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Activity
                   </th>
-                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Date
                   </th>
-                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Fee
                   </th>
-                  <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Status
                   </th>
                 </tr>
               </thead>
 
               <tbody className="divide-y divide-slate-100">
-                {recentEnrollments.map((enrollment) => (
+                {<PaginatedList items={recentEnrollments} table>{(enrollment) => (
                   <tr key={enrollment.id ?? enrollment.enrollmentCode} className="transition hover:bg-slate-50">
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-3">
                       <span className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
                         {enrollment.enrollmentCode}
                       </span>
                     </td>
 
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-3">
                       <p className="font-medium text-slate-900">{enrollment.studentName}</p>
                       <p className="mt-0.5 text-xs text-slate-500">{enrollment.studentCode}</p>
                     </td>
 
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-3">
                       <p className="font-medium text-slate-800">{enrollment.activityName}</p>
                       <p className="mt-0.5 text-xs text-slate-500">{enrollment.activityCode}</p>
                     </td>
 
-                    <td className="px-5 py-4 text-sm text-slate-600">{enrollment.enrollmentDate}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{enrollment.enrollmentDate}</td>
 
-                    <td className="px-5 py-4 text-sm font-medium text-slate-700">
+                    <td className="px-4 py-3 text-sm font-medium text-slate-700">
                       {typeof enrollment.sessionFee === "number"
                         ? `Rs. ${enrollment.sessionFee.toLocaleString("en-NP")}`
                         : "-"}
                     </td>
 
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-3">
                       <span
                         className={
                           enrollment.status === "Active"
@@ -718,11 +719,11 @@ export default function ReportsPage() {
                       </span>
                     </td>
                   </tr>
-                ))}
+                )}</PaginatedList>}
 
                 {recentEnrollments.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-5 py-10 text-center text-sm text-slate-500">
+                    <td colSpan={6} className="px-4 py-10 text-center text-sm text-slate-500">
                       No enrollment records available.
                     </td>
                   </tr>

@@ -15,19 +15,21 @@ const TextArea = forwardRef<
         ref={ref}
         {...props}
         rows={4}
-        className={`
+        className={`ui-field
           w-full
+          text-sm
           rounded-lg
           border
           px-4
-          py-3
+          py-2.5
           outline-none
           focus:ring-2
-          focus:ring-blue-500
+          focus:border-brand-600
+          focus:ring-brand-100
           ${
             error
               ? "border-red-500"
-              : "border-gray-300"
+              : "border-slate-300"
           }
           ${className}
         `}

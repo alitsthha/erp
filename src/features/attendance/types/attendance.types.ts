@@ -28,6 +28,11 @@ export interface Attendance {
 
   status: AttendanceStatus;
 
+  recordedByUserId?: string;
+  recordedByName?: string;
+  updatedByUserId?: string;
+  updatedByName?: string;
+
   sessionFee?: number;
 
   /**
@@ -45,6 +50,9 @@ export interface Attendance {
   createdAt?: unknown;
   updatedAt?: unknown;
 }
+
+/** Display-only grouping; original activity records retain their individual recorder. */
+export type AttendanceListRow = Attendance & { activityIds?: string[]; groupedRecords?: Attendance[] };
 
 export interface ActivityAttendanceSummary {
   activityId: string;

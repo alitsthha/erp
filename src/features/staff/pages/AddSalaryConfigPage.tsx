@@ -21,7 +21,7 @@ export default function AddSalaryConfigPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">
+      <h1 className="ui-page-title">
         Add Salary Configuration
       </h1>
 

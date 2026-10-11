@@ -38,7 +38,7 @@ export default function EditStudentPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-6xl p-6 text-sm text-slate-500">
+      <div className="ui-page mx-auto p-6 text-sm text-slate-500">
         Loading student details...
       </div>
     );
@@ -46,7 +46,7 @@ export default function EditStudentPage() {
 
   if (!student) {
     return (
-      <div className="mx-auto max-w-6xl p-6 text-sm text-red-600">
+      <div className="ui-page mx-auto p-6 text-sm text-red-600">
         Student not found.
       </div>
     );
@@ -63,7 +63,7 @@ export default function EditStudentPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="ui-page mx-auto">
       <PageHeader
         title="Edit Student"
         description="Update student details."

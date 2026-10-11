@@ -19,12 +19,12 @@ export default function EmptyState({
   return (
     <div className="flex min-h-[300px] flex-col items-center justify-center text-center">
       {Icon && <Icon size={48} className="mb-4 text-slate-400" />}
-      <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+      <h2 className="ui-section-title">{title}</h2>
       {description && <p className="mt-2 text-sm text-slate-500">{description}</p>}
       {action && (
         <button
           onClick={action.onClick}
-          className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          className="ui-button mt-4 bg-brand-600 py-2 text-white hover:bg-brand-700"
         >
           {action.label}
         </button>

@@ -34,7 +34,7 @@ export default function FinanceSummary({ summary }: FinanceSummaryProps) {
       icon: TrendingUp,
       color:
         summary.netProfit >= 0
-          ? "text-blue-600 bg-blue-50"
+          ? "text-brand-600 bg-brand-50"
           : "text-red-600 bg-red-50",
     },
     {
@@ -54,7 +54,7 @@ export default function FinanceSummary({ summary }: FinanceSummaryProps) {
       title: "Bank Balance",
       value: formatCurrency(summary.bankBalance),
       icon: Banknote,
-      color: "text-indigo-600 bg-indigo-50",
+      color: "text-brand-600 bg-brand-50",
     },
   ];
 
@@ -66,7 +66,7 @@ export default function FinanceSummary({ summary }: FinanceSummaryProps) {
         return (
           <div
             key={card.title}
-            className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md"
+            className="ui-surface p-5 transition hover:shadow-md"
           >
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">

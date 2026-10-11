@@ -1,7 +1,6 @@
 import {
   addDoc,
   collection,
-  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -16,7 +15,7 @@ import { db } from "@/firebase/config";
 import { generateStudentCode } from "./student-code.service";
 
 import type { Student } from "../types/student.types";
-import type { StudentFormData } from "../schemas/student.schema";
+import { studentSchema, type StudentFormData } from "../schemas/student.schema";
 
 const studentsCollection = collection(db, "students");
 
@@ -41,6 +40,7 @@ function removeUndefined(
 export async function addStudent(
   data: StudentFormData
 ): Promise<string> {
+  data = studentSchema.parse(data);
   try {
     console.log(
       "Student data received:",
@@ -48,6 +48,7 @@ export async function addStudent(
     );
 
     const studentData = removeUndefined({
+      ...data,
       studentCode: await generateStudentCode(),
 
       fullName:
@@ -187,8 +188,10 @@ export async function updateStudent(
   id: string,
   data: Partial<StudentFormData>
 ): Promise<void> {
+  data = studentSchema.partial().parse(data);
   try {
     const updatedData = removeUndefined({
+      ...data,
       ...(data.fullName !== undefined && {
         fullName:
           data.fullName.trim(),
@@ -255,24 +258,4 @@ export async function updateStudent(
    DELETE STUDENT
 ----------------------------------------- */
 
-export async function deleteStudent(
-  id: string
-): Promise<void> {
-  try {
-    await deleteDoc(
-      doc(
-        db,
-        "students",
-        id
-      )
-    );
-
-  } catch (error) {
-    console.error(
-      "deleteStudent() failed:",
-      error
-    );
-
-    throw error;
-  }
-}
+export { deleteStudent } from "./student-delete.service";

@@ -131,9 +131,9 @@ export default function Header({ onMenuClick }: HeaderProps) {
             onClick={() => setDropdownOpen((prev) => !prev)}
             aria-expanded={dropdownOpen}
             aria-haspopup="true"
-            className="flex items-center gap-2 rounded-xl p-1.5 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            className="flex items-center gap-2 rounded-lg p-1.5 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
           >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white shadow-sm">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-600 text-sm font-semibold text-white shadow-sm">
               {initial}
             </div>
 
@@ -156,11 +156,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
           {/* Profile Dropdown Menu */}
           {dropdownOpen && (
-            <div className="absolute right-0 top-12 z-50 w-72 origin-top-right rounded-2xl border border-slate-200 bg-white p-2 shadow-xl ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-100">
+            <div className="absolute right-0 top-12 z-50 w-72 origin-top-right rounded-xl border border-slate-200 bg-white p-2 shadow-xl ring-1 ring-black/5 animate-in fade-in zoom-in-95 duration-100">
               
               {/* User Profile Info Card */}
               <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-blue-600 text-base font-bold text-white shadow-sm">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-600 text-base font-bold text-white shadow-sm">
                   {initial}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -175,7 +175,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                     <span
                       className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold ${
                         isAdmin
-                          ? "bg-blue-100 text-blue-800"
+                          ? "bg-brand-100 text-brand-800"
                           : "bg-emerald-100 text-emerald-800"
                       }`}
                     >
@@ -194,7 +194,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                     setDropdownOpen(false);
                     navigate("/settings");
                   }}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
+                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
                 >
                   <Settings size={15} className="text-slate-400" />
                   <span>{isAdmin ? "Organization Settings" : "My Profile & Details"}</span>
@@ -207,7 +207,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
                   type="button"
                   onClick={handleLogout}
                   disabled={isLoggingOut}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:opacity-50"
+                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:opacity-50"
                 >
                   <LogOut size={15} className="text-rose-500" />
                   <span>{isLoggingOut ? "Signing out..." : "Log Out Session"}</span>

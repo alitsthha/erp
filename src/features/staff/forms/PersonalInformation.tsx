@@ -38,10 +38,10 @@ export default function PersonalInformation({
             placeholder="Enter staff's full name"
             autoComplete="name"
             {...register("fullName")}
-            className={`h-11 w-full rounded-xl border bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
+            className={`ui-field w-full bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
               errors.fullName
                 ? "border-red-300 focus:border-red-400 focus:ring-red-50"
-                : "border-slate-300 focus:border-blue-500 focus:ring-blue-50"
+                : "border-slate-300 focus:border-brand-600 focus:ring-brand-50"
             }`}
           />
         </div>
@@ -65,10 +65,10 @@ export default function PersonalInformation({
         <select
           id="gender"
           {...register("gender")}
-          className={`h-11 w-full rounded-xl border bg-white px-4 text-sm text-slate-900 outline-none transition focus:ring-2 ${
+          className={`ui-field w-full bg-white px-4 text-sm text-slate-900 outline-none transition focus:ring-2 ${
             errors.gender
               ? "border-red-300 focus:border-red-400 focus:ring-red-50"
-              : "border-slate-300 focus:border-blue-500 focus:ring-blue-50"
+              : "border-slate-300 focus:border-brand-600 focus:ring-brand-50"
           }`}
         >
           <option value="">Select Gender</option>
@@ -104,10 +104,10 @@ export default function PersonalInformation({
             type="tel"
             placeholder="Enter phone number"
             {...register("phone")}
-            className={`h-11 w-full rounded-xl border bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
+            className={`ui-field w-full bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
               errors.phone
                 ? "border-red-300 focus:border-red-400 focus:ring-red-50"
-                : "border-slate-300 focus:border-blue-500 focus:ring-blue-50"
+                : "border-slate-300 focus:border-brand-600 focus:ring-brand-50"
             }`}
           />
         </div>
@@ -139,10 +139,10 @@ export default function PersonalInformation({
             type="email"
             placeholder="Enter email address (optional)"
             {...register("email")}
-            className={`h-11 w-full rounded-xl border bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
+            className={`ui-field w-full bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
               errors.email
                 ? "border-red-300 focus:border-red-400 focus:ring-red-50"
-                : "border-slate-300 focus:border-blue-500 focus:ring-blue-50"
+                : "border-slate-300 focus:border-brand-600 focus:ring-brand-50"
             }`}
           />
         </div>
@@ -174,10 +174,10 @@ export default function PersonalInformation({
             rows={3}
             placeholder="Enter complete address"
             {...register("address")}
-            className={`w-full rounded-xl border bg-white pl-10 pr-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
+            className={`w-full rounded-lg border bg-white pl-10 pr-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
               errors.address
                 ? "border-red-300 focus:border-red-400 focus:ring-red-50"
-                : "border-slate-300 focus:border-blue-500 focus:ring-blue-50"
+                : "border-slate-300 focus:border-brand-600 focus:ring-brand-50"
             }`}
           />
         </div>

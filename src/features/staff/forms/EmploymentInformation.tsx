@@ -31,7 +31,7 @@ export default function EmploymentInformation({
           Joining Date <span className="text-red-500">*</span>
         </label>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-3">
+        <div className="ui-surface p-3">
           <NepaliDatePickerInput
             label=""
             value={value}
@@ -66,10 +66,10 @@ export default function EmploymentInformation({
           <select
             id="employmentType"
             {...register("employmentType")}
-            className={`h-11 w-full rounded-xl border bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:ring-2 ${
+            className={`ui-field w-full bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:ring-2 ${
               errors.employmentType
                 ? "border-red-300 focus:border-red-400 focus:ring-red-50"
-                : "border-slate-300 focus:border-blue-500 focus:ring-blue-50"
+                : "border-slate-300 focus:border-brand-600 focus:ring-brand-50"
             }`}
           >
             <option value="">Select Employment Type</option>
@@ -106,10 +106,10 @@ export default function EmploymentInformation({
           <select
             id="status"
             {...register("status")}
-            className={`h-11 w-full rounded-xl border bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:ring-2 ${
+            className={`ui-field w-full bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:ring-2 ${
               errors.status
                 ? "border-red-300 focus:border-red-400 focus:ring-red-50"
-                : "border-slate-300 focus:border-blue-500 focus:ring-blue-50"
+                : "border-slate-300 focus:border-brand-600 focus:ring-brand-50"
             }`}
           >
             <option value="Active">Active</option>

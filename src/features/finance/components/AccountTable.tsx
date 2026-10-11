@@ -1,3 +1,4 @@
+import PaginatedList from "@/components/common/PaginatedList";
 import {
   Edit,
   Trash2,
@@ -28,7 +29,7 @@ const accountTypeStyles: Record<
 > = {
   Asset: {
     label: "Asset",
-    className: "bg-blue-50 text-blue-700 ring-blue-600/10",
+    className: "bg-brand-50 text-brand-700 ring-brand-600/10",
   },
   Liability: {
     label: "Liability",
@@ -78,7 +79,7 @@ export default function AccountTable({
 }: AccountTableProps) {
   if (isLoading) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="sm:p-5 p-4 ui-surface">
         <div className="space-y-4">
           {[1, 2, 3, 4].map((item) => (
             <div
@@ -93,7 +94,7 @@ export default function AccountTable({
 
   if (accounts.length === 0) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+      <div className="ui-surface p-8 text-center">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-500">
           <Wallet size={26} />
         </div>
@@ -115,39 +116,39 @@ export default function AccountTable({
       {/* =========================================================
           DESKTOP / TABLET
       ========================================================== */}
-      <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:block">
+      <div className="ui-surface hidden overflow-hidden md:block">
         <div className="overflow-x-auto">
-          <table className="min-w-[950px] w-full">
-            <thead className="border-b border-slate-200 bg-slate-50">
+          <table className="ui-table min-w-[950px]">
+            <thead className="ui-table-head border-b border-slate-200">
               <tr>
-                <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Account
                 </th>
 
-                <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Type
                 </th>
 
-                <th className="px-5 py-4 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Opening Balance
                 </th>
 
-                <th className="px-5 py-4 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Current Balance
                 </th>
 
-                <th className="px-5 py-4 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Status
                 </th>
 
-                <th className="px-5 py-4 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Actions
                 </th>
               </tr>
             </thead>
 
             <tbody className="divide-y divide-slate-100">
-              {accounts.map((account) => {
+              {<PaginatedList items={accounts} table>{(account) => {
                 const typeStyle = accountTypeStyles[account.accountType];
 
                 return (
@@ -156,7 +157,7 @@ export default function AccountTable({
                     className="transition hover:bg-slate-50/70"
                   >
                     {/* Account */}
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
                           {getAccountIcon(account.accountType)}
@@ -181,7 +182,7 @@ export default function AccountTable({
                     </td>
 
                     {/* Type */}
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-3">
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${
                           typeStyle?.className ??
@@ -193,14 +194,14 @@ export default function AccountTable({
                     </td>
 
                     {/* Opening Balance */}
-                    <td className="px-5 py-4 text-right">
+                    <td className="px-4 py-3 text-right">
                       <span className="font-medium text-slate-700">
                         {formatCurrency(account.openingBalance ?? 0)}
                       </span>
                     </td>
 
                     {/* Current Balance */}
-                    <td className="px-5 py-4 text-right">
+                    <td className="px-4 py-3 text-right">
                       <span
                         className={`font-semibold ${
                           (account.currentBalance ?? 0) > 0
@@ -215,7 +216,7 @@ export default function AccountTable({
                     </td>
 
                     {/* Status */}
-                    <td className="px-5 py-4 text-center">
+                    <td className="px-4 py-3 text-center">
                       <span
                         className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
                           account.status === "Active"
@@ -236,7 +237,7 @@ export default function AccountTable({
                     </td>
 
                     {/* Actions */}
-                    <td className="px-5 py-4">
+                    <td className="px-4 py-3">
                       <div className="flex justify-end gap-2">
                         {onEdit && (
                           <button
@@ -271,7 +272,7 @@ export default function AccountTable({
                     </td>
                   </tr>
                 );
-              })}
+              }}</PaginatedList>}
             </tbody>
           </table>
         </div>
@@ -281,13 +282,13 @@ export default function AccountTable({
           MOBILE
       ========================================================== */}
       <div className="space-y-3 md:hidden">
-        {accounts.map((account) => {
+        {<PaginatedList items={accounts}>{(account) => {
           const typeStyle = accountTypeStyles[account.accountType];
 
           return (
             <div
               key={account.id ?? account.accountCode}
-              className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+              className="ui-surface p-4"
             >
               {/* Header */}
               <div className="flex items-start justify-between gap-3">
@@ -413,7 +414,7 @@ export default function AccountTable({
               </div>
             </div>
           );
-        })}
+        }}</PaginatedList>}
       </div>
     </div>
   );

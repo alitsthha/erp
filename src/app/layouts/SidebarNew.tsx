@@ -110,7 +110,7 @@ export default function SidebarNew() {
                         to={c.path}
                         className={({ isActive }) =>
                           `flex items-center gap-2 rounded-md px-3 py-2 text-sm transition ${
-                            isActive ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-700 hover:text-white"
+                            isActive ? "bg-brand-600 text-white" : "text-slate-300 hover:bg-slate-700 hover:text-white"
                           }`
                         }
                       >
@@ -130,7 +130,7 @@ export default function SidebarNew() {
               title={item.title}
               className={({ isActive }) =>
                 `flex items-center gap-3 rounded-lg px-2 py-2 mb-1 transition ${
-                  isActive ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow" : "text-slate-200 hover:bg-slate-700 hover:text-white"
+                  isActive ? "bg-gradient-to-r from-brand-600 to-brand-600 text-white shadow" : "text-slate-200 hover:bg-slate-700 hover:text-white"
                 }`
               }
             >

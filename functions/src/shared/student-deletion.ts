@@ -1,0 +1,28 @@
+export interface UnpaidInvoice {
+  id: string;
+  invoiceNumber: string;
+  dueAmount: number;
+}
+
+/** Invoice balances are authoritative; attendance billing fields are not settled by payments. */
+export function getUnpaidInvoices(invoices: Array<{ id: string; data: Record<string, unknown> }>): UnpaidInvoice[] {
+  return invoices.flatMap(({ id, data }) => {
+    if (data.status === "Cancelled") return [];
+    const total = Number(data.totalAmount ?? data.dueAmount);
+    const paid = Number(data.paidAmount ?? 0);
+    const recordedDue = Number(data.dueAmount ?? Math.max(total - paid, 0));
+    if (![total, paid, recordedDue].every(Number.isFinite) || total < 0 || paid < 0 || recordedDue < 0) {
+      throw new Error(`Cannot verify payment clearance for invoice ${data.invoiceNumber || id}. Correct its payment totals before deleting the student.`);
+    }
+    const dueAmount = Math.round(Math.max(0, total - paid, recordedDue) * 100) / 100;
+    return dueAmount > 0 ? [{ id, invoiceNumber: String(data.invoiceNumber || id), dueAmount }] : [];
+  });
+}
+
+export function requireClearedPayments(invoices: Array<{ id: string; data: Record<string, unknown> }>): void {
+  const unpaid = getUnpaidInvoices(invoices);
+  if (unpaid.length) {
+    const outstanding = unpaid.reduce((sum, invoice) => sum + invoice.dueAmount, 0);
+    throw new Error(`Cannot delete student: Rs. ${outstanding.toFixed(2)} is outstanding across ${unpaid.length} invoice(s). Clear all payments first.`);
+  }
+}

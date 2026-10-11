@@ -82,14 +82,14 @@ export default function EditRolePage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="ui-page mx-auto space-y-6">
 
       <div>
-        <h1 className="text-3xl font-bold">
+        <h1 className="ui-page-title">
           Edit Role
         </h1>
 
-        <p className="text-gray-500">
+        <p className="text-slate-500">
           Update role information.
         </p>
       </div>

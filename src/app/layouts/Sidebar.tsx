@@ -11,6 +11,7 @@ import {
   Users,
   ClipboardList,
   CalendarCheck,
+  CalendarDays,
   Wallet,
   BarChart3,
   Settings,
@@ -90,6 +91,12 @@ const menu: MenuItem[] = [
     title: "Attendance",
     icon: CalendarCheck,
     path: "/attendance",
+    moduleKey: "attendance",
+  },
+  {
+    title: "Calendar",
+    icon: CalendarDays,
+    path: "/calendar",
     moduleKey: "attendance",
   },
   {
@@ -227,7 +234,7 @@ export default function Sidebar({
         {/* =================================================
             LOGO / BRAND
         ================================================== */}
-        <div className="flex h-20 shrink-0 items-center border-b border-slate-200 bg-slate-50 px-4 py-2">
+        <div className="flex h-16 shrink-0 items-center border-b border-slate-200 bg-white px-4 py-2">
           <NavLink
               to="/dashboard"
               onClick={onClose}
@@ -263,7 +270,7 @@ export default function Sidebar({
                 return (
                   <div key={item.title}>
                     {/* Parent menu button */}
-                    <div className="flex w-full items-center rounded-xl text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900">
+                    <div className="flex w-full items-center rounded-lg text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900">
                       <button
                         type="button"
                         onClick={() => {
@@ -313,7 +320,7 @@ export default function Sidebar({
                                 transition
                                 ${
                                   isActive
-                                    ? "bg-blue-50 font-semibold text-blue-600"
+                                    ? "bg-brand-50 font-semibold text-brand-600"
                                     : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                                 }
                               `
@@ -341,12 +348,12 @@ export default function Sidebar({
                   className={({ isActive }) =>
                     `
                     flex items-center gap-3
-                    rounded-xl px-3 py-2.5
+                    rounded-lg px-3 py-2.5
                     text-sm font-medium
                     transition
                     ${
                       isActive
-                        ? "bg-blue-50 text-blue-600"
+                        ? "bg-brand-50 text-brand-600"
                         : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                     }
                   `

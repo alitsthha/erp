@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
+import ListSortProvider from "@/components/common/ListSortProvider";
 
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 
 export default function DashboardLayout() {
+  const { pathname } = useLocation();
   const [sidebarOpen, setSidebarOpen] =
     useState(false);
 
@@ -25,8 +27,8 @@ export default function DashboardLayout() {
         />
 
         <main className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          <div className="mx-auto w-full max-w-[1600px]">
-            <Outlet />
+          <div className="mx-auto w-full max-w-7xl">
+            <ListSortProvider key={pathname}><Outlet /></ListSortProvider>
           </div>
         </main>
 

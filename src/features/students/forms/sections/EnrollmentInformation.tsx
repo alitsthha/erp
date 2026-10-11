@@ -1,7 +1,7 @@
 export default function EnrollmentInformation() {
   return (
-    <div className="rounded-xl bg-white p-6 shadow">
-      <h2 className="mb-2 text-xl font-semibold text-slate-900">
+    <div className="sm:p-5 p-4 ui-surface">
+      <h2 className="ui-section-title mb-2">
         Enrollment Information
       </h2>
       <p className="text-sm text-slate-500">

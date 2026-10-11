@@ -82,10 +82,10 @@ export default function RoleForm({
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="space-y-8"
+      className="space-y-6"
     >
-      <div className="rounded-2xl border bg-white p-8 shadow-sm">
-        <h2 className="mb-8 text-2xl font-semibold">
+      <div className="ui-surface p-8">
+        <h2 className="ui-section-title mb-8">
           Role Information
         </h2>
 
@@ -99,7 +99,7 @@ export default function RoleForm({
             <input
               value={initialData?.roleCode ?? "Auto Generated"}
               readOnly
-              className="w-full rounded-xl border bg-gray-100 px-4 py-3"
+              className="ui-field w-full bg-slate-100 px-4"
             />
           </div>
 
@@ -110,7 +110,7 @@ export default function RoleForm({
 
             <select
               {...register("status")}
-              className="w-full rounded-xl border px-4 py-3"
+              className="ui-field w-full px-4"
             >
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
@@ -124,7 +124,7 @@ export default function RoleForm({
 
             <input
               {...register("name")}
-              className="w-full rounded-xl border px-4 py-3"
+              className="ui-field w-full px-4"
             />
 
             <p className="mt-1 text-sm text-red-500">
@@ -139,7 +139,7 @@ export default function RoleForm({
 
             <input
               {...register("department")}
-              className="w-full rounded-xl border px-4 py-3"
+              className="ui-field w-full px-4"
             />
 
             <p className="mt-1 text-sm text-red-500">
@@ -155,7 +155,7 @@ export default function RoleForm({
             <textarea
               rows={4}
               {...register("description")}
-              className="w-full rounded-xl border px-4 py-3"
+              className="ui-field w-full px-4"
             />
 
             <p className="mt-1 text-sm text-red-500">
@@ -165,8 +165,8 @@ export default function RoleForm({
         </div>
       </div>
 
-      <div className="rounded-2xl border bg-white p-8 shadow-sm">
-        <h2 className="mb-8 text-2xl font-semibold">
+      <div className="ui-surface p-8">
+        <h2 className="ui-section-title mb-8">
           Role Settings
         </h2>
 
@@ -179,7 +179,7 @@ export default function RoleForm({
 
             <select
               {...register("color")}
-              className="w-full rounded-xl border px-4 py-3"
+              className="ui-field w-full px-4"
             >
               <option value="Blue">Blue</option>
               <option value="Green">Green</option>
@@ -200,7 +200,7 @@ export default function RoleForm({
               {...register("displayOrder", {
                 valueAsNumber: true,
               })}
-              className="w-full rounded-xl border px-4 py-3"
+              className="ui-field w-full px-4"
             />
           </div>
 
@@ -214,20 +214,20 @@ export default function RoleForm({
               {...register("staffCount", {
                 valueAsNumber: true,
               })}
-              className="w-full rounded-xl border bg-gray-100 px-4 py-3"
+              className="ui-field w-full bg-slate-100 px-4"
             />
           </div>
 
         </div>
       </div>
-            <div className="rounded-2xl border bg-white p-8 shadow-sm">
-        <h2 className="mb-6 text-2xl font-semibold">
+            <div className="ui-surface p-8">
+        <h2 className="ui-section-title mb-6">
           Permissions
         </h2>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full border border-gray-200">
-            <thead className="bg-gray-100">
+          <table className="ui-table border border-slate-200">
+            <thead className="ui-table-head">
               <tr>
                 <th className="border p-3 text-left">Module</th>
                 <th className="border p-3 text-center">View</th>
@@ -269,7 +269,7 @@ export default function RoleForm({
         <button
           type="submit"
           disabled={isSubmitting}
-          className="rounded-xl bg-blue-600 px-8 py-3 text-white hover:bg-blue-700 disabled:opacity-50"
+          className="ui-button bg-brand-600 px-8 py-3 text-white hover:bg-brand-700 disabled:opacity-50"
         >
           {isSubmitting ? "Saving..." : submitLabel}
         </button>

@@ -1,3 +1,4 @@
+import PaginatedList from "@/components/common/PaginatedList";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, BarChart3, CalendarRange, Download, TrendingUp } from "lucide-react";
@@ -245,7 +246,7 @@ export default function FinanceReportsPage() {
       {
         label: "Profit",
         value: summary.netProfit,
-        color: "bg-blue-500",
+        color: "bg-brand-500",
         height: (summary.netProfit / max) * 100,
       },
     ];
@@ -265,7 +266,7 @@ export default function FinanceReportsPage() {
 
   return (
     <div className="min-h-full bg-slate-50">
-      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="ui-page mx-auto w-full">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <button
@@ -277,8 +278,8 @@ export default function FinanceReportsPage() {
               Back to Finance
             </button>
 
-            <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">Finance Reports</h1>
-            <p className="mt-1 text-sm text-slate-500 sm:text-base">
+            <h1 className="ui-page-title">Finance Reports</h1>
+            <p className="mt-1 text-sm text-slate-500">
               Track student fee cash flow, expenses, profit, and account health by date.
             </p>
           </div>
@@ -288,7 +289,7 @@ export default function FinanceReportsPage() {
               type="button"
               onClick={handleExportPdf}
               disabled={exporting || loading}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 disabled:opacity-60"
+              className="ui-button inline-flex items-center justify-center gap-2 bg-brand-600 py-2.5 text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-60"
             >
               <Download size={16} />
               {exporting ? "Generating..." : "Export PDF Report"}
@@ -296,7 +297,7 @@ export default function FinanceReportsPage() {
           </div>
         </div>
 
-        <div className="mb-6 rounded-2xl border bg-white p-4 shadow-sm sm:p-5">
+        <div className="ui-surface mb-6 p-4 sm:p-5">
           <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-900">
             <CalendarRange size={16} className="text-slate-600" />
             Date Filter
@@ -308,7 +309,7 @@ export default function FinanceReportsPage() {
                 key={preset}
                 type="button"
                 onClick={() => applyPreset(preset)}
-                className={`rounded-lg px-3 py-2 text-xs font-medium ${periodPreset === preset ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-700"}`}
+                className={`rounded-lg px-3 py-2 text-xs font-medium ${periodPreset === preset ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-700"}`}
               >
                 {preset[0].toUpperCase() + preset.slice(1)}
               </button>
@@ -328,7 +329,7 @@ export default function FinanceReportsPage() {
               <button
                 type="button"
                 onClick={() => void loadReport()}
-                className="w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
+                className="ui-button w-full bg-brand-600 py-2.5 text-white hover:bg-brand-700"
               >
                 Apply Filter
               </button>
@@ -336,32 +337,32 @@ export default function FinanceReportsPage() {
           </div>
         </div>
 
-        <div className="mb-6 rounded-2xl border bg-white p-5 shadow-sm">
+        <div className="ui-surface mb-6 p-5">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">Realtime Financial Ledger</h2>
+            <h2 className="ui-section-title">Realtime Financial Ledger</h2>
             <span className="text-xs font-medium text-emerald-600">Live updates enabled</span>
           </div>
           <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="border-b text-xs uppercase text-slate-500">
+            <table className="ui-table">
+              <thead className="ui-table-head border-b">
                 <tr>
-                  <th className="px-3 py-2">Date</th>
-                  <th className="px-3 py-2">Type</th>
-                  <th className="px-3 py-2">Description</th>
-                  <th className="px-3 py-2">Reference</th>
-                  <th className="px-3 py-2 text-right">Amount</th>
+                  <th className="px-4 py-2">Date</th>
+                  <th className="px-4 py-2">Type</th>
+                  <th className="px-4 py-2">Description</th>
+                  <th className="px-4 py-2">Reference</th>
+                  <th className="px-4 py-2 text-right">Amount</th>
                 </tr>
               </thead>
               <tbody>
-                {ledger.slice(0, 50).map((entry) => (
+                {<PaginatedList items={ledger} table>{(entry) => (
                   <tr key={`${entry.type}-${entry.id}`} className="border-b border-slate-100">
-                    <td className="px-3 py-2">{entry.date}</td>
+                    <td className="px-4 py-2">{entry.date}</td>
                     <td className={entry.type === "Income" ? "px-3 py-2 text-emerald-600" : "px-3 py-2 text-rose-600"}>{entry.type}</td>
-                    <td className="px-3 py-2">{entry.description}</td>
-                    <td className="px-3 py-2 text-slate-500">{entry.reference}</td>
-                    <td className="px-3 py-2 text-right font-medium">{formatCurrency(entry.amount)}</td>
+                    <td className="px-4 py-2">{entry.description}</td>
+                    <td className="px-4 py-2 text-slate-500">{entry.reference}</td>
+                    <td className="px-4 py-2 text-right font-medium">{formatCurrency(entry.amount)}</td>
                   </tr>
-                ))}
+                )}</PaginatedList>}
               </tbody>
             </table>
             {ledger.length === 0 && <p className="py-8 text-center text-sm text-slate-500">No financial records for this period.</p>}
@@ -369,29 +370,29 @@ export default function FinanceReportsPage() {
         </div>
 
         <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-2xl border bg-white p-5 shadow-sm">
+          <div className="ui-surface p-5">
             <p className="text-sm text-slate-500">Income</p>
             <p className="mt-2 text-2xl font-bold text-slate-900">{formatCurrency(summary.totalIncome)}</p>
           </div>
-          <div className="rounded-2xl border bg-white p-5 shadow-sm">
+          <div className="ui-surface p-5">
             <p className="text-sm text-slate-500">Expenses</p>
             <p className="mt-2 text-2xl font-bold text-slate-900">{formatCurrency(summary.totalExpenses)}</p>
           </div>
-          <div className="rounded-2xl border bg-white p-5 shadow-sm">
+          <div className="ui-surface p-5">
             <p className="text-sm text-slate-500">Profit</p>
             <p className="mt-2 text-2xl font-bold text-slate-900">{formatCurrency(summary.netProfit)}</p>
           </div>
-          <div className="rounded-2xl border bg-white p-5 shadow-sm">
+          <div className="ui-surface p-5">
             <p className="text-sm text-slate-500">Outstanding</p>
             <p className="mt-2 text-2xl font-bold text-slate-900">{formatCurrency(summary.outstandingAmount)}</p>
           </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
-          <div className="rounded-2xl border bg-white p-5 shadow-sm">
+          <div className="ui-surface p-5">
             <div className="mb-5 flex items-center gap-2">
-              <BarChart3 size={18} className="text-blue-600" />
-              <h2 className="text-lg font-semibold text-slate-900">Cash Flow Overview</h2>
+              <BarChart3 size={18} className="text-brand-600" />
+              <h2 className="ui-section-title">Cash Flow Overview</h2>
             </div>
 
             {loading ? (
@@ -409,10 +410,10 @@ export default function FinanceReportsPage() {
             )}
           </div>
 
-          <div className="rounded-2xl border bg-white p-5 shadow-sm">
+          <div className="ui-surface p-5">
             <div className="mb-4 flex items-center gap-2">
               <TrendingUp size={18} className="text-emerald-600" />
-              <h2 className="text-lg font-semibold text-slate-900">Finance Summary</h2>
+              <h2 className="ui-section-title">Finance Summary</h2>
             </div>
 
             <div className="space-y-4">
@@ -420,7 +421,7 @@ export default function FinanceReportsPage() {
                 <span className="text-sm text-slate-600">Cash Balance</span>
                 <span className="font-semibold text-slate-900">{formatCurrency(summary.cashBalance)}</span>
               </div>
-              <div className="flex items-center justify-between rounded-xl bg-blue-50 p-3">
+              <div className="flex items-center justify-between rounded-xl bg-brand-50 p-3">
                 <span className="text-sm text-slate-600">Bank Balance</span>
                 <span className="font-semibold text-slate-900">{formatCurrency(summary.bankBalance)}</span>
               </div>

@@ -3,7 +3,6 @@ import {
   getDocs,
   query,
   orderBy,
-  limit,
 } from "firebase/firestore";
 
 import { db } from "@/firebase/config";
@@ -28,8 +27,7 @@ export async function getReportData(): Promise<ReportData> {
       getDocs(
         query(
           collection(db, "enrollments"),
-          orderBy("createdAt", "desc"),
-          limit(100)
+          orderBy("createdAt", "desc")
         )
       ),
     ]);
@@ -91,7 +89,6 @@ export async function getReportData(): Promise<ReportData> {
     });
 
   const recentEnrollments = enrollments
-    .slice(0, 10)
     .map((enrollment) => ({
       id: enrollment.id,
       enrollmentCode: enrollment.enrollmentCode,

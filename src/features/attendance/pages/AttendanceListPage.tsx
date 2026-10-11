@@ -1,3 +1,5 @@
+import "../attendance.css";
+import ListSortControl from "@/components/common/ListSortControl";
 import { useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
@@ -8,15 +10,18 @@ import {
   XCircle,
   Sparkles,
   Edit3,
-  Wallet,
+  UserRound,
   ListFilter,
   Send,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { filterActivityRecords, readAttendanceFilters } from "../utils/attendance-navigation";
+import { getKathmanduToday } from "@/utils/calendar-date";
 
 import type {
   Attendance,
   DailyAttendanceRecord,
+  AttendanceListRow,
 } from "@/features/attendance/types/attendance.types";
 
 import {
@@ -27,7 +32,7 @@ import {
 
 import { deleteAttendance } from "@/features/attendance/services/attendance.service";
 
-import { getCurrentBSDate, formatBSDate, isTodayBS } from "@/utils/nepali-date";
+import { formatBSDate } from "@/utils/nepali-date";
 
 import AttendanceDateNavigator from "@/features/attendance/components/AttendanceDateNavigator";
 import AttendanceSearch from "@/features/attendance/components/AttendanceSearch";
@@ -40,20 +45,31 @@ import { useAuth } from "@/app/providers/AuthProvider";
 import { isActivityAllowedForRole, isTeacherRole } from "@/lib/rbac";
 import { getStudentById } from "@/features/students/services/student.service";
 import { queueEmail } from "@/features/finance/services/email.service";
+import { subscribeActivityColors } from "@/features/activities/services/activity-color.service";
+import type { ActivityColors } from "@/features/activities/utils/activity-color";
+import { getAttendanceTeachers } from "../utils/attendance-recorder";
 
 type FilterStatus = "All" | "Present" | "Absent";
 type ViewMode = "daily" | "all";
-type GroupedAttendanceRow = Attendance & {
-  activityIds?: string[];
-};
+type GroupedAttendanceRow = AttendanceListRow;
 
 export default function AttendanceListPage() {
   const navigate = useNavigate();
-  const { role, activityIds, isAdmin } = useAuth();
+  const { role, activityIds } = useAuth();
 
   // Current BS Date by default
-  const [todayBS, setTodayBS] = useState(getCurrentBSDate);
-  const [selectedDateBS, setSelectedDateBS] = useState<string>(todayBS);
+  const [todayBS, setTodayBS] = useState(() => getKathmanduToday().bs);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { date: selectedDateBS, activityId: selectedActivityId, view: viewMode } = readAttendanceFilters(searchParams, todayBS);
+  const updateRouteFilter = (key: string, value: string) => setSearchParams((previous) => {
+    const next = new URLSearchParams(previous);
+    next.set(key, value);
+    if (key === "activityId") next.delete("activity");
+    return next;
+  });
+  const setSelectedDateBS = (value: string) => updateRouteFilter("date", value);
+  const setSelectedActivityId = (value: string) => updateRouteFilter("activityId", value);
+  const setViewMode = (value: ViewMode) => updateRouteFilter("view", value);
 
   // Daily records and all records
   const [dailyData, setDailyData] = useState<DailyAttendanceRecord | null>(null);
@@ -61,17 +77,18 @@ export default function AttendanceListPage() {
   const [recordedDates, setRecordedDates] = useState<string[]>([]);
 
   // Filters & State
-  const [viewMode, setViewMode] = useState<ViewMode>("daily");
-  const [selectedActivityId, setSelectedActivityId] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("All");
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [sendingAlerts, setSendingAlerts] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
+  const [activityColors, setActivityColors] = useState<ActivityColors>({});
+
+  useEffect(() => subscribeActivityColors(setActivityColors, () => setActivityColors({})), []);
 
   useEffect(() => {
-    const timer = window.setInterval(() => setTodayBS(getCurrentBSDate()), 60_000);
+    const timer = window.setInterval(() => setTodayBS(getKathmanduToday().bs), 60_000);
     return () => window.clearInterval(timer);
   }, []);
 
@@ -188,14 +205,16 @@ export default function AttendanceListPage() {
     );
   }, [viewMode, dailyData, activeRecords, role, activityIds]);
 
+  const activityRecords = useMemo(() => filterActivityRecords(activeRecords, selectedActivityId), [activeRecords, selectedActivityId]);
+
   const groupedDailyRecords = useMemo(() => {
     if (viewMode !== "daily") {
-      return activeRecords as GroupedAttendanceRow[];
+      return activityRecords as GroupedAttendanceRow[];
     }
 
     const map = new Map<string, GroupedAttendanceRow>();
 
-    for (const record of activeRecords) {
+    for (const record of activityRecords) {
       const studentKey =
         record.studentId || record.enrollmentId || `${record.studentName}-${record.studentCode}`;
 
@@ -241,6 +260,7 @@ export default function AttendanceListPage() {
             : "Absent",
         notes: mergedNotes,
         activityIds,
+        groupedRecords: [...(existing?.groupedRecords || []), record],
       };
 
       map.set(studentKey, mergedRecord);
@@ -249,9 +269,9 @@ export default function AttendanceListPage() {
     return Array.from(map.values()).sort((a, b) =>
       (a.studentName || "").localeCompare(b.studentName || "")
     );
-  }, [viewMode, activeRecords]);
+  }, [viewMode, activityRecords]);
 
-  const listRecords = viewMode === "daily" ? groupedDailyRecords : activeRecords;
+  const listRecords = viewMode === "daily" ? groupedDailyRecords : activityRecords;
 
   const classHistory = useMemo(() => {
     const allowedRecords = allAttendances.filter((record) =>
@@ -289,7 +309,8 @@ export default function AttendanceListPage() {
         record.activityCode?.toLowerCase().includes(search) ||
         record.attendanceCode?.toLowerCase().includes(search) ||
         record.enrollmentCode?.toLowerCase().includes(search) ||
-        record.notes?.toLowerCase().includes(search);
+        record.notes?.toLowerCase().includes(search) ||
+        getAttendanceTeachers(grouped.groupedRecords || [record]).some((teacher) => teacher.name.toLowerCase().includes(search));
 
       // Status filter
       const matchesStatus =
@@ -300,22 +321,16 @@ export default function AttendanceListPage() {
   }, [listRecords, selectedActivityId, searchTerm, filterStatus]);
 
   // Statistics calculation for the current view
-  const totalStudentsCount = activeRecords.length;
+  const totalStudentsCount = activityRecords.length;
   const presentCount = useMemo(
-    () => activeRecords.filter((item) => item.status === "Present").length,
-    [activeRecords]
+    () => activityRecords.filter((item) => item.status === "Present").length,
+    [activityRecords]
   );
   const absentCount = useMemo(
-    () => activeRecords.filter((item) => item.status === "Absent").length,
-    [activeRecords]
+    () => activityRecords.filter((item) => item.status === "Absent").length,
+    [activityRecords]
   );
-  const totalSessionFees = useMemo(
-    () =>
-      activeRecords
-        .filter((item) => item.status === "Present")
-        .reduce((sum, item) => sum + (Number(item.sessionFee) || 0), 0),
-    [activeRecords]
-  );
+  const teacherCount = useMemo(() => getAttendanceTeachers(activityRecords).filter((teacher) => teacher.id !== "unknown").length, [activityRecords]);
 
   const presentPercentage =
     totalStudentsCount > 0
@@ -381,10 +396,10 @@ export default function AttendanceListPage() {
     filterStatus !== "All" ||
     selectedActivityId !== "all";
 
-  const isToday = isTodayBS(selectedDateBS);
+  const isToday = selectedDateBS === todayBS;
 
   async function handleSendAbsenceAlerts() {
-    const absentRecords = activeRecords.filter((record) => record.status === "Absent");
+    const absentRecords = activityRecords.filter((record) => record.status === "Absent");
     if (absentRecords.length === 0) return;
 
     try {
@@ -413,26 +428,19 @@ export default function AttendanceListPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-6">
+    <div className="ui-page attendance-page mx-auto w-full min-w-0 space-y-6">
       
       {/* =====================================================
           PAGE HEADER & VIEW TOGGLES
       ====================================================== */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-blue-700">
-              Attendance Management
-            </span>
-            <span className="text-xs text-slate-400">• BS Nepali Calendar</span>
-          </div>
-
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-            Attendance Records
+          <h1 className="ui-page-title">
+            Attendance
           </h1>
 
           <p className="mt-1 text-sm text-slate-500">
-            Track daily attendance entries in correspondence to activities by Nepali date.
+            Review attendance, classes and teachers by Nepali date.
           </p>
         </div>
 
@@ -440,31 +448,33 @@ export default function AttendanceListPage() {
         <div className="flex flex-wrap items-center gap-3">
           
           {/* View Mode Toggle */}
-          <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+          <div className="ui-surface inline-flex p-1">
             <button
               type="button"
               onClick={() => setViewMode("daily")}
+              aria-pressed={viewMode === "daily"}
               className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                 viewMode === "daily"
-                  ? "bg-slate-900 text-white shadow"
+                  ? "bg-brand-600 text-white"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
               <CalendarDays size={14} />
-              Daily BS View
+              Daily view
             </button>
 
             <button
               type="button"
               onClick={() => setViewMode("all")}
+              aria-pressed={viewMode === "all"}
               className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                 viewMode === "all"
-                  ? "bg-slate-900 text-white shadow"
+                  ? "bg-brand-600 text-white"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
               <ListFilter size={14} />
-              All History
+              All history
             </button>
           </div>
 
@@ -480,12 +490,12 @@ export default function AttendanceListPage() {
                 }`
               )
             }
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+            className="ui-button inline-flex items-center justify-center gap-2 bg-brand-600 py-2.5 text-white transition hover:bg-brand-700"
           >
             {activeRecords.length > 0 && viewMode === "daily" ? (
               <>
                 <Edit3 size={16} />
-                Edit / Take for Date
+                Update attendance
               </>
             ) : (
               <>
@@ -519,49 +529,49 @@ export default function AttendanceListPage() {
       {/* =====================================================
           SUMMARY METRICS
       ====================================================== */}
-      <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${isAdmin ? "xl:grid-cols-4" : "xl:grid-cols-3"}`}>
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         
         {/* Total Students */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="ui-surface p-3 sm:p-4">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <p className="text-xs font-medium text-slate-500">
                 {viewMode === "daily"
                   ? isToday
                     ? "Today's Students"
                     : "Students on Date"
                   : "Total Records"}
               </p>
-              <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
+              <p className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
                 {totalStudentsCount}
               </p>
             </div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
-              <Users size={20} />
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+              <Users size={17} />
             </div>
           </div>
-          <p className="mt-3 text-xs text-slate-500">
+          <p className="mt-2 text-xs text-slate-500">
             {availableActivities.length} active{" "}
             {availableActivities.length === 1 ? "activity" : "activities"}
           </p>
         </div>
 
         {/* Present Count */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="ui-surface p-3 sm:p-4">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-emerald-600">
+              <p className="text-xs font-medium text-emerald-600">
                 Present
               </p>
-              <p className="mt-2 text-3xl font-bold tracking-tight text-emerald-700">
+              <p className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
                 {presentCount}
               </p>
             </div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-              <CheckCircle2 size={20} />
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+              <CheckCircle2 size={17} />
             </div>
           </div>
-          <div className="mt-3 flex items-center gap-2 text-xs">
+          <div className="mt-2 flex items-center gap-2 text-xs">
             <span className="font-semibold text-emerald-600">
               {presentPercentage}% attendance rate
             </span>
@@ -569,45 +579,45 @@ export default function AttendanceListPage() {
         </div>
 
         {/* Absent Count */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="ui-surface p-3 sm:p-4">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-rose-600">
+              <p className="text-xs font-medium text-rose-600">
                 Absent
               </p>
-              <p className="mt-2 text-3xl font-bold tracking-tight text-rose-700">
+              <p className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
                 {absentCount}
               </p>
             </div>
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
-              <XCircle size={20} />
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-600">
+              <XCircle size={17} />
             </div>
           </div>
-          <p className="mt-3 text-xs text-slate-400">
+          <p className="mt-2 text-xs text-slate-400">
             {totalStudentsCount > 0
               ? `${100 - presentPercentage}% absent rate`
               : "No absences recorded"}
           </p>
         </div>
 
-        {/* Session Fee Total */}
-        {isAdmin && (
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        {/* Attendance recorders */}
+        {(
+          <div className="ui-surface p-3 sm:p-4">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                  Session Fees Total
+                <p className="text-xs font-medium text-slate-500">
+                  Teachers
                 </p>
-                <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
-                  Rs. {totalSessionFees.toLocaleString("en-IN")}
+                <p className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
+                  {teacherCount}
                 </p>
               </div>
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                <Wallet size={20} />
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                <UserRound size={17} />
               </div>
             </div>
-            <p className="mt-3 text-xs text-slate-400">
-              Auto-billed from present sessions
+            <p className="mt-2 text-xs text-slate-400">
+              Recorded by these users
             </p>
           </div>
         )}
@@ -617,16 +627,16 @@ export default function AttendanceListPage() {
           ACTIVITY CORRESPONDENCE / TABS (Hidden for specific roled staff)
       ====================================================== */}
       {(role === "admin" || isTeacherRole(role)) && availableActivities.length > 0 && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-          <div className="mb-3 flex items-center justify-between">
+        <div className="ui-surface p-4 sm:p-5">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <Sparkles size={16} className="text-blue-600" />
-              <h2 className="text-sm font-bold text-slate-900">
-                Activity Breakdown
+              <Sparkles size={16} className="text-brand-600" />
+              <h2 className="ui-section-title text-sm">
+                Activities
               </h2>
             </div>
             <span className="text-xs text-slate-400">
-              Click an activity to filter records
+              Filter by activity · P = present, A = absent
             </span>
           </div>
 
@@ -635,9 +645,10 @@ export default function AttendanceListPage() {
             <button
               type="button"
               onClick={() => setSelectedActivityId("all")}
+              aria-pressed={selectedActivityId === "all"}
               className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition ${
                 selectedActivityId === "all"
-                  ? "bg-slate-900 text-white shadow-sm"
+                  ? "bg-brand-600 text-white"
                   : "border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
               }`}
             >
@@ -645,7 +656,7 @@ export default function AttendanceListPage() {
               <span
                 className={`rounded-full px-2 py-0.5 text-[10px] ${
                   selectedActivityId === "all"
-                    ? "bg-slate-800 text-slate-200"
+                    ? "bg-white/20 text-white"
                     : "bg-slate-200 text-slate-700"
                 }`}
               >
@@ -660,6 +671,7 @@ export default function AttendanceListPage() {
                 <button
                   key={act.activityId}
                   type="button"
+                  aria-pressed={isSelected}
                   onClick={() =>
                     setSelectedActivityId(
                       isSelected ? "all" : act.activityId
@@ -667,15 +679,16 @@ export default function AttendanceListPage() {
                   }
                   className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition ${
                     isSelected
-                      ? "bg-blue-600 text-white shadow-sm"
+                      ? "bg-brand-600 text-white"
                       : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
                   }`}
                 >
+                  <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full border border-black/10" style={{ backgroundColor: activityColors[act.activityId]?.color || "#94A3B8" }} />
                   <span>{act.activityName}</span>
                   <span
                     className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
                       isSelected
-                        ? "bg-blue-700 text-white"
+                        ? "bg-brand-700 text-white"
                         : "bg-emerald-50 text-emerald-700"
                     }`}
                   >
@@ -688,50 +701,51 @@ export default function AttendanceListPage() {
         </div>
       )}
 
-      {/* =====================================================
-          SEARCH & FILTER CONTROLS
-      ====================================================== */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-        <div className="grid gap-3 lg:grid-cols-[1fr_220px_auto]">
-          <div className="min-w-0">
-            <AttendanceSearch
-              value={searchTerm}
-              onChange={setSearchTerm}
+      <div className="ui-surface">
+        {/* =====================================================
+            SEARCH & FILTER CONTROLS
+        ====================================================== */}
+        <div className="attendance-toolbar border-b border-slate-100 p-4">
+          <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto_160px_auto]">
+            <div className="min-w-0">
+              <AttendanceSearch
+                value={searchTerm}
+                onChange={setSearchTerm}
+              />
+            </div>
+
+            <ListSortControl />
+
+            <AttendanceFilters
+              status={filterStatus}
+              onStatusChange={(value) =>
+                setFilterStatus(value as FilterStatus)
+              }
             />
+
+            {hasFilters && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="ui-button inline-flex items-center justify-center gap-2 border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-50"
+              >
+                <XCircle size={16} />
+                Clear Filters
+              </button>
+            )}
           </div>
-
-          <AttendanceFilters
-            status={filterStatus}
-            onStatusChange={(value) =>
-              setFilterStatus(value as FilterStatus)
-            }
-          />
-
-          {hasFilters && (
-            <button
-              type="button"
-              onClick={clearFilters}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-            >
-              <XCircle size={16} />
-              Clear Filters
-            </button>
-          )}
         </div>
-      </div>
 
-      {/* =====================================================
-          RECORDS LIST & EMPTY STATES
-      ====================================================== */}
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        
+        {/* =====================================================
+            RECORDS LIST & EMPTY STATES
+        ====================================================== */}
         {/* Table Header / Context Banner */}
-        <div className="flex flex-col gap-2 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="flex flex-col gap-2 border-b border-slate-100 px-4 py-4 xl:flex-row xl:items-center xl:justify-between">
           <div>
-            <h2 className="font-bold text-slate-900">
+            <h2 className="ui-section-title text-sm">
               {viewMode === "daily"
-                ? `Attendance for ${formatBSDate(selectedDateBS, "full")} (${selectedDateBS} BS)`
-                : "All Historical Attendance Records"}
+                ? `Records · ${formatBSDate(selectedDateBS, "full")}`
+                : "All attendance records"}
             </h2>
 
             <p className="mt-0.5 text-xs text-slate-500">
@@ -752,7 +766,7 @@ export default function AttendanceListPage() {
                     {
                       availableActivities.find(
                         (a) => a.activityId === selectedActivityId
-                      )?.activityName
+                      )?.activityName || "selected activity"
                     }
                   </strong>
                 </span>
@@ -760,7 +774,7 @@ export default function AttendanceListPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {viewMode === "daily" && (
               <>
                 {absentCount > 0 && (
@@ -768,7 +782,7 @@ export default function AttendanceListPage() {
                     type="button"
                     onClick={() => void handleSendAbsenceAlerts()}
                     disabled={sendingAlerts}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <Send size={13} />
                     {sendingAlerts ? "Sending alerts..." : `Alert ${absentCount} absent`}
@@ -785,7 +799,7 @@ export default function AttendanceListPage() {
                     }`
                   )
                 }
-                className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-brand-600/20 bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-600 transition hover:bg-brand-600/10"
               >
                 <Edit3 size={13} />
                 Edit Date Roster
@@ -802,15 +816,15 @@ export default function AttendanceListPage() {
         )}
 
         {/* Table / Content */}
-        <div className="p-4 sm:p-5">
+        <div>
           {isLoading ? (
             <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-500">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-blue-600" />
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-brand-600" />
               <p className="text-sm">Loading attendance data...</p>
             </div>
           ) : filteredAttendances.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 px-5 py-14 text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-slate-400 shadow-sm">
+            <div className="rounded-b-xl bg-slate-50/40 px-5 py-14 text-center">
+              <div className="ui-surface mx-auto flex h-14 w-14 items-center justify-center text-slate-400">
                 <ClipboardCheck size={28} />
               </div>
 
@@ -831,7 +845,7 @@ export default function AttendanceListPage() {
                   <button
                     type="button"
                     onClick={clearFilters}
-                    className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+                    className="ui-button border border-slate-300 bg-white py-2.5 text-slate-700 transition hover:bg-slate-50"
                   >
                     Clear Filters
                   </button>
@@ -848,7 +862,7 @@ export default function AttendanceListPage() {
                       }`
                     )
                   }
-                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-blue-700"
+                  className="ui-button inline-flex items-center gap-2 bg-brand-600 py-2.5 text-white transition hover:bg-brand-700"
                 >
                   <Plus size={17} />
                   Record Attendance for {selectedDateBS}
@@ -862,6 +876,7 @@ export default function AttendanceListPage() {
               onDelete={handleDelete}
               isLoading={isLoading}
               classHistory={classHistory}
+              activityColors={activityColors}
             />
           )}
         </div>

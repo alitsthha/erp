@@ -19,14 +19,14 @@ export default function FinanceFilters({
   onReset,
 }: FinanceFiltersProps) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+    <div className="ui-surface p-4 sm:p-5">
       <div className="mb-4 flex items-center gap-2">
         <div className="rounded-lg bg-slate-100 p-2">
           <Filter size={17} className="text-slate-600" />
         </div>
 
         <div>
-          <h2 className="text-sm font-semibold text-slate-900">
+          <h2 className="ui-section-title text-sm">
             Financial Period
           </h2>
 
@@ -56,7 +56,7 @@ export default function FinanceFilters({
         <button
           type="button"
           onClick={onApply}
-          className="h-11 rounded-xl bg-slate-900 px-5 text-sm font-medium text-white transition hover:bg-slate-800"
+          className="ui-button bg-brand-600 text-white transition hover:bg-brand-700"
         >
           Apply Filter
         </button>
@@ -64,7 +64,7 @@ export default function FinanceFilters({
         <button
           type="button"
           onClick={onReset}
-          className="h-11 rounded-xl border border-slate-300 bg-white px-5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+          className="ui-button border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-50"
         >
           Reset
         </button>

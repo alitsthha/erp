@@ -71,9 +71,9 @@ export default function SalaryConfigForm({
       onSubmit={handleSubmit(onSubmit)}
       className="space-y-8"
     >
-      <div className="rounded-2xl border bg-white p-6 shadow-sm">
+      <div className="sm:p-5 p-4 ui-surface">
 
-        <h2 className="mb-6 text-2xl font-semibold">
+        <h2 className="ui-section-title mb-6">
           Salary Configuration
         </h2>
 
@@ -83,7 +83,7 @@ export default function SalaryConfigForm({
             <label className="mb-2 block font-medium">
               Staff Member
             </label>
-            <select {...register("staffId", { onChange: (event) => { const selected = staff.find((item) => item.id === event.target.value); setValue("staffName", selected?.fullName ?? ""); setValue("role", selected?.designation ?? ""); } })} className="w-full rounded-xl border px-4 py-3" required>
+            <select {...register("staffId", { onChange: (event) => { const selected = staff.find((item) => item.id === event.target.value); setValue("staffName", selected?.fullName ?? ""); setValue("role", selected?.designation ?? ""); } })} className="ui-field w-full px-4" required>
               <option value="">Select staff member</option>
               {staff.map((item) => <option key={item.id} value={item.id}>{item.fullName} ({item.staffCode})</option>)}
             </select>
@@ -97,7 +97,7 @@ export default function SalaryConfigForm({
 
             <select
               {...register("salaryType")}
-              className="w-full rounded-xl border px-4 py-3"
+              className="ui-field w-full px-4"
             >
               <option>Monthly</option>
               <option>Hourly</option>
@@ -115,7 +115,7 @@ export default function SalaryConfigForm({
               {...register("basicSalary", {
                 valueAsNumber: true,
               })}
-              className="w-full rounded-xl border px-4 py-3"
+              className="ui-field w-full px-4"
             />
           </div>
 
@@ -127,7 +127,7 @@ export default function SalaryConfigForm({
               type="number"
               min="1"
               {...register("expectedWorkingDays", { valueAsNumber: true })}
-              className="w-full rounded-xl border px-4 py-3"
+              className="ui-field w-full px-4"
             />
             <p className="mt-1 text-xs text-slate-500">Used to prorate monthly salary.</p>
           </div>
@@ -142,7 +142,7 @@ export default function SalaryConfigForm({
               {...register("allowance", {
                 valueAsNumber: true,
               })}
-              className="w-full rounded-xl border px-4 py-3"
+              className="ui-field w-full px-4"
             />
           </div>
 
@@ -156,7 +156,7 @@ export default function SalaryConfigForm({
               {...register("overtimeRate", {
                 valueAsNumber: true,
               })}
-              className="w-full rounded-xl border px-4 py-3"
+              className="ui-field w-full px-4"
             />
           </div>
 
@@ -170,7 +170,7 @@ export default function SalaryConfigForm({
               {...register("bonus", {
                 valueAsNumber: true,
               })}
-              className="w-full rounded-xl border px-4 py-3"
+              className="ui-field w-full px-4"
             />
           </div>
 
@@ -184,7 +184,7 @@ export default function SalaryConfigForm({
               {...register("deduction", {
                 valueAsNumber: true,
               })}
-              className="w-full rounded-xl border px-4 py-3"
+              className="ui-field w-full px-4"
             />
           </div>
 
@@ -198,7 +198,7 @@ export default function SalaryConfigForm({
               {...register("tax", {
                 valueAsNumber: true,
               })}
-              className="w-full rounded-xl border px-4 py-3"
+              className="ui-field w-full px-4"
             />
           </div>
 
@@ -209,7 +209,7 @@ export default function SalaryConfigForm({
 
             <select
               {...register("status")}
-              className="w-full rounded-xl border px-4 py-3"
+              className="ui-field w-full px-4"
             >
               <option>Active</option>
               <option>Inactive</option>
@@ -218,7 +218,7 @@ export default function SalaryConfigForm({
 
         </div>
 
-        <div className="mt-8 rounded-xl bg-blue-50 p-5">
+        <div className="mt-8 rounded-xl bg-brand-50 p-5">
 
           <h3 className="mb-4 text-lg font-semibold">
             Salary Summary
@@ -264,7 +264,7 @@ export default function SalaryConfigForm({
         <button
           type="submit"
           disabled={isSubmitting}
-          className="rounded-xl bg-blue-600 px-6 py-3 font-medium text-white hover:bg-blue-700"
+          className="ui-button bg-brand-600 py-3 text-white hover:bg-brand-700"
         >
           {isSubmitting ? "Saving..." : submitLabel}
         </button>

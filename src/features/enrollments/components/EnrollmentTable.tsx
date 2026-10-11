@@ -1,3 +1,4 @@
+import PaginatedList from "@/components/common/PaginatedList";
 import {
   CalendarDays,
   UserRound,
@@ -31,7 +32,7 @@ export default function EnrollmentTable({
 }: Props) {
   if (enrollments.length === 0) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white px-6 py-14 text-center shadow-sm">
+      <div className="ui-surface px-6 py-14 text-center">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
           <ActivityIcon
             size={22}
@@ -51,59 +52,59 @@ export default function EnrollmentTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div className="ui-surface overflow-hidden">
       {/* Desktop / Tablet Table */}
       <div className="w-full overflow-x-auto">
-        <table className="w-full min-w-[900px] text-left">
-          <thead className="border-b border-slate-200 bg-slate-50">
+        <table className="ui-table min-w-[900px]">
+          <thead className="ui-table-head border-b border-slate-200">
             <tr>
-              <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Enrollment Code
               </th>
 
-              <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Student
               </th>
 
-              <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Activity
               </th>
 
-              <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Enrollment Date
               </th>
 
-              <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Fee
               </th>
 
-              <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Status
               </th>
 
-              <th className="px-5 py-3.5 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Actions
               </th>
             </tr>
           </thead>
 
           <tbody className="divide-y divide-slate-100">
-            {enrollments.map((enrollment) => (
+            {<PaginatedList showSort={false} items={enrollments} table>{(enrollment) => (
               <tr
                 key={enrollment.id}
                 className="transition hover:bg-slate-50/80"
               >
                 {/* Enrollment Code */}
-                <td className="whitespace-nowrap px-5 py-4">
-                  <span className="rounded-lg bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-700">
+                <td className="whitespace-nowrap px-4 py-3">
+                  <span className="rounded-lg bg-brand-50 px-2.5 py-1.5 text-xs font-semibold text-brand-700">
                     {enrollment.enrollmentCode}
                   </span>
                 </td>
 
                 {/* Student */}
-                <td className="px-5 py-4">
+                <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-50 text-violet-600">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
                       <UserRound size={16} />
                     </div>
 
@@ -120,7 +121,7 @@ export default function EnrollmentTable({
                 </td>
 
                 {/* Activity */}
-                <td className="px-5 py-4">
+                <td className="px-4 py-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-slate-900">
                       {enrollment.activityName}
@@ -133,7 +134,7 @@ export default function EnrollmentTable({
                 </td>
 
                 {/* Date */}
-                <td className="whitespace-nowrap px-5 py-4">
+                <td className="whitespace-nowrap px-4 py-3">
                   <div className="flex items-center gap-2 text-sm text-slate-700">
                     <CalendarDays
                       size={15}
@@ -144,7 +145,7 @@ export default function EnrollmentTable({
                 </td>
 
                 {/* Session Fee */}
-                <td className="whitespace-nowrap px-5 py-4">
+                <td className="whitespace-nowrap px-4 py-3">
                   <span className="text-sm font-semibold text-slate-900">
                     {typeof (enrollment.countedMonthly ? enrollment.monthlyFee : enrollment.sessionFee) === "number"
                       ? `Rs. ${((enrollment.countedMonthly ? enrollment.monthlyFee : enrollment.sessionFee) || 0).toLocaleString()} ${enrollment.countedMonthly ? "/ month" : "/ session"}`
@@ -153,7 +154,7 @@ export default function EnrollmentTable({
                 </td>
 
                 {/* Status */}
-                <td className="px-5 py-4">
+                <td className="px-4 py-3">
                   <span
                     className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
                       enrollment.status === "Active"
@@ -166,7 +167,7 @@ export default function EnrollmentTable({
                 </td>
 
                 {/* Actions */}
-                <td className="px-5 py-4">
+                <td className="px-4 py-3">
                   <EnrollmentActions
                     onView={() =>
                       onViewEnrollment(enrollment)
@@ -180,21 +181,21 @@ export default function EnrollmentTable({
                   />
                 </td>
               </tr>
-            ))}
+            )}</PaginatedList>}
           </tbody>
         </table>
       </div>
 
       {/* Mobile Cards */}
       <div className="divide-y divide-slate-100 md:hidden">
-        {enrollments.map((enrollment) => (
+        {<PaginatedList showSort={false} items={enrollments}>{(enrollment) => (
           <div
             key={enrollment.id}
             className="p-4"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <span className="inline-flex rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
+                <span className="inline-flex rounded-lg bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-700">
                   {enrollment.enrollmentCode}
                 </span>
 
@@ -265,7 +266,7 @@ export default function EnrollmentTable({
               />
             </div>
           </div>
-        ))}
+        )}</PaginatedList>}
       </div>
     </div>
   );

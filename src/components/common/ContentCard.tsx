@@ -8,9 +8,9 @@ export default function CardContent({
   children,
 }: CardContentProps) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div className="ui-surface">
       <div className="border-b border-slate-200 px-6 py-4">
-        <h2 className="text-lg font-semibold text-slate-800">
+        <h2 className="ui-section-title">
           {title}
         </h2>
       </div>

@@ -1,5 +1,4 @@
 import {
-  addDoc,
   collection,
   deleteDoc,
   doc,
@@ -8,14 +7,14 @@ import {
   orderBy,
   query,
   serverTimestamp,
-  updateDoc,
 } from "firebase/firestore";
 
 import { db } from "@/firebase/config";
 
 import { generateActivityCode } from "./activity-code.service";
 
-import type { ActivityFormData } from "../schemas/activity.schema";
+import { activitySchema, type ActivityFormData } from "../schemas/activity.schema";
+import { ensureActivityColors, writeColoredActivity } from "./activity-color.service";
 import type { Activity } from "../types/activity.types";
 
 export async function getActivities(): Promise<Activity[]> {
@@ -54,6 +53,8 @@ export async function getActivityById(
 export async function addActivity(
   data: ActivityFormData
 ): Promise<string> {
+  data = activitySchema.parse(data);
+  await ensureActivityColors();
   const activityCode =
     await generateActivityCode();
 
@@ -97,10 +98,8 @@ export async function addActivity(
       serverTimestamp(),
   };
 
-  const docRef = await addDoc(
-    collection(db, "activities"),
-    payload
-  );
+  const docRef = doc(collection(db, "activities"));
+  await writeColoredActivity(docRef.id, payload, data.color, { create: true });
 
   return docRef.id;
 }
@@ -109,6 +108,8 @@ export async function updateActivity(
   activityId: string,
   data: ActivityFormData
 ): Promise<void> {
+  data = activitySchema.parse(data);
+  await ensureActivityColors();
   const numFeePerSession = data.feePerSession?.trim()
     ? Number(data.feePerSession)
     : 0;
@@ -144,10 +145,7 @@ export async function updateActivity(
       serverTimestamp(),
   };
 
-  await updateDoc(
-    doc(db, "activities", activityId),
-    payload
-  );
+  await writeColoredActivity(activityId, payload, data.color);
 }
 
 export async function deleteActivity(

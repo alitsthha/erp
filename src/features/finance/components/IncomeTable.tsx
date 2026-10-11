@@ -1,3 +1,4 @@
+import PaginatedList from "@/components/common/PaginatedList";
 import { Edit, Trash2 } from "lucide-react";
 import { formatCurrency } from "@/utils/currency";
 import type { Income } from "../types/income.types";
@@ -22,7 +23,7 @@ export default function IncomeTable({
 }: IncomeTableProps) {
   if (isLoading) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="ui-surface">
         <div className="space-y-3 p-6">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-14 animate-pulse rounded-xl bg-slate-100" />
@@ -34,7 +35,7 @@ export default function IncomeTable({
 
   if (incomes.length === 0) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+      <div className="ui-surface p-10 text-center">
         <p className="text-sm font-medium text-slate-500">No income records</p>
         <p className="mt-1 text-xs text-slate-400">Add your first income entry to get started.</p>
       </div>
@@ -42,47 +43,47 @@ export default function IncomeTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div className="ui-surface overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="min-w-[700px] w-full">
-          <thead className="border-b border-slate-200 bg-slate-50">
+        <table className="ui-table min-w-[700px]">
+          <thead className="ui-table-head border-b border-slate-200">
             <tr>
-              <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Income #
               </th>
-              <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Category
               </th>
-              <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Description
               </th>
-              <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Date
               </th>
-              <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Source
               </th>
-              <th className="px-5 py-4 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Amount
               </th>
-              <th className="px-5 py-4 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Actions
               </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {incomes.map((income) => (
+            {<PaginatedList items={incomes} table>{(income) => (
               <tr
                 key={income.id}
                 className="transition hover:bg-slate-50/70"
               >
-                <td className="px-5 py-4">
+                <td className="px-4 py-3">
                   <span className="font-mono text-sm font-semibold text-slate-700">
                     {income.incomeNumber}
                   </span>
                 </td>
 
-                <td className="px-5 py-4">
+                <td className="px-4 py-3">
                   <span
                     className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${CATEGORY_STYLES[income.category] ?? CATEGORY_STYLES.Other}`}
                   >
@@ -90,27 +91,27 @@ export default function IncomeTable({
                   </span>
                 </td>
 
-                <td className="max-w-[200px] px-5 py-4">
+                <td className="max-w-[200px] px-4 py-3">
                   <p className="truncate text-sm text-slate-900">
                     {income.description}
                   </p>
                 </td>
 
-                <td className="px-5 py-4 text-sm text-slate-700">
+                <td className="px-4 py-3 text-sm text-slate-700">
                   {income.incomeDate}
                 </td>
 
-                <td className="px-5 py-4 text-sm text-slate-500">
+                <td className="px-4 py-3 text-sm text-slate-500">
                   {income.source || "—"}
                 </td>
 
-                <td className="px-5 py-4 text-right">
+                <td className="px-4 py-3 text-right">
                   <span className="font-semibold text-emerald-700">
                     {formatCurrency(income.amount)}
                   </span>
                 </td>
 
-                <td className="px-5 py-4">
+                <td className="px-4 py-3">
                   <div className="flex justify-end gap-2">
                     {onEdit && (
                       <button
@@ -139,7 +140,7 @@ export default function IncomeTable({
                   </div>
                 </td>
               </tr>
-            ))}
+            )}</PaginatedList>}
           </tbody>
         </table>
       </div>

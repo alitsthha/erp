@@ -21,7 +21,7 @@ export default function EnrollmentFilters({
         onChange={(event) =>
           onChange?.(event.target.value)
         }
-        className="h-11 w-full appearance-none rounded-xl border border-slate-300 bg-white pl-10 pr-4 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+        className="ui-field w-full appearance-none pl-10 pr-4 text-slate-700 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
       >
         <option value="all">All Enrollments</option>
         <option value="active">Active</option>

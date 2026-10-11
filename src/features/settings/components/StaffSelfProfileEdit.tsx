@@ -111,9 +111,9 @@ export default function StaffSelfProfileEdit() {
 
   if (loading) {
     return (
-      <div className="flex h-64 w-full items-center justify-center rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+      <div className="ui-surface flex h-64 w-full items-center justify-center p-8">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-600 border-t-transparent" />
           <p className="text-sm font-medium text-slate-500">Loading user profile...</p>
         </div>
       </div>
@@ -121,39 +121,39 @@ export default function StaffSelfProfileEdit() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mx-auto w-full max-w-4xl space-y-6">
+    <form onSubmit={handleSubmit} className="ui-page mx-auto w-full space-y-6">
       
       {/* Alerts */}
       {success && (
-        <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-800 shadow-sm">
+        <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-800 shadow-sm">
           <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
           <p className="text-sm font-medium">{success}</p>
         </div>
       )}
 
       {error && (
-        <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-red-800 shadow-sm">
+        <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-red-800 shadow-sm">
           <AlertCircle className="h-5 w-5 shrink-0 text-red-600" />
           <p className="text-sm font-medium">{error}</p>
         </div>
       )}
 
       {/* Header Profile Summary */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+      <div className="sm:p-5 p-4 ui-surface overflow-hidden">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-2xl font-bold text-white shadow-md">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-2xl font-bold text-white shadow-md">
               {(fullName || user?.email || "U").charAt(0).toUpperCase()}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-bold text-blue-700">
+                <span className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-bold text-brand-700">
                   <ShieldCheck size={13} />
                   {getRoleLabel(role)}
                 </span>
                 <span className="text-xs text-slate-400">• Active Staff Account</span>
               </div>
-              <h1 className="mt-1 text-2xl font-bold text-slate-900 sm:text-3xl">
+              <h1 className="ui-page-title mt-1">
                 {fullName || user?.email || "Staff Member Profile"}
               </h1>
               <p className="mt-0.5 text-xs font-medium text-slate-500">
@@ -165,9 +165,9 @@ export default function StaffSelfProfileEdit() {
       </div>
 
       {/* Main Details Form */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 space-y-6">
+      <div className="sm:p-5 p-4 ui-surface space-y-6">
         <div>
-          <h2 className="text-base font-bold text-slate-900">Personal Information</h2>
+          <h2 className="ui-section-title">Personal Information</h2>
           <p className="text-xs text-slate-500">Update your contact information and personal details.</p>
         </div>
 
@@ -182,7 +182,7 @@ export default function StaffSelfProfileEdit() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Your full name"
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-3 text-xs outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className="ui-field w-full pl-10 pr-3 text-xs outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
                 required
               />
             </div>
@@ -197,7 +197,7 @@ export default function StaffSelfProfileEdit() {
                 type="email"
                 value={user?.email || ""}
                 disabled
-                className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3 text-xs font-medium text-slate-500"
+                className="ui-field w-full bg-slate-50 pl-10 pr-3 text-xs font-medium text-slate-500"
               />
             </div>
           </div>
@@ -212,7 +212,7 @@ export default function StaffSelfProfileEdit() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="+977 98XXXXXXXX"
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-3 text-xs outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className="ui-field w-full pl-10 pr-3 text-xs outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
               />
             </div>
           </div>
@@ -227,7 +227,7 @@ export default function StaffSelfProfileEdit() {
                 value={qualification}
                 onChange={(e) => setQualification(e.target.value)}
                 placeholder="e.g. Bachelor in Fine Arts"
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-3 text-xs outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className="ui-field w-full pl-10 pr-3 text-xs outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
               />
             </div>
           </div>
@@ -242,7 +242,7 @@ export default function StaffSelfProfileEdit() {
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="Street, City, Ward No., Nepal"
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-3 text-xs outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className="ui-field w-full pl-10 pr-3 text-xs outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
               />
             </div>
           </div>
@@ -252,7 +252,7 @@ export default function StaffSelfProfileEdit() {
 
         {/* Emergency Contact */}
         <div>
-          <h2 className="text-base font-bold text-slate-900">Emergency Contact</h2>
+          <h2 className="ui-section-title">Emergency Contact</h2>
           <p className="text-xs text-slate-500">Person to contact in case of an emergency.</p>
         </div>
 
@@ -266,7 +266,7 @@ export default function StaffSelfProfileEdit() {
                 value={emergencyContactName}
                 onChange={(e) => setEmergencyContactName(e.target.value)}
                 placeholder="Guardian / Spouse Name"
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-3 text-xs outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className="ui-field w-full pl-10 pr-3 text-xs outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
               />
             </div>
           </div>
@@ -280,7 +280,7 @@ export default function StaffSelfProfileEdit() {
                 value={emergencyContactPhone}
                 onChange={(e) => setEmergencyContactPhone(e.target.value)}
                 placeholder="+977 98XXXXXXXX"
-                className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-10 pr-3 text-xs outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className="ui-field w-full pl-10 pr-3 text-xs outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
               />
             </div>
           </div>
@@ -290,7 +290,7 @@ export default function StaffSelfProfileEdit() {
           <button
             type="submit"
             disabled={submitting}
-            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 text-xs font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-60"
+            className="ui-button inline-flex items-center gap-2 bg-brand-600 py-3 text-xs text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-60"
           >
             <Save size={16} />
             {submitting ? "Saving Profile..." : "Save My Profile Details"}

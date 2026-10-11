@@ -29,7 +29,7 @@ export default function StudentProfilePage() {
 
   if (!student) {
     return (
-      <div className="mx-auto max-w-4xl">
+      <div className="ui-page mx-auto">
         <PageHeader title="Student Profile" />
         <p className="text-slate-500">Loading student...</p>
       </div>
@@ -37,13 +37,13 @@ export default function StudentProfilePage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="ui-page mx-auto space-y-6">
       <PageHeader
         title={student.fullName}
         description={student.studentCode}
       />
 
-      <div className="rounded-2xl border bg-white p-6 shadow-sm">
+      <div className="sm:p-5 p-4 ui-surface">
         <div className="grid gap-4 md:grid-cols-2">
           <p><strong>Guardian:</strong> {student.guardianName ?? student.parentName ?? "-"}</p>
           <p><strong>Phone:</strong> {student.guardianPhone ?? student.parentPhone ?? "-"}</p>
@@ -54,7 +54,7 @@ export default function StudentProfilePage() {
 
         <button
           onClick={() => navigate(`/students/edit/${student.id}`)}
-          className="mt-6 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+          className="ui-button mt-6 bg-brand-600 py-2 text-white hover:bg-brand-700"
         >
           Edit Student
         </button>

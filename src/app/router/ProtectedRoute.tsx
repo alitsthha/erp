@@ -27,6 +27,7 @@ export default function ProtectedRoute() {
   if (
     isTeacherRole(role) &&
     !location.pathname.startsWith("/attendance") &&
+    location.pathname !== "/calendar" &&
     !location.pathname.startsWith("/students") &&
     location.pathname !== "/settings"
   ) {

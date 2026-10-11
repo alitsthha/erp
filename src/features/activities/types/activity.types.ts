@@ -4,6 +4,8 @@ export interface Activity {
   id?: string;
   activityCode: string;
   activityName: string;
+  /** Required on new saves; legacy records are assigned a color automatically. */
+  color?: string;
   category: string;
   coachStaffId?: string;
   coachName?: string;

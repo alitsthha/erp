@@ -27,5 +27,5 @@ export default function EditSalaryConfigPage() {
   if (loading) return <div className="flex min-h-96 items-center justify-center"><Loader2 className="animate-spin text-slate-400" /></div>;
   if (!config) return <div className="p-8 text-center text-red-600">Salary configuration not found.</div>;
 
-  return <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 sm:px-6 lg:px-8"><PageHeader title="Edit Salary Configuration" description="Update salary structure for this staff member." /><SalaryConfigForm initialData={config} onSubmit={handleSubmit} submitLabel="Update Configuration" /></div>;
+  return <div className="ui-page mx-auto w-full space-y-6"><PageHeader title="Edit Salary Configuration" description="Update salary structure for this staff member." /><SalaryConfigForm initialData={config} onSubmit={handleSubmit} submitLabel="Update Configuration" /></div>;
 }

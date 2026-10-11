@@ -1,5 +1,6 @@
 import { RotateCcw, Search, SlidersHorizontal } from "lucide-react";
 import type { ReactNode } from "react";
+import ListSortControl from "./ListSortControl";
 
 interface ListToolbarProps {
   search: string;
@@ -19,8 +20,9 @@ export default function ListToolbar({ search, onSearchChange, placeholder = "Sea
         <label className="relative min-w-0 flex-1">
           <span className="sr-only">Search list</span>
           <Search size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder={placeholder} className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm outline-none placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+          <input value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder={placeholder} className="ui-field w-full pl-10 pr-4 outline-none placeholder:text-slate-400 focus:border-brand-600 focus:ring-2 focus:ring-brand-100" />
         </label>
+        <ListSortControl />
         {filter && <div className="flex items-center gap-2"><SlidersHorizontal size={16} className="text-slate-400" />{filter}</div>}
         {onClear && hasFilters && <button type="button" onClick={onClear} className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"><RotateCcw size={15} /> Clear</button>}
       </div>

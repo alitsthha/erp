@@ -53,7 +53,7 @@ export default function PaymentForm({
   const maxAmount = invoice.dueAmount ?? invoice.totalAmount ?? 0;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-6">
 
       {/* Invoice Summary */}
       <div className="rounded-xl bg-slate-50 p-4">
@@ -89,7 +89,7 @@ export default function PaymentForm({
           step="0.01"
           value={amount}
           onChange={(e) => setAmount(Number(e.target.value))}
-          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          className="ui-field w-full px-3 text-slate-900 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
           required
         />
         <p className="mt-1 text-xs text-slate-400">
@@ -108,7 +108,7 @@ export default function PaymentForm({
           <select
             value={paymentMethod}
             onChange={(e) => setPaymentMethod(e.target.value as Payment["paymentMethod"])}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            className="ui-field w-full px-3 text-slate-900 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
             required
           >
             <option value="Cash">Cash</option>
@@ -129,7 +129,7 @@ export default function PaymentForm({
           <input
             value={referenceNumber}
             onChange={(e) => setReferenceNumber(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            className="ui-field w-full px-3 text-slate-900 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
             placeholder="Cheque / transaction ID..."
           />
         </div>
@@ -141,7 +141,7 @@ export default function PaymentForm({
           <input
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            className="ui-field w-full px-3 text-slate-900 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
             placeholder="Optional notes..."
           />
         </div>
@@ -153,7 +153,7 @@ export default function PaymentForm({
           type="button"
           onClick={onCancel}
           disabled={isSubmitting}
-          className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          className="ui-button border border-slate-200 bg-white py-2.5 text-slate-700 hover:bg-slate-50"
         >
           Cancel
         </button>
@@ -161,7 +161,7 @@ export default function PaymentForm({
         <button
           type="submit"
           disabled={isSubmitting}
-          className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+          className="ui-button inline-flex items-center gap-2 bg-emerald-600 py-2.5 text-white hover:bg-emerald-700 disabled:opacity-50"
         >
           {isSubmitting && <Loader2 size={15} className="animate-spin" />}
           {isSubmitting ? "Recording..." : "Record Payment"}

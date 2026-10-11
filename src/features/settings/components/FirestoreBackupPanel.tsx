@@ -105,18 +105,18 @@ export default function FirestoreBackupPanel() {
   }
 
   return (
-    <div className="mx-auto mt-6 w-full max-w-5xl">
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div className="ui-page mx-auto mt-6 w-full">
+      <section className="ui-surface overflow-hidden">
         <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
               <RefreshCw size={20} />
             </div>
             <div>
-              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-600">
+              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-brand-600">
                 Data Management
               </span>
-              <h2 className="mt-1 text-lg font-semibold text-slate-900">
+              <h2 className="ui-section-title mt-1">
                 Database Backup & Restore
               </h2>
             </div>
@@ -133,7 +133,7 @@ export default function FirestoreBackupPanel() {
               type="button"
               onClick={() => setShowBackupOptions(true)}
               disabled={busy}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="ui-button inline-flex items-center justify-center gap-2 bg-brand-600 text-white shadow-sm transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Download size={16} />
               Download Backup
@@ -143,7 +143,7 @@ export default function FirestoreBackupPanel() {
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={busy}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+              className="ui-button inline-flex items-center justify-center gap-2 border border-slate-300 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Upload size={16} />
               Restore Backup
@@ -160,7 +160,7 @@ export default function FirestoreBackupPanel() {
 
           {showBackupOptions && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4" role="dialog" aria-modal="true" aria-labelledby="backup-options-title">
-              <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+              <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white shadow-2xl">
                 <div className="border-b border-slate-200 px-5 py-4 sm:px-6">
                   <h3 id="backup-options-title" className="text-lg font-semibold text-slate-900">Choose backup sections</h3>
                   <p className="mt-1 text-sm text-slate-500">All sections are selected by default. Only checked sections will be downloaded.</p>
@@ -171,7 +171,7 @@ export default function FirestoreBackupPanel() {
                   <button
                     type="button"
                     onClick={() => setSelectedCollections(selectedCollections.length === BACKUP_COLLECTIONS.length ? [] : [...BACKUP_COLLECTIONS])}
-                    className="text-sm font-medium text-blue-600 hover:text-blue-700"
+                    className="text-sm font-medium text-brand-600 hover:text-brand-700"
                   >
                     {selectedCollections.length === BACKUP_COLLECTIONS.length ? "Clear all" : "Select all"}
                   </button>
@@ -184,7 +184,7 @@ export default function FirestoreBackupPanel() {
                         type="checkbox"
                         checked={selectedCollections.includes(collectionName)}
                         onChange={() => toggleCollection(collectionName)}
-                        className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
                       />
                       <span>{collectionName}</span>
                     </label>
@@ -192,9 +192,9 @@ export default function FirestoreBackupPanel() {
                 </div>
 
                 <div className="flex justify-end gap-3 border-t border-slate-200 px-5 py-4 sm:px-6">
-                  <button type="button" onClick={() => setShowBackupOptions(false)} className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
-                  <button type="button" onClick={() => void handleBackup()} disabled={selectedCollections.length === 0} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"><Download size={16} />Confirm & Download</button>
-                  <button type="button" onClick={() => void handleExcelBackup()} disabled={selectedCollections.length === 0} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"><FileSpreadsheet size={16} />Download Excel</button>
+                  <button type="button" onClick={() => setShowBackupOptions(false)} className="ui-button border border-slate-300 py-2 text-slate-700 hover:bg-slate-50">Cancel</button>
+                  <button type="button" onClick={() => void handleBackup()} disabled={selectedCollections.length === 0} className="ui-button inline-flex items-center gap-2 bg-brand-600 py-2 text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"><Download size={16} />Confirm & Download</button>
+                  <button type="button" onClick={() => void handleExcelBackup()} disabled={selectedCollections.length === 0} className="ui-button inline-flex items-center gap-2 bg-emerald-600 py-2 text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"><FileSpreadsheet size={16} />Download Excel</button>
                 </div>
               </div>
             </div>

@@ -13,7 +13,7 @@ export default function ActivityFilters({
       onChange={(e) =>
         onChange?.(e.target.value)
       }
-      className="h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-50"
+      className="ui-field w-full px-4 text-slate-700 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
     >
       <option value="all">
         All Activities

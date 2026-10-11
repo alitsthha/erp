@@ -23,7 +23,7 @@ export default function AddRolePage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">
+      <h1 className="ui-page-title">
         Add Role
       </h1>
 

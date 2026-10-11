@@ -50,7 +50,7 @@ export default function EditDepartmentPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">
+      <h1 className="ui-page-title">
         Edit Department
       </h1>
 

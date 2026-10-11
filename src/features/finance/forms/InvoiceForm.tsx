@@ -166,7 +166,7 @@ export default function InvoiceForm({
           <select
             value={studentId}
             onChange={(e) => handleStudentChange(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            className="ui-field w-full px-3 text-slate-900 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
             required
           >
             <option value="">Select student...</option>
@@ -187,13 +187,13 @@ export default function InvoiceForm({
       </div>
 
       {/* Generate from Attendance button */}
-      <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
+      <div className="rounded-xl border border-brand-100 bg-brand-50 p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-blue-900">
+            <p className="text-sm font-semibold text-brand-900">
               Auto-generate from Attendance
             </p>
-            <p className="mt-0.5 text-xs text-blue-600">
+            <p className="mt-0.5 text-xs text-brand-600">
               Reads attendance records and fills line items based on sessions attended.
             </p>
           </div>
@@ -202,7 +202,7 @@ export default function InvoiceForm({
             type="button"
             onClick={handleGenerateFromAttendance}
             disabled={isGenerating || !studentId || !billingMonth}
-            className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="ui-button inline-flex shrink-0 items-center gap-2 bg-brand-600 py-2.5 text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isGenerating ? (
               <Loader2 size={16} className="animate-spin" />
@@ -257,8 +257,8 @@ export default function InvoiceForm({
           </div>
         ) : (
           <div className="overflow-hidden rounded-xl border border-slate-200">
-            <table className="min-w-[600px] w-full">
-              <thead className="border-b border-slate-200 bg-slate-50">
+            <table className="ui-table min-w-[600px]">
+              <thead className="ui-table-head border-b border-slate-200">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-slate-500">
                     Activity
@@ -272,7 +272,7 @@ export default function InvoiceForm({
                   <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-slate-500">
                     Amount
                   </th>
-                  <th className="w-10 px-3 py-3" />
+                  <th className="w-10 px-4 py-3" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -282,7 +282,7 @@ export default function InvoiceForm({
                       <input
                         value={line.activityName}
                         onChange={(e) => updateLine(i, "activityName", e.target.value)}
-                        className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm outline-none focus:border-blue-400"
+                        className="ui-field w-full px-2.5 py-1.5 outline-none focus:border-brand-400"
                         placeholder="Activity name"
                         required
                       />
@@ -293,7 +293,7 @@ export default function InvoiceForm({
                         min="0"
                         value={line.sessionCount}
                         onChange={(e) => updateLine(i, "sessionCount", Number(e.target.value))}
-                        className="w-20 rounded-lg border border-slate-200 px-2.5 py-1.5 text-center text-sm outline-none focus:border-blue-400"
+                        className="ui-field w-20 px-2.5 py-1.5 text-center outline-none focus:border-brand-400"
                       />
                     </td>
                     <td className="px-4 py-2">
@@ -303,13 +303,13 @@ export default function InvoiceForm({
                         step="0.01"
                         value={line.sessionFee}
                         onChange={(e) => updateLine(i, "sessionFee", Number(e.target.value))}
-                        className="w-28 rounded-lg border border-slate-200 px-2.5 py-1.5 text-right text-sm outline-none focus:border-blue-400"
+                        className="ui-field w-28 px-2.5 py-1.5 text-right outline-none focus:border-brand-400"
                       />
                     </td>
                     <td className="px-4 py-2 text-right text-sm font-semibold text-slate-900">
                       {formatCurrency(line.amount || 0)}
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="px-4 py-2">
                       <button
                         type="button"
                         onClick={() => removeLine(i)}
@@ -338,7 +338,7 @@ export default function InvoiceForm({
             step="0.01"
             value={discount}
             onChange={(e) => setDiscount(Number(e.target.value))}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            className="ui-field w-full px-3 text-slate-900 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
           />
         </div>
 
@@ -349,7 +349,7 @@ export default function InvoiceForm({
           <input
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            className="ui-field w-full px-3 text-slate-900 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
             placeholder="Optional notes..."
           />
         </div>
@@ -385,7 +385,7 @@ export default function InvoiceForm({
           type="button"
           onClick={onCancel}
           disabled={isSubmitting}
-          className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          className="ui-button border border-slate-200 bg-white py-2.5 text-slate-700 hover:bg-slate-50"
         >
           Cancel
         </button>
@@ -393,7 +393,7 @@ export default function InvoiceForm({
         <button
           type="submit"
           disabled={isSubmitting || lines.length === 0}
-          className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+          className="ui-button inline-flex items-center gap-2 bg-brand-600 py-2.5 text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSubmitting && <Loader2 size={15} className="animate-spin" />}
           {isSubmitting ? "Saving..." : "Create Invoice"}

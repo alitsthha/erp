@@ -8,8 +8,8 @@ export default function AddressInformation() {
   } = useFormContext<StudentFormData>();
 
   return (
-    <div className="rounded-xl bg-white p-6 shadow">
-      <h2 className="mb-6 text-xl font-semibold">
+    <div className="sm:p-5 p-4 ui-surface">
+      <h2 className="ui-section-title mb-6">
         Address Information
       </h2>
 
@@ -22,7 +22,7 @@ export default function AddressInformation() {
           {...register("address")}
           rows={4}
           placeholder="Enter student's address..."
-          className="w-full rounded-lg border border-gray-300 p-3 focus:border-blue-500 focus:outline-none"
+          className="ui-field w-full p-3 focus:border-brand-600 focus:outline-none"
         />
 
         {errors.address && (

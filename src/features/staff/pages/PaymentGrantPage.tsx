@@ -1,3 +1,4 @@
+import PaginatedList from "@/components/common/PaginatedList";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -145,7 +146,7 @@ export default function PaymentGrantPage() {
             <ChevronLeft size={20} className="text-slate-600" />
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-slate-900">Payment & Salary Grants</h1>
+            <h1 className="ui-page-title">Payment & Salary Grants</h1>
             <p className="mt-1 text-sm text-slate-500">
               Manage payment records for {staff.fullName}
             </p>
@@ -154,7 +155,7 @@ export default function PaymentGrantPage() {
 
         <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
           <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
+            <h2 className="ui-section-title mb-4 flex items-center gap-2">
               <Plus size={20} />
               Add Payment
             </h2>
@@ -174,7 +175,7 @@ export default function PaymentGrantPage() {
                   step="0.01"
                   {...register("amount", { valueAsNumber: true })}
                   placeholder="Enter amount"
-                  className="w-full rounded-lg border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  className="ui-field w-full px-4 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
                 />
                 {errors.amount && <p className="mt-1 text-sm text-red-600">{errors.amount.message}</p>}
               </div>
@@ -183,7 +184,7 @@ export default function PaymentGrantPage() {
                 <label className="mb-2 block text-sm font-medium text-slate-700">Payment Type *</label>
                 <select
                   {...register("paymentType")}
-                  className="w-full rounded-lg border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  className="ui-field w-full px-4 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
                 >
                   <option value="">Select type</option>
                   <option value="monthly">Monthly Salary</option>
@@ -196,7 +197,7 @@ export default function PaymentGrantPage() {
 
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-700">Payment Date (BS) *</label>
-                <div className="rounded-xl border border-slate-200 bg-white p-3">
+                <div className="ui-surface p-3">
                   <NepaliDatePickerInput
                     label=""
                     value={paymentDateValue}
@@ -211,7 +212,7 @@ export default function PaymentGrantPage() {
                 <label className="mb-2 block text-sm font-medium text-slate-700">Status *</label>
                 <select
                   {...register("status")}
-                  className="w-full rounded-lg border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  className="ui-field w-full px-4 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
                 >
                   <option value="pending">Pending</option>
                   <option value="paid">Paid</option>
@@ -226,14 +227,14 @@ export default function PaymentGrantPage() {
                   rows={3}
                   {...register("notes")}
                   placeholder="Add any additional notes"
-                  className="w-full rounded-lg border border-slate-300 px-4 py-3 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  className="ui-field w-full px-4 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={isSubmitting || submitting}
-                className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-50"
+                className="ui-button w-full bg-brand-600 py-3 text-white transition hover:bg-brand-700 disabled:opacity-50"
               >
                 {isSubmitting || submitting ? "Adding..." : "Add Payment"}
               </button>
@@ -241,7 +242,7 @@ export default function PaymentGrantPage() {
           </div>
 
           <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-slate-900">
+            <h2 className="ui-section-title mb-4 flex items-center gap-2">
               <Briefcase size={20} />
               Payment Records
             </h2>
@@ -254,7 +255,7 @@ export default function PaymentGrantPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {payments.map((payment) => (
+                {<PaginatedList items={payments}>{(payment) => (
                   <div
                     key={payment.id}
                     className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-4"
@@ -288,7 +289,7 @@ export default function PaymentGrantPage() {
                       <Trash2 size={18} />
                     </button>
                   </div>
-                ))}
+                )}</PaginatedList>}
               </div>
             )}
           </div>

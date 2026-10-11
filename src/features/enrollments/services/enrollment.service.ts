@@ -107,6 +107,16 @@ export async function getActivitiesForEnrollment(): Promise<Activity[]> {
   ) as Activity[];
 }
 
+export class DuplicateEnrollmentError extends Error {
+  readonly enrollment: Enrollment;
+
+  constructor(enrollment: Enrollment) {
+    super("This student already has an enrollment in the selected activity.");
+    this.name = "DuplicateEnrollmentError";
+    this.enrollment = enrollment;
+  }
+}
+
 async function ensureEnrollmentIsUnique(
   studentId: string,
   activityId: string,
@@ -120,14 +130,12 @@ async function ensureEnrollmentIsUnique(
     )
   );
 
-  const duplicate = snapshot.docs.some(
+  const duplicate = snapshot.docs.find(
     (enrollmentDoc) => enrollmentDoc.id !== enrollmentId
   );
 
   if (duplicate) {
-    throw new Error(
-      "This student is already enrolled in the selected activity."
-    );
+    throw new DuplicateEnrollmentError({ ...duplicate.data(), id: duplicate.id } as Enrollment);
   }
 }
 

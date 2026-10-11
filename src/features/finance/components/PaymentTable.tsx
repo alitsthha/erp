@@ -1,10 +1,11 @@
+import PaginatedList from "@/components/common/PaginatedList";
 import { Trash2 } from "lucide-react";
 import { formatCurrency } from "@/utils/currency";
 import type { Payment } from "../types/payment.types";
 
 const METHOD_STYLES: Record<string, string> = {
   Cash: "bg-emerald-50 text-emerald-700",
-  Bank: "bg-blue-50 text-blue-700",
+  Bank: "bg-brand-50 text-brand-700",
   Online: "bg-purple-50 text-purple-700",
   Card: "bg-orange-50 text-orange-700",
   Other: "bg-slate-100 text-slate-600",
@@ -23,7 +24,7 @@ export default function PaymentTable({
 }: PaymentTableProps) {
   if (isLoading) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="ui-surface">
         <div className="space-y-3 p-6">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-14 animate-pulse rounded-xl bg-slate-100" />
@@ -35,62 +36,62 @@ export default function PaymentTable({
 
   if (payments.length === 0) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+      <div className="ui-surface p-10 text-center">
         <p className="text-sm font-medium text-slate-500">No payments recorded</p>
       </div>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div className="ui-surface overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="min-w-[700px] w-full">
-          <thead className="border-b border-slate-200 bg-slate-50">
+        <table className="ui-table min-w-[700px]">
+          <thead className="ui-table-head border-b border-slate-200">
             <tr>
-              <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Payment #
               </th>
-              <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Invoice
               </th>
-              <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Student
               </th>
-              <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Date
               </th>
-              <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Method
               </th>
-              <th className="px-5 py-4 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Amount
               </th>
               {onDelete && (
-                <th className="px-5 py-4 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Actions
                 </th>
               )}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {payments.map((payment) => (
+            {<PaginatedList items={payments} table>{(payment) => (
               <tr
                 key={payment.id}
                 className="transition hover:bg-slate-50/70"
               >
-                <td className="px-5 py-4">
+                <td className="px-4 py-3">
                   <span className="font-mono text-sm font-semibold text-slate-900">
                     {payment.paymentNumber}
                   </span>
                 </td>
 
-                <td className="px-5 py-4">
+                <td className="px-4 py-3">
                   <span className="font-mono text-xs text-slate-600">
                     {payment.invoiceNumber}
                   </span>
                 </td>
 
-                <td className="px-5 py-4">
+                <td className="px-4 py-3">
                   <p className="text-sm font-medium text-slate-900">
                     {payment.studentName}
                   </p>
@@ -99,11 +100,11 @@ export default function PaymentTable({
                   </p>
                 </td>
 
-                <td className="px-5 py-4 text-sm text-slate-700">
+                <td className="px-4 py-3 text-sm text-slate-700">
                   {payment.paymentDate}
                 </td>
 
-                <td className="px-5 py-4">
+                <td className="px-4 py-3">
                   <span
                     className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${METHOD_STYLES[payment.paymentMethod] ?? METHOD_STYLES.Other}`}
                   >
@@ -111,14 +112,14 @@ export default function PaymentTable({
                   </span>
                 </td>
 
-                <td className="px-5 py-4 text-right">
+                <td className="px-4 py-3 text-right">
                   <span className="font-semibold text-emerald-700">
                     {formatCurrency(payment.amount)}
                   </span>
                 </td>
 
                 {onDelete && (
-                  <td className="px-5 py-4 text-right">
+                  <td className="px-4 py-3 text-right">
                     {payment.id && (
                       <button
                         type="button"
@@ -140,7 +141,7 @@ export default function PaymentTable({
                   </td>
                 )}
               </tr>
-            ))}
+            )}</PaginatedList>}
           </tbody>
         </table>
       </div>

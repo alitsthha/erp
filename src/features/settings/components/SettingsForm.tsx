@@ -100,24 +100,24 @@ export default function SettingsForm() {
   };
 
   const inputClass = (hasError = false) =>
-    `h-11 w-full rounded-xl border bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 ${
+    `ui-field w-full bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 ${
       hasError
         ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-50"
-        : "border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-50"
+        : "border-slate-300 focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
     } disabled:bg-slate-50 disabled:cursor-not-allowed`;
 
   const selectClass = (hasError = false) =>
-    `h-11 w-full rounded-xl border bg-white px-4 text-sm text-slate-900 outline-none transition ${
+    `ui-field w-full bg-white px-4 text-sm text-slate-900 outline-none transition ${
       hasError
         ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-50"
-        : "border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-50"
+        : "border-slate-300 focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
     } disabled:bg-slate-50 disabled:cursor-not-allowed`;
 
   if (isLoading) {
     return (
-      <div className="flex h-64 w-full items-center justify-center rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+      <div className="ui-surface flex h-64 w-full items-center justify-center p-8">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-600 border-t-transparent" />
           <p className="text-sm font-medium text-slate-500">
             Loading system settings...
           </p>
@@ -129,34 +129,34 @@ export default function SettingsForm() {
   return (
     <form
       onSubmit={handleSubmit(onSubmit)}
-      className="mx-auto w-full max-w-5xl space-y-6"
+      className="ui-page mx-auto w-full space-y-6"
     >
       {/* SUCCESS / ERROR ALERTS */}
       {saveSuccess && (
-        <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-800 shadow-sm">
+        <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-emerald-800 shadow-sm">
           <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
           <p className="text-sm font-medium">{saveSuccess}</p>
         </div>
       )}
 
       {saveError && (
-        <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-red-800 shadow-sm">
+        <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-red-800 shadow-sm">
           <AlertCircle className="h-5 w-5 shrink-0 text-red-600" />
           <p className="text-sm font-medium">{saveError}</p>
         </div>
       )}
 
       {/* HEADER CARD & PREVIEW SUMMARY */}
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <section className="ui-surface overflow-hidden">
         <div className="flex flex-col gap-6 p-6 md:flex-row md:items-center md:justify-between">
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
               <Building2 size={24} />
             </div>
 
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-blue-600">
+                <span className="text-xs font-semibold uppercase tracking-wider text-brand-600">
                   System Configuration
                 </span>
                 {watchMaintenanceMode && (
@@ -167,7 +167,7 @@ export default function SettingsForm() {
                 )}
               </div>
 
-              <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+              <h1 className="ui-page-title mt-1">
                 Organization Settings
               </h1>
 
@@ -208,7 +208,7 @@ export default function SettingsForm() {
             onClick={() => setActiveTab("organization")}
             className={`flex items-center gap-2 border-b-2 py-4 px-4 text-sm font-medium transition ${
               activeTab === "organization"
-                ? "border-blue-600 text-blue-600"
+                ? "border-brand-600 text-brand-600"
                 : "border-transparent text-slate-500 hover:text-slate-800"
             }`}
           >
@@ -221,7 +221,7 @@ export default function SettingsForm() {
             onClick={() => setActiveTab("system")}
             className={`flex items-center gap-2 border-b-2 py-4 px-4 text-sm font-medium transition ${
               activeTab === "system"
-                ? "border-blue-600 text-blue-600"
+                ? "border-brand-600 text-brand-600"
                 : "border-transparent text-slate-500 hover:text-slate-800"
             }`}
           >
@@ -234,7 +234,7 @@ export default function SettingsForm() {
             onClick={() => setActiveTab("notifications")}
             className={`flex items-center gap-2 border-b-2 py-4 px-4 text-sm font-medium transition ${
               activeTab === "notifications"
-                ? "border-blue-600 text-blue-600"
+                ? "border-brand-600 text-brand-600"
                 : "border-transparent text-slate-500 hover:text-slate-800"
             }`}
           >
@@ -246,14 +246,14 @@ export default function SettingsForm() {
 
       {/* TAB 1: ORGANIZATION PROFILE */}
       {activeTab === "organization" && (
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <section className="ui-surface overflow-hidden">
           <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
                 <Building2 size={18} />
               </div>
               <div>
-                <h2 className="text-base font-semibold text-slate-900">
+                <h2 className="ui-section-title">
                   Institution Identity & Contact Info
                 </h2>
                 <p className="mt-0.5 text-xs text-slate-500">
@@ -421,10 +421,10 @@ export default function SettingsForm() {
                   rows={2}
                   placeholder="Street Address, City, Country"
                   {...register("address")}
-                  className={`pl-10 min-h-20 w-full resize-none rounded-xl border bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 ${
+                  className={`pl-10 min-h-20 w-full resize-none rounded-lg border bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 ${
                     errors.address
                       ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-50"
-                      : "border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-50"
+                      : "border-slate-300 focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
                   }`}
                   disabled={isSubmitting}
                 />
@@ -465,14 +465,14 @@ export default function SettingsForm() {
 
       {/* TAB 2: SYSTEM & FISCAL PREFERENCES */}
       {activeTab === "system" && (
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <section className="ui-surface overflow-hidden">
           <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
                 <Sliders size={18} />
               </div>
               <div>
-                <h2 className="text-base font-semibold text-slate-900">
+                <h2 className="ui-section-title">
                   Fiscal & Regional Preferences
                 </h2>
                 <p className="mt-0.5 text-xs text-slate-500">
@@ -627,14 +627,14 @@ export default function SettingsForm() {
       {activeTab === "notifications" && (
         <section className="space-y-6">
           {/* NOTIFICATION PREFERENCES */}
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="ui-surface overflow-hidden">
             <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
                   <Bell size={18} />
                 </div>
                 <div>
-                  <h2 className="text-base font-semibold text-slate-900">
+                  <h2 className="ui-section-title">
                     System Alerts & Notifications
                   </h2>
                   <p className="mt-0.5 text-xs text-slate-500">
@@ -651,7 +651,7 @@ export default function SettingsForm() {
                   type="checkbox"
                   {...register("enableEmailNotifications")}
                   disabled={isSubmitting}
-                  className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  className="mt-1 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
                 />
                 <div>
                   <span className="block text-sm font-medium text-slate-800">
@@ -669,7 +669,7 @@ export default function SettingsForm() {
                   type="checkbox"
                   {...register("enableSmsNotifications")}
                   disabled={isSubmitting}
-                  className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  className="mt-1 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
                 />
                 <div>
                   <span className="block text-sm font-medium text-slate-800">
@@ -687,7 +687,7 @@ export default function SettingsForm() {
                   type="checkbox"
                   {...register("enableAuditLogs")}
                   disabled={isSubmitting}
-                  className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  className="mt-1 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
                 />
                 <div>
                   <span className="block text-sm font-medium text-slate-800">
@@ -702,14 +702,14 @@ export default function SettingsForm() {
           </div>
 
           {/* SECURITY & CONTROLS */}
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="ui-surface overflow-hidden">
             <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
               <div className="flex items-center gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
                   <ShieldAlert size={18} />
                 </div>
                 <div>
-                  <h2 className="text-base font-semibold text-slate-900">
+                  <h2 className="ui-section-title">
                     System Control & Maintenance
                   </h2>
                   <p className="mt-0.5 text-xs text-slate-500">
@@ -744,7 +744,7 @@ export default function SettingsForm() {
                   type="checkbox"
                   {...register("allowPublicRegistration")}
                   disabled={isSubmitting}
-                  className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  className="mt-1 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
                 />
                 <div>
                   <span className="block text-sm font-medium text-slate-800">
@@ -762,12 +762,12 @@ export default function SettingsForm() {
 
       {/* ACTION BAR */}
       <div className="sticky bottom-0 z-20 -mx-3 border-t border-slate-200 bg-slate-50/95 px-3 py-4 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-        <div className="mx-auto flex w-full max-w-5xl flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="ui-page mx-auto flex w-full flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
           <button
             type="button"
             onClick={handleResetDefaults}
             disabled={isSubmitting}
-            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+            className="ui-button inline-flex w-full items-center justify-center gap-2 border border-slate-300 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
             <RotateCcw size={16} />
             Reset Defaults
@@ -783,7 +783,7 @@ export default function SettingsForm() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-7 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+              className="ui-button inline-flex w-full items-center justify-center gap-2 bg-brand-600 text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             >
               {isSubmitting ? (
                 <>

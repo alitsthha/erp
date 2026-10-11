@@ -8,8 +8,8 @@ export default function Card({
   children,
 }: Props) {
   return (
-    <div className="bg-white rounded-xl shadow-md p-6">
-      <h2 className="text-xl font-semibold mb-6">
+    <div className="ui-surface p-5 sm:p-6">
+      <h2 className="ui-section-title mb-4">
         {title}
       </h2>
 

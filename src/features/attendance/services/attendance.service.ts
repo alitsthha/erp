@@ -28,6 +28,8 @@ import {
 } from "@/features/attendance/services/attendance-code.service";
 
 import { convertBSToAD } from "@/utils/nepali-date";
+import { getAttendanceActor } from "./attendance-recorder.service";
+import { attendanceAudit, type AttendanceActor } from "../utils/attendance-recorder";
 
 const COLLECTION_NAME =
   "attendances";
@@ -107,6 +109,10 @@ function mapAttendanceDoc(
 
   return {
     id,
+    recordedByUserId: toString(data.recordedByUserId),
+    recordedByName: toString(data.recordedByName),
+    updatedByUserId: toString(data.updatedByUserId),
+    updatedByName: toString(data.updatedByName),
 
     attendanceCode:
       toString(
@@ -233,11 +239,19 @@ export async function createAttendance(
     | "updatedAt"
   >
 ): Promise<string> {
-  const attendanceCode =
-    await generateAttendanceCode();
+  return insertAttendance(data, await getAttendanceActor());
+}
+
+async function insertAttendance(
+  data: Omit<Attendance, "id" | "attendanceCode" | "createdAt" | "updatedAt">,
+  actor: AttendanceActor,
+  existingCode?: string,
+): Promise<string> {
+  const attendanceCode = existingCode || await generateAttendanceCode();
 
   const payload = sanitizeForFirestore({
     ...data,
+    ...attendanceAudit(actor),
     attendanceCode,
     createdAt: Timestamp.now(),
     updatedAt: Timestamp.now(),
@@ -421,10 +435,11 @@ export async function saveBatchAttendance(
   }
 
   const savedAttendances: Attendance[] = [];
+  const actor = await getAttendanceActor();
   const dateBS =
     validRecordsWithDate[0].sessionDateBS || validRecordsWithDate[0].sessionDate;
 
-  let existingDateRecords: Attendance[] = [];
+  let existingDateRecords: Attendance[];
   try {
     existingDateRecords = await getAttendanceByDate(dateBS);
   } catch {
@@ -436,9 +451,10 @@ export async function saveBatchAttendance(
   );
 
   for (const record of validRecordsWithDate) {
-    const existingRecord = existingByKey.get(getAttendanceKey(record));
+    const existingRecord = existingByKey.get(getAttendanceKey(record)) || (record.id ? await getAttendanceById(record.id) : undefined);
     let savedId = record.id || existingRecord?.id;
     let attendanceCode = record.attendanceCode || existingRecord?.attendanceCode;
+    const audit = attendanceAudit(actor, existingRecord || (savedId ? { id: savedId } : undefined));
 
     if (savedId) {
       const docRef = doc(db, COLLECTION_NAME, savedId);
@@ -459,6 +475,7 @@ export async function saveBatchAttendance(
         dueAmount: record.dueAmount ?? 0,
         billingStatus: record.billingStatus ?? "No Charge",
         notes: record.notes ?? "",
+        ...audit,
         updatedAt: Timestamp.now(),
       });
 
@@ -474,18 +491,21 @@ export async function saveBatchAttendance(
         id: undefined,
       });
 
-      savedId = await createAttendance(
+      savedId = await insertAttendance(
         payload as Omit<
           Attendance,
           | "id"
           | "attendanceCode"
           | "createdAt"
           | "updatedAt"
-        >
+        >,
+        actor,
+        attendanceCode,
       );
     }
 
     savedAttendances.push({
+      ...audit,
       id: savedId,
       attendanceCode: attendanceCode || "",
       enrollmentId: record.enrollmentId,
@@ -512,7 +532,7 @@ export async function saveBatchAttendance(
    * Fetch all existing attendance records for this dateBS from 'attendances' collection
    * to ensure daily_attendances document contains ALL activities and ALL student records for this dateBS.
    */
-  let allDateAttendances: Attendance[] = [];
+  let allDateAttendances: Attendance[];
   try {
     const existingDateRecords = await getAttendanceByDate(dateBS);
     const map = new Map<string, Attendance>();
@@ -699,8 +719,11 @@ export async function updateAttendance(
     );
   }
 
+  const [actor, existing] = await Promise.all([getAttendanceActor(), getAttendanceById(id)]);
+  if (!existing) throw new Error("Attendance record no longer exists.");
   const payload = sanitizeForFirestore({
     ...data,
+    ...attendanceAudit(actor, existing),
     updatedAt: Timestamp.now(),
   });
 

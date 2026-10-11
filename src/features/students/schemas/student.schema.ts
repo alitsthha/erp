@@ -1,20 +1,25 @@
 import { z } from "zod";
+import { formatPersonName } from "../../../utils/person-name";
+
+export const contactNumberSchema = z.string().trim().regex(
+  /^98[0-9]{8}$/,
+  "Contact number must be exactly 10 digits and start with 98"
+);
 
 export const studentSchema = z.object({
   fullName: z
     .string()
-    .min(2, "Full name is required"),
+    .trim()
+    .min(2, "Full name is required")
+    .transform(formatPersonName),
 
   guardianName: z
     .string()
-    .min(2, "Guardian name is required"),
+    .trim()
+    .min(2, "Guardian name is required")
+    .transform(formatPersonName),
 
-  guardianPhone: z
-    .string()
-    .min(
-      7,
-      "Enter a valid contact number"
-    ),
+  guardianPhone: contactNumberSchema,
 
   guardianEmail: z
     .string()
@@ -23,13 +28,11 @@ export const studentSchema = z.object({
 
   parentName: z
     .string()
+    .transform(formatPersonName)
     .optional()
     .or(z.literal("")),
 
-  parentPhone: z
-    .string()
-    .optional()
-    .or(z.literal("")),
+  parentPhone: contactNumberSchema.or(z.literal("")).optional(),
 
   parentEmail: z
     .string()

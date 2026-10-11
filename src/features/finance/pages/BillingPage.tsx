@@ -762,7 +762,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
 
   return (
     <div className="min-h-full bg-slate-50">
-      <div className="mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8">
+      <div className="ui-page mx-auto w-full space-y-6">
 
         {/* =================================================
             HEADER
@@ -771,7 +771,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <div className="rounded-xl bg-slate-900 p-2.5">
+              <div className="rounded-xl bg-brand-600 p-2.5">
                 <FileText
                   size={20}
                   className="text-white"
@@ -779,7 +779,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
               </div>
 
               <div>
-                <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                <h1 className="ui-page-title">
                   Billing
                 </h1>
 
@@ -816,9 +816,9 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
             FILTER CARD
         ================================================= */}
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <section className="ui-surface p-5 sm:p-6">
           <div className="mb-5">
-            <h2 className="text-lg font-semibold text-slate-900">
+            <h2 className="ui-section-title">
               Create Student Bill
             </h2>
 
@@ -857,7 +857,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                   disabled={
                     loadingStudents
                   }
-                  className="w-full appearance-none rounded-xl border border-slate-300 bg-white py-3 pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200 disabled:bg-slate-100"
+                  className="ui-field w-full appearance-none pl-10 pr-4 text-slate-900 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-slate-200 disabled:bg-slate-100"
                 >
                   <option value="">
                     {loadingStudents
@@ -896,7 +896,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                     )
                   }
                   placeholder="Search student name or code"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-3 text-sm outline-none transition focus:border-slate-400 focus:bg-white"
+                  className="ui-field w-full bg-slate-50 pl-9 pr-3 outline-none transition focus:border-slate-400 focus:bg-white"
                 />
               </div>
             </div>
@@ -926,7 +926,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                 step="0.01"
                 value={discount}
                 onChange={(event) => setDiscount(Number(event.target.value) || 0)}
-                className="w-full rounded-xl border border-slate-300 bg-white py-3 px-4 text-sm text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                className="ui-field w-full px-4 text-slate-900 outline-none focus:border-brand-600 focus:ring-2 focus:ring-slate-200"
                 placeholder="0"
               />
             </div>
@@ -947,7 +947,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                     !selectedStudentId ||
                     !month
                   }
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="ui-button flex w-full items-center justify-center gap-2 bg-brand-600 py-3 text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {loadingFee ? (
                     <>
@@ -974,7 +974,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                     type="button"
                     onClick={handleCreateInvoice}
                     disabled={creatingInvoice}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="ui-button flex w-full items-center justify-center gap-2 bg-emerald-600 py-3 text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {creatingInvoice ? (
                       <>
@@ -999,7 +999,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
         ================================================= */}
 
         {selectedStudent && (
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <section className="ui-surface p-5 sm:p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
               <div>
@@ -1007,7 +1007,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                   Selected Student
                 </p>
 
-                <h2 className="mt-1 text-xl font-bold text-slate-900">
+                <h2 className="ui-section-title mt-1">
                   {
                     selectedStudent.fullName
                   }
@@ -1043,7 +1043,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
         ================================================= */}
 
         {summary && (
-          <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <section className="ui-surface overflow-hidden">
 
             {/* Invoice-style header */}
             <div className="border-b border-slate-200 p-5 sm:p-6">
@@ -1054,7 +1054,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                     Student Fee Statement
                   </p>
 
-                  <h2 className="mt-1 text-xl font-bold text-slate-900">
+                  <h2 className="ui-section-title mt-1">
                     {summary.studentName}
                   </h2>
 
@@ -1078,26 +1078,26 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
 
             {/* Desktop table */}
             <div className="hidden overflow-x-auto md:block">
-              <table className="w-full min-w-[760px] text-left">
-                <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              <table className="ui-table min-w-[760px]">
+                <thead className="ui-table-head">
                   <tr>
-                    <th className="px-6 py-4 font-semibold">
+                    <th className="px-4 py-3 font-semibold">
                       Activity
                     </th>
 
-                    <th className="px-6 py-4 font-semibold">
+                    <th className="px-4 py-3 font-semibold">
                       Sessions
                     </th>
 
-                    <th className="px-6 py-4 font-semibold">
+                    <th className="px-4 py-3 font-semibold">
                       Session Fee
                     </th>
 
-                    <th className="px-6 py-4 font-semibold">
+                    <th className="px-4 py-3 font-semibold">
                       Monthly Fee
                     </th>
 
-                    <th className="px-6 py-4 text-right font-semibold">
+                    <th className="px-4 py-3 text-right font-semibold">
                       Amount
                     </th>
                   </tr>
@@ -1109,7 +1109,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                     <tr>
                       <td
                         colSpan={5}
-                        className="px-6 py-12 text-center"
+                        className="px-4 py-12 text-center"
                       >
                         <p className="text-sm font-medium text-slate-700">
                           No active enrollments found.
@@ -1129,7 +1129,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                           }
                           className="hover:bg-slate-50"
                         >
-                          <td className="px-6 py-4">
+                          <td className="px-4 py-3">
                             <p className="font-medium text-slate-900">
                               {
                                 line.activityName
@@ -1143,7 +1143,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                             </p>
                           </td>
 
-                          <td className="px-6 py-4 text-sm text-slate-700">
+                          <td className="px-4 py-3 text-sm text-slate-700">
                             {
                               line.attendedSessions
                             }{" "}
@@ -1153,21 +1153,21 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                             }
                           </td>
 
-                          <td className="px-6 py-4 text-sm text-slate-700">
+                          <td className="px-4 py-3 text-sm text-slate-700">
                             Rs.{" "}
                             {formatCurrency(
                               line.sessionFee
                             )}
                           </td>
 
-                          <td className="px-6 py-4 text-sm text-slate-700">
+                          <td className="px-4 py-3 text-sm text-slate-700">
                             Rs.{" "}
                             {formatCurrency(
                               line.monthlyFeeAmount
                             )}
                           </td>
 
-                          <td className="px-6 py-4 text-right font-semibold text-slate-900">
+                          <td className="px-4 py-3 text-right font-semibold text-slate-900">
                             Rs.{" "}
                             {formatCurrency(
                               line.calculatedAmount
@@ -1307,10 +1307,10 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
             EMPTY STATE
         ================================================= */}
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+        <section className="ui-surface p-5 sm:p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">
+              <h2 className="ui-section-title">
                 Invoices & Receivables
               </h2>
 
@@ -1341,7 +1341,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
 
         {!summary &&
           !loadingFee && (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center sm:p-16">
+            <div className="ui-surface border-dashed border-slate-300 p-10 text-center sm:p-16">
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
                 <FileText
                   size={22}
@@ -1363,7 +1363,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
 
       {selectedInvoiceForPreview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-          <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
+          <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-2xl">
             <div className="mb-5 flex items-center justify-between gap-3">
               <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
                 Invoice Preview
@@ -1373,7 +1373,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                   type="button"
                   onClick={() => void handleDownloadInvoicePdf()}
                   disabled={exportingInvoicePdf}
-                  className="rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {exportingInvoicePdf ? "Preparing..." : "Download PDF"}
                 </button>
@@ -1397,7 +1397,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
             </div>
 
             {isSendInvoiceModalOpen && (
-              <div className="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+              <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">
@@ -1421,9 +1421,9 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                     type="button"
                     onClick={() => void handleSendInvoiceSelection("mail")}
                     disabled={sendingInvoice}
-                    className="flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="min-h-11 flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <Mail size={17} className="text-blue-600" />
+                    <Mail size={17} className="text-brand-600" />
                     Send with Mail
                   </button>
 
@@ -1431,7 +1431,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                     type="button"
                     onClick={() => void handleSendInvoiceSelection("whatsapp")}
                     disabled={sendingInvoice}
-                    className="flex items-center justify-center gap-2 rounded-xl bg-green-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="ui-button flex items-center justify-center gap-2 bg-green-600 py-3 text-white shadow-sm transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <MessageCircle size={17} />
                     Send with WhatsApp
@@ -1440,7 +1440,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
               </div>
             )}
 
-            <div ref={invoicePreviewRef} className="rounded-2xl border border-slate-200 bg-white p-6">
+            <div ref={invoicePreviewRef} className="sm:p-5 p-4 ui-surface">
               <div className="flex flex-col gap-5 border-b border-slate-200 pb-6 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex items-center gap-4">
                   <img src={yeaLogo} alt="Young Explorers Academy" className="h-16 w-auto rounded-xl border border-slate-200 bg-slate-50 p-2" />
@@ -1482,8 +1482,8 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
               </div>
 
               <div className="mt-6 overflow-hidden rounded-xl border border-slate-200">
-                <table className="min-w-full text-left text-sm">
-                  <thead className="bg-slate-50 text-slate-600">
+                <table className="ui-table">
+                  <thead className="ui-table-head">
                     <tr>
                       <th className="px-4 py-3 font-semibold">Activity</th>
                       <th className="px-4 py-3 font-semibold">Sessions</th>
@@ -1524,7 +1524,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
 
       {editingInvoice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
+          <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-5 shadow-2xl">
             <div className="mb-5 flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Edit Invoice</p>
@@ -1550,7 +1550,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                   type="date"
                   value={editInvoiceDate}
                   onChange={(event) => setEditInvoiceDate(event.target.value)}
-                  className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                  className="ui-field mt-1.5 w-full px-3 text-slate-900 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-slate-200"
                 />
               </label>
 
@@ -1562,7 +1562,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                   step="0.01"
                   value={editInvoiceTotal}
                   onChange={(event) => setEditInvoiceTotal(Number(event.target.value) || 0)}
-                  className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                  className="ui-field mt-1.5 w-full px-3 text-slate-900 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-slate-200"
                 />
               </label>
             </div>
@@ -1575,14 +1575,14 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                   setEditInvoiceDate("");
                   setEditInvoiceTotal(0);
                 }}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                className="ui-button border border-slate-200 bg-white py-2.5 text-slate-700 hover:bg-slate-50"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={() => void handleEditInvoiceSave()}
-                className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
+                className="ui-button bg-brand-600 py-2.5 text-white hover:bg-brand-700"
               >
                 Save Changes
               </button>
@@ -1593,7 +1593,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
 
       {isPaymentModalOpen && selectedInvoice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-2xl">
             <div className="mb-5 flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">

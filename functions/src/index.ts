@@ -1,5 +1,6 @@
 import * as admin from "firebase-admin";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { requireClearedPayments } from "./shared/student-deletion";
 
 admin.initializeApp();
 
@@ -243,6 +244,14 @@ export const deleteStudentCascade = onCall(async (request) => {
     throw new HttpsError("not-found", "Student not found.");
   }
 
+  // Check before any cascade writes, including batches large enough to commit early.
+  const invoicesSnapshot = await db.collection("invoices").where("studentId", "==", studentId).get();
+  try {
+    requireClearedPayments(invoicesSnapshot.docs.map((invoice) => ({ id: invoice.id, data: invoice.data() })));
+  } catch (error) {
+    throw new HttpsError("failed-precondition", error instanceof Error ? error.message : "Clear the student's payments before deleting.");
+  }
+
   const BATCH_LIMIT = 450;
   let batch = db.batch();
   let operations = 0;
@@ -274,7 +283,6 @@ export const deleteStudentCascade = onCall(async (request) => {
   await deleteCollectionQuery("enrollments", "studentId");
   await deleteCollectionQuery("attendances", "studentId");
 
-  const invoicesSnapshot = await db.collection("invoices").where("studentId", "==", studentId).get();
   const invoiceIds = invoicesSnapshot.docs.map((document) => document.id);
   const invoiceLocksSnapshot = await db.collection("invoiceLocks").where("studentId", "==", studentId).get();
   const paymentsSnapshot = await db.collection("financePayments").where("studentId", "==", studentId).get();

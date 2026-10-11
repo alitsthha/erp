@@ -7,7 +7,7 @@ export default function SettingsPage() {
   const { isAdmin } = useAuth();
 
   return (
-    <div className="w-full">
+    <div className="ui-page space-y-6">
       {isAdmin ? (
         <>
           <SettingsForm />

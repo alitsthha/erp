@@ -1,11 +1,14 @@
-import type { Attendance } from "@/features/attendance/types/attendance.types";
+import PaginatedList from "@/components/common/PaginatedList";
+import type { Attendance, AttendanceListRow } from "@/features/attendance/types/attendance.types";
 import AttendanceActions from "@/features/attendance/components/AttendanceActions";
 import { formatBSDate, getBSWeekday } from "@/utils/nepali-date";
 import { UserCheck, UserX } from "lucide-react";
-import { useAuth } from "@/app/providers/AuthProvider";
+import type { ActivityColors } from "@/features/activities/utils/activity-color";
+import { getActivityClassCounts, getAttendanceTeachers } from "../utils/attendance-recorder";
 
 interface AttendanceTableProps {
-  data: Attendance[];
+  data: AttendanceListRow[];
+  activityColors?: ActivityColors;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   isLoading?: boolean;
@@ -18,8 +21,8 @@ export default function AttendanceTable({
   onDelete,
   isLoading,
   classHistory = {},
+  activityColors = {},
 }: AttendanceTableProps) {
-  const { isAdmin } = useAuth();
 
   if (data.length === 0) {
     return (
@@ -30,41 +33,43 @@ export default function AttendanceTable({
   }
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
-      <table className="w-full min-w-[850px] text-left">
-        <thead className="border-b border-slate-100 bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500">
+    <div className="overflow-x-auto rounded-b-xl bg-white">
+      <table className="ui-table min-w-[800px]">
+        <caption className="sr-only">Attendance records with student, date, status, classes taken and teacher</caption>
+        <thead className="ui-table-head border-b border-slate-100">
           <tr>
-            <th className="px-5 py-3.5">Code</th>
-            <th className="px-5 py-3.5">Student</th>
-            <th className="px-5 py-3.5">Activity</th>
-            <th className="px-5 py-3.5">Nepali Date (BS)</th>
-            <th className="px-5 py-3.5">Status</th>
-            <th className="px-5 py-3.5">Classes Taken</th>
-            {isAdmin && <th className="px-5 py-3.5">Session Fee</th>}
-            <th className="px-5 py-3.5">Notes</th>
-            <th className="px-5 py-3.5 text-right">Actions</th>
+            <th scope="col" className="px-4 py-3">Code</th>
+            <th scope="col" className="px-4 py-3">Student</th>
+            <th scope="col" className="px-4 py-3">Nepali Date (BS)</th>
+            <th scope="col" className="px-4 py-3">Status</th>
+            <th scope="col" className="px-4 py-3">Classes Taken</th>
+            <th scope="col" className="px-4 py-3">Teacher</th>
+            <th scope="col" className="px-4 py-3">Notes</th>
+            <th scope="col" className="px-4 py-3 text-right">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100 text-sm">
-          {data.map((record) => {
+          {<PaginatedList showSort={false} items={data} table>{(record) => {
             const isPresent = record.status === "Present";
             const dateBS = record.sessionDateBS || record.sessionDate;
             const attendedClasses = classHistory[record.studentId] ?? [];
+            const classCounts = getActivityClassCounts(record, attendedClasses);
+            const teachers = getAttendanceTeachers(record.groupedRecords || [record]);
 
             return (
               <tr
                 key={record.id || `${record.studentId}-${record.activityId}-${dateBS}`}
-                className="transition hover:bg-slate-50/80"
+                className="transition hover:bg-brand-50/40"
               >
                 {/* Code */}
-                <td className="px-5 py-4 align-middle font-mono text-xs font-semibold text-blue-600">
+                <td className="px-4 py-3 align-middle font-mono text-xs font-semibold text-brand-600">
                   {record.attendanceCode || "—"}
                 </td>
 
                 {/* Student */}
-                <td className="px-5 py-4 align-middle">
+                <td className="px-4 py-3 align-middle">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-xs font-bold text-slate-700">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-xs font-semibold text-brand-600">
                       {record.studentName?.charAt(0)?.toUpperCase() || "S"}
                     </div>
                     <div className="min-w-0">
@@ -78,31 +83,8 @@ export default function AttendanceTable({
                   </div>
                 </td>
 
-                {/* Activity */}
-                <td className="px-5 py-4 align-middle">
-                  <div className="flex flex-wrap gap-1.5">
-                    {record.activityName
-                      .split(",")
-                      .map((activity) => activity.trim())
-                      .filter(Boolean)
-                      .map((activity) => (
-                        <span
-                          key={`${record.id}-${activity}`}
-                          className="inline-flex items-center rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-800"
-                        >
-                          {activity}
-                        </span>
-                      ))}
-                  </div>
-                  {record.activityCode && (
-                    <p className="mt-1 text-[11px] text-slate-400">
-                      {record.activityCode}
-                    </p>
-                  )}
-                </td>
-
                 {/* Date BS */}
-                <td className="px-5 py-4 align-middle">
+                <td className="px-4 py-3 align-middle">
                   <div className="font-semibold text-slate-900">{dateBS}</div>
                   <div className="text-xs text-slate-500">
                     {formatBSDate(dateBS, "full")}
@@ -111,7 +93,7 @@ export default function AttendanceTable({
                 </td>
 
                 {/* Status */}
-                <td className="px-5 py-4 align-middle">
+                <td className="px-4 py-3 align-middle">
                   <span
                     className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
                       isPresent
@@ -128,20 +110,28 @@ export default function AttendanceTable({
                   </span>
                 </td>
 
-                {/* Classes Taken */}
-                <td className="px-5 py-4 align-middle font-semibold text-blue-700">
-                  {attendedClasses.length}
+                {/* Classes Taken: separate lifetime counts for each activity in this row. */}
+                <td className="px-4 py-3 align-middle">
+                  <div className="flex min-w-36 flex-wrap gap-1.5">
+                    {classCounts.map((activity) => {
+                      const color = activityColors[activity.id]?.color || "#94A3B8";
+                      return <span key={activity.id} title={`${activity.name}: ${activity.count} ${activity.count === 1 ? "class" : "classes"} taken`} className="inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs text-slate-700" style={{ borderColor: `${color}55`, backgroundColor: `${color}0D` }}>
+                        <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full border border-black/10" style={{ backgroundColor: color }} />
+                        <span>{activity.name || "Activity"}</span><strong className="text-slate-900">{activity.count}</strong>
+                      </span>;
+                    })}
+                  </div>
                 </td>
 
-                {/* Session Fee */}
-                {isAdmin && (
-                  <td className="px-5 py-4 align-middle font-medium text-slate-900">
-                    Rs. {Number(record.sessionFee || 0).toLocaleString("en-IN")}
-                  </td>
-                )}
+                {/* The user who last saved each activity's attendance. */}
+                <td className="px-4 py-3 align-middle">
+                  <div className="min-w-28 space-y-1">
+                    {teachers.map((teacher) => <p key={teacher.id} title={`${teacher.activities.join(", ")} · ${teacher.id === "unknown" ? "Recorder unavailable for this older record" : "Last saved by " + teacher.name}`} className={`text-xs ${teacher.id === "unknown" ? "text-slate-400" : "font-medium text-slate-700"}`}>{teacher.name}</p>)}
+                  </div>
+                </td>
 
                 {/* Notes */}
-                <td className="px-5 py-4 align-middle text-xs text-slate-500">
+                <td className="px-4 py-3 align-middle text-xs text-slate-500">
                   {record.notes ? (
                     <span className="italic text-slate-600">{record.notes}</span>
                   ) : (
@@ -150,7 +140,7 @@ export default function AttendanceTable({
                 </td>
 
                 {/* Actions */}
-                <td className="px-5 py-4 align-middle text-right">
+                <td className="px-4 py-3 align-middle text-right">
                   <AttendanceActions
                     recordId={record.id || ""}
                     onEdit={onEdit}
@@ -160,7 +150,7 @@ export default function AttendanceTable({
                 </td>
               </tr>
             );
-          })}
+          }}</PaginatedList>}
         </tbody>
       </table>
     </div>

@@ -1,3 +1,4 @@
+import PaginatedList from "@/components/common/PaginatedList";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -109,12 +110,12 @@ export default function SalaryConfigPage() {
   }
 
   return (
-    <div className="min-h-full space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto w-full max-w-7xl">
+    <div className="min-h-full space-y-6">
+      <div className="ui-page mx-auto w-full">
         {/* PAGE HEADER */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            <h1 className="ui-page-title">
               Salary Configuration
             </h1>
             <p className="mt-1 text-sm text-slate-500">
@@ -124,7 +125,7 @@ export default function SalaryConfigPage() {
 
           <button
             onClick={() => navigate("/accounting/salary-config/add")}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
+            className="ui-button inline-flex w-full items-center justify-center gap-2 bg-brand-600 py-2.5 text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 sm:w-auto"
           >
             <Plus size={18} />
             Add Configuration
@@ -132,15 +133,15 @@ export default function SalaryConfigPage() {
         </div>
 
         {/* SALARY CONFIG DIRECTORY */}
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="ui-surface overflow-hidden">
           {/* Section Header */}
           <div className="border-b border-slate-200 px-5 py-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
                 <Briefcase size={18} />
               </div>
               <div className="min-w-0">
-                <h2 className="text-sm font-semibold text-slate-900">Salary Structures</h2>
+                <h2 className="ui-section-title text-sm">Salary Structures</h2>
                 <p className="mt-0.5 text-xs text-slate-500">
                   {filteredConfigs.length} of {configs.length} configurations
                 </p>
@@ -163,12 +164,12 @@ export default function SalaryConfigPage() {
             placeholder="Search by role or salary type..."
             resultCount={filteredConfigs.length}
             onClear={clearFilters}
-            filter={<select aria-label="Filter salary configurations by status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-blue-500"><option value="all">All statuses</option><option value="Active">Active</option><option value="Inactive">Inactive</option></select>}
+            filter={<select aria-label="Filter salary configurations by status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="ui-field w-full px-3 text-slate-900 outline-none focus:border-brand-600"><option value="all">All statuses</option><option value="Active">Active</option><option value="Inactive">Inactive</option></select>}
           />
 
           {selectedIds.length > 0 && (
-            <div className="flex flex-col gap-2 border-b border-blue-100 bg-blue-50 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between sm:px-5">
-              <span className="font-medium text-blue-900">{selectedIds.length} configurations selected</span>
+            <div className="flex flex-col gap-2 border-b border-brand-100 bg-brand-50 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between sm:px-5">
+              <span className="font-medium text-brand-900">{selectedIds.length} configurations selected</span>
               <button type="button" onClick={() => setDeleteTarget("bulk")} className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-xs font-medium text-white hover:bg-red-700"><Trash2 size={14} /> Delete selected</button>
             </div>
           )}
@@ -198,41 +199,41 @@ export default function SalaryConfigPage() {
           {/* TABLE */}
           {!loading && filteredConfigs.length > 0 && (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
-                <thead className="bg-slate-50 text-slate-600">
+              <table className="ui-table divide-y divide-slate-200">
+                <thead className="ui-table-head">
                   <tr>
-                    <th className="w-12 px-5 py-3"><input type="checkbox" aria-label="Select all visible configurations" checked={allVisibleSelected} onChange={() => setSelectedIds(allVisibleSelected ? [] : filteredConfigs.flatMap((config) => config.id ? [config.id] : []))} /></th>
-                    <th className="px-5 py-3 font-medium">Staff Member</th>
-                    <th className="px-5 py-3 font-medium">Salary Type</th>
-                    <th className="px-5 py-3 font-medium text-right">Basic Salary</th>
-                    <th className="px-5 py-3 font-medium text-right">Allowance</th>
-                    <th className="px-5 py-3 font-medium text-right">Deduction</th>
-                    <th className="px-5 py-3 font-medium text-center">Status</th>
-                    <th className="px-5 py-3 font-medium text-right">Actions</th>
+                    <th className="w-12 px-4 py-3"><input type="checkbox" aria-label="Select all filtered configurations on all pages" checked={allVisibleSelected} onChange={() => setSelectedIds(allVisibleSelected ? [] : filteredConfigs.flatMap((config) => config.id ? [config.id] : []))} /></th>
+                    <th className="px-4 py-3 font-medium">Staff Member</th>
+                    <th className="px-4 py-3 font-medium">Salary Type</th>
+                    <th className="px-4 py-3 font-medium text-right">Basic Salary</th>
+                    <th className="px-4 py-3 font-medium text-right">Allowance</th>
+                    <th className="px-4 py-3 font-medium text-right">Deduction</th>
+                    <th className="px-4 py-3 font-medium text-center">Status</th>
+                    <th className="px-4 py-3 font-medium text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 bg-white">
-                  {filteredConfigs.map((config) => (
+                  {<PaginatedList showSort={false} items={filteredConfigs} table>{(config) => (
                     <tr key={config.id} className="hover:bg-slate-50">
-                      <td className="px-5 py-3"><input type="checkbox" aria-label={`Select ${config.role}`} checked={Boolean(config.id && selectedIds.includes(config.id))} onChange={() => config.id && toggleSelected(config.id)} /></td>
-                      <td className="px-5 py-3 font-medium text-slate-900">
+                      <td className="px-4 py-3"><input type="checkbox" aria-label={`Select ${config.role}`} checked={Boolean(config.id && selectedIds.includes(config.id))} onChange={() => config.id && toggleSelected(config.id)} /></td>
+                      <td className="px-4 py-3 font-medium text-slate-900">
                         {config.staffName || config.role}
                       </td>
-                      <td className="px-5 py-3 text-slate-600">
-                        <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">
+                      <td className="px-4 py-3 text-slate-600">
+                        <span className="inline-flex rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700">
                           {config.salaryType}
                         </span>
                       </td>
-                      <td className="px-5 py-3 text-right font-semibold text-slate-900">
+                      <td className="px-4 py-3 text-right font-semibold text-slate-900">
                         {formatCurrency(config.basicSalary)}
                       </td>
-                      <td className="px-5 py-3 text-right text-slate-600">
+                      <td className="px-4 py-3 text-right text-slate-600">
                         {formatCurrency(config.allowance)}
                       </td>
-                      <td className="px-5 py-3 text-right text-slate-600">
+                      <td className="px-4 py-3 text-right text-slate-600">
                         {formatCurrency(config.deduction)}
                       </td>
-                      <td className="px-5 py-3 text-center">
+                      <td className="px-4 py-3 text-center">
                         <span
                           className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
                             config.status === "Active"
@@ -243,7 +244,7 @@ export default function SalaryConfigPage() {
                           {config.status}
                         </span>
                       </td>
-                      <td className="px-5 py-3 text-right">
+                      <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() =>
@@ -251,7 +252,7 @@ export default function SalaryConfigPage() {
                                 `/accounting/salary-config/edit/${config.id}`
                               )
                             }
-                            className="inline-flex items-center gap-1.5 rounded-lg p-2 text-slate-600 transition hover:bg-blue-50 hover:text-blue-600"
+                            className="inline-flex items-center gap-1.5 rounded-lg p-2 text-slate-600 transition hover:bg-brand-50 hover:text-brand-600"
                             title="Edit"
                           >
                             <Edit2 size={16} />
@@ -266,7 +267,7 @@ export default function SalaryConfigPage() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  )}</PaginatedList>}
                 </tbody>
               </table>
             </div>

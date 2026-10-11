@@ -155,22 +155,22 @@ export default function LoginPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 via-white to-slate-50">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-50 via-white to-slate-50">
         <p className="text-slate-500">Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 via-white to-slate-50 px-4 py-12">
-      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-50 via-white to-slate-50 px-4 py-12">
+      <div className="w-full max-w-md rounded-xl bg-white p-8 shadow-lg">
         {/* Logo */}
         <div className="mb-8 flex justify-center">
           <img src={yeaLogo} alt="Young Explorers Academy" className="h-24 w-auto" />
         </div>
 
         {/* Heading */}
-        <h1 className="mb-2 text-center text-3xl font-bold text-slate-900">
+        <h1 className="ui-page-title mb-2 text-center">
           Welcome back
         </h1>
         <p className="mb-8 text-center text-sm text-slate-500">
@@ -192,7 +192,7 @@ export default function LoginPage() {
 
         {resetCode ? (
           <form onSubmit={handleConfirmPasswordReset} className="space-y-5">
-            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
+            <div className="rounded-lg border border-brand-200 bg-brand-50 p-4 text-sm text-brand-800">
               Resetting password for <strong>{resetEmail}</strong>
             </div>
             <div>
@@ -206,7 +206,7 @@ export default function LoginPage() {
                 onChange={(event) => setNewPassword(event.target.value)}
                 minLength={6}
                 required
-                className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                className="ui-field w-full px-4 outline-none focus:border-brand-600 focus:ring-1 focus:ring-brand-500"
               />
             </div>
             <div>
@@ -220,13 +220,13 @@ export default function LoginPage() {
                 onChange={(event) => setConfirmNewPassword(event.target.value)}
                 minLength={6}
                 required
-                className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                className="ui-field w-full px-4 outline-none focus:border-brand-600 focus:ring-1 focus:ring-brand-500"
               />
             </div>
             <button
               type="submit"
               disabled={resetSubmitting}
-              className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-70"
+              className="ui-button w-full bg-brand-600 py-3 text-white transition hover:bg-brand-700 disabled:opacity-70"
             >
               {resetSubmitting ? "Changing password..." : "Change Password"}
             </button>
@@ -243,7 +243,7 @@ export default function LoginPage() {
               id="email"
               type="email"
               placeholder="explorer@academy.com"
-              className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm placeholder-slate-400 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="ui-field w-full px-4 placeholder-slate-400 outline-none transition focus:border-brand-600 focus:ring-1 focus:ring-brand-500"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -260,7 +260,7 @@ export default function LoginPage() {
                 id="password"
                 type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
-                className="w-full rounded-lg border border-slate-300 px-4 py-3 pr-12 text-sm placeholder-slate-400 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                className="ui-field w-full px-4 pr-12 placeholder-slate-400 outline-none transition focus:border-brand-600 focus:ring-1 focus:ring-brand-500"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -283,7 +283,7 @@ export default function LoginPage() {
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
               />
               <span className="text-sm text-slate-600">Remember me</span>
             </label>
@@ -291,7 +291,7 @@ export default function LoginPage() {
               type="button"
               onClick={handlePasswordReset}
               disabled={resetSubmitting}
-              className="text-sm font-medium text-blue-600 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="text-sm font-medium text-brand-600 hover:text-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {resetSubmitting ? "Sending reset link..." : "Forgot password?"}
             </button>
@@ -301,7 +301,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-70"
+            className="ui-button w-full bg-brand-600 py-3 text-white transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-70"
           >
             {submitting ? "Signing in..." : "Sign In"}
           </button>
@@ -319,7 +319,7 @@ export default function LoginPage() {
           {/* Sign In with Gmail Button */}
           <button
             type="button"
-            className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            className="ui-button w-full border border-slate-300 py-3 text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
           >
             <div className="flex items-center justify-center gap-2">
               <svg className="h-5 w-5" viewBox="0 0 24 24">

@@ -30,7 +30,7 @@ export default function AttendanceReminder({ records, todayBS, ready }: { record
   if (!ready || !role || !missing.length || dismissedDate === todayBS) return null;
 
   return (
-    <div role="status" className="relative rounded-2xl border border-amber-200 bg-amber-50 p-5 pr-12 text-amber-900">
+    <div role="status" className="relative rounded-xl border border-amber-200 bg-amber-50 p-5 pr-12 text-amber-900">
       <div className="flex items-center gap-2 font-semibold">
         <AlertTriangle size={18} aria-hidden="true" />
         Attendance not recorded today

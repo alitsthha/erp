@@ -1,3 +1,5 @@
+import ListSortControl from "@/components/common/ListSortControl";
+import PaginatedList from "@/components/common/PaginatedList";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -70,18 +72,18 @@ export default function DepartmentsPage() {
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 
         <div>
-          <h1 className="text-3xl font-bold">
+          <h1 className="ui-page-title">
             Departments
           </h1>
 
-          <p className="text-gray-500">
+          <p className="text-slate-500">
             Manage academy departments
           </p>
         </div>
 
         <Link
           to="/staff/departments/add"
-          className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-medium text-white hover:bg-blue-700"
+          className="ui-button flex items-center gap-2 bg-brand-600 py-3 text-white hover:bg-brand-700"
         >
           <Plus size={18} />
           Add Department
@@ -93,8 +95,8 @@ export default function DepartmentsPage() {
 
       <div className="grid gap-5 md:grid-cols-3">
 
-        <div className="rounded-2xl bg-white p-6 shadow">
-          <p className="text-gray-500">
+        <div className="sm:p-5 p-4 ui-surface">
+          <p className="text-slate-500">
             Total Departments
           </p>
 
@@ -103,8 +105,8 @@ export default function DepartmentsPage() {
           </h2>
         </div>
 
-        <div className="rounded-2xl bg-white p-6 shadow">
-          <p className="text-gray-500">
+        <div className="sm:p-5 p-4 ui-surface">
+          <p className="text-slate-500">
             Active
           </p>
 
@@ -117,12 +119,12 @@ export default function DepartmentsPage() {
           </h2>
         </div>
 
-        <div className="rounded-2xl bg-white p-6 shadow">
-          <p className="text-gray-500">
+        <div className="sm:p-5 p-4 ui-surface">
+          <p className="text-slate-500">
             Total Staff
           </p>
 
-          <h2 className="mt-2 text-3xl font-bold text-blue-600">
+          <h2 className="mt-2 text-3xl font-bold text-brand-600">
             {departments.reduce(
               (sum, item) => sum + item.staffCount,
               0
@@ -134,13 +136,13 @@ export default function DepartmentsPage() {
 
       {/* Search */}
 
-      <div className="rounded-2xl bg-white p-4 shadow">
+      <div className="ui-surface flex flex-col gap-3 p-4 sm:flex-row">
 
-        <div className="relative">
+        <div className="relative flex-1">
 
           <Search
             size={18}
-            className="absolute left-4 top-4 text-gray-400"
+            className="absolute left-4 top-4 text-slate-400"
           />
 
           <input
@@ -149,40 +151,41 @@ export default function DepartmentsPage() {
               setSearch(e.target.value)
             }
             placeholder="Search Department..."
-            className="w-full rounded-xl border py-3 pl-11 pr-4"
+            className="ui-field w-full pl-11 pr-4"
           />
 
         </div>
 
+        <ListSortControl />
       </div>
 
       {/* Desktop Table */}
 
-      <div className="hidden overflow-hidden rounded-2xl bg-white shadow lg:block">
+      <div className="ui-surface hidden overflow-hidden lg:block">
 
-        <table className="w-full">
+        <table className="ui-table">
 
-          <thead className="bg-gray-100">
+          <thead className="ui-table-head">
 
             <tr>
 
-              <th className="px-5 py-4 text-left">
+              <th className="px-4 py-3 text-left">
                 Department
               </th>
 
-              <th className="px-5 py-4 text-left">
+              <th className="px-4 py-3 text-left">
                 Description
               </th>
 
-              <th className="px-5 py-4 text-center">
+              <th className="px-4 py-3 text-center">
                 Staff
               </th>
 
-              <th className="px-5 py-4 text-center">
+              <th className="px-4 py-3 text-center">
                 Status
               </th>
 
-              <th className="px-5 py-4 text-center">
+              <th className="px-4 py-3 text-center">
                 Action
               </th>
 
@@ -211,24 +214,24 @@ export default function DepartmentsPage() {
                 </td>
               </tr>
             ) : (
-              filteredDepartments.map((department) => (
+              <PaginatedList showSort={false} items={filteredDepartments} table>{(department) => (
                 <tr
                   key={department.id}
                   className="border-t"
                 >
-                  <td className="px-5 py-4 font-medium">
+                  <td className="px-4 py-3 font-medium">
                     {department.name}
                   </td>
 
-                  <td className="px-5 py-4">
+                  <td className="px-4 py-3">
                     {department.description}
                   </td>
 
-                  <td className="px-5 py-4 text-center">
+                  <td className="px-4 py-3 text-center">
                     {department.staffCount}
                   </td>
 
-                  <td className="px-5 py-4 text-center">
+                  <td className="px-4 py-3 text-center">
 
                     <span
                       className={`rounded-full px-3 py-1 text-sm font-medium ${
@@ -242,13 +245,13 @@ export default function DepartmentsPage() {
 
                   </td>
 
-                  <td className="px-5 py-4">
+                  <td className="px-4 py-3">
 
                     <div className="flex justify-center gap-3">
 
                       <Link
                         to={`/staff/departments/edit/${department.id}`}
-                        className="rounded-lg bg-blue-100 p-2 text-blue-600 hover:bg-blue-200"
+                        className="rounded-lg bg-brand-100 p-2 text-brand-600 hover:bg-brand-200"
                       >
                         <Pencil size={18} />
                       </Link>
@@ -267,7 +270,7 @@ export default function DepartmentsPage() {
                   </td>
 
                 </tr>
-              ))
+              )}</PaginatedList>
             )}
 
           </tbody>
@@ -280,17 +283,17 @@ export default function DepartmentsPage() {
 
       <div className="grid gap-5 lg:hidden">
 
-        {filteredDepartments.map((department) => (
+        {<PaginatedList showSort={false} items={filteredDepartments}>{(department) => (
 
           <div
             key={department.id}
-            className="rounded-2xl bg-white p-5 shadow"
+            className="ui-surface p-5"
           >
 
             <div className="flex items-center gap-3">
 
-              <div className="rounded-xl bg-blue-100 p-3">
-                <Building2 className="text-blue-600" />
+              <div className="rounded-xl bg-brand-100 p-3">
+                <Building2 className="text-brand-600" />
               </div>
 
               <div>
@@ -299,7 +302,7 @@ export default function DepartmentsPage() {
                   {department.name}
                 </h3>
 
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-slate-500">
                   {department.description}
                 </p>
 
@@ -331,7 +334,7 @@ export default function DepartmentsPage() {
 
               <Link
                 to={`/staff/departments/edit/${department.id}`}
-                className="flex-1 rounded-lg bg-blue-600 py-2 text-center text-white"
+                className="flex-1 rounded-lg bg-brand-600 py-2 text-center text-white"
               >
                 Edit
               </Link>
@@ -349,7 +352,7 @@ export default function DepartmentsPage() {
 
           </div>
 
-        ))}
+        )}</PaginatedList>}
 
       </div>
 

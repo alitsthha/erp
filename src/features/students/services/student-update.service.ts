@@ -7,7 +7,7 @@ import {
 
 import { db } from "@/firebase/config";
 
-import type { StudentFormData } from "../schemas/student.schema";
+import { studentSchema, type StudentFormData } from "../schemas/student.schema";
 import type { Student } from "../types/student.types";
 
 export async function getStudentById(
@@ -32,7 +32,7 @@ export async function updateStudent(
   data: StudentFormData
 ) {
   await updateDoc(doc(db, "students", studentId), {
-    ...data,
+    ...Object.fromEntries(Object.entries(studentSchema.parse(data)).filter(([, value]) => value !== undefined)),
     updatedAt: serverTimestamp(),
   });
 }

@@ -1,3 +1,4 @@
+import PaginatedList from "@/components/common/PaginatedList";
 import { Pencil, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -13,66 +14,66 @@ export default function RoleTable({
   onDelete,
 }: Props) {
   return (
-    <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
+    <div className="ui-surface overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+        <table className="ui-table divide-y divide-slate-200">
+          <thead className="ui-table-head">
             <tr>
-              <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">
                 Role
               </th>
 
-              <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">
+              <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">
                 Description
               </th>
 
-              <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">
+              <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">
                 Order
               </th>
 
-              <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">
+              <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">
                 Color
               </th>
 
-              <th className="px-6 py-4 text-center text-sm font-semibold text-gray-700">
+              <th className="px-4 py-3 text-center text-sm font-semibold text-slate-700">
                 Status
               </th>
 
-              <th className="px-6 py-4 text-right text-sm font-semibold text-gray-700">
+              <th className="px-4 py-3 text-right text-sm font-semibold text-slate-700">
                 Actions
               </th>
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-gray-100 bg-white">
+          <tbody className="divide-y divide-slate-100 bg-white">
             {roles.length === 0 ? (
               <tr>
                 <td
                   colSpan={6}
-                  className="py-10 text-center text-gray-500"
+                  className="py-10 text-center text-slate-500"
                 >
                   No roles found.
                 </td>
               </tr>
             ) : (
-              roles.map((role) => (
+              <PaginatedList showSort={false} items={roles} table>{(role) => (
                 <tr
                   key={role.id}
-                  className="hover:bg-gray-50"
+                  className="hover:bg-slate-50"
                 >
-                  <td className="px-6 py-4 font-medium text-gray-900">
+                  <td className="px-4 py-3 font-medium text-slate-900">
                     {role.name}
                   </td>
 
-                  <td className="px-6 py-4 text-gray-600">
+                  <td className="px-4 py-3 text-slate-600">
                     {role.description}
                   </td>
 
-                  <td className="px-6 py-4 text-center">
+                  <td className="px-4 py-3 text-center">
                     {role.displayOrder}
                   </td>
 
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-3">
                     <div className="flex justify-center">
                       <div
                         className="h-6 w-6 rounded-full border"
@@ -83,7 +84,7 @@ export default function RoleTable({
                     </div>
                   </td>
 
-                  <td className="px-6 py-4 text-center">
+                  <td className="px-4 py-3 text-center">
                     <span
                       className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
                         role.status === "Active"
@@ -95,11 +96,11 @@ export default function RoleTable({
                     </span>
                   </td>
 
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-3">
                     <div className="flex justify-end gap-2">
                       <Link
                         to={`/staff/roles/edit/${role.id}`}
-                        className="rounded-lg p-2 text-blue-600 hover:bg-blue-50"
+                        className="rounded-lg p-2 text-brand-600 hover:bg-brand-50"
                       >
                         <Pencil size={18} />
                       </Link>
@@ -113,7 +114,7 @@ export default function RoleTable({
                     </div>
                   </td>
                 </tr>
-              ))
+              )}</PaginatedList>
             )}
           </tbody>
         </table>

@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const activitySchema = z.object({
   activityCode: z.string().optional(),
+  color: z.string().trim().regex(/^#[0-9a-fA-F]{6}$/, "Enter a six-digit hex color, for example #2563EB").transform((value) => value.toUpperCase()),
 
   activityName: z
     .string()

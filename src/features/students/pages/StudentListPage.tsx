@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import ListSortControl from "@/components/common/ListSortControl";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Plus,
@@ -10,6 +11,10 @@ import {
 import StudentFilters from "../components/StudentFilters";
 import StudentSearch from "../components/StudentSearch";
 import StudentTable from "../components/StudentTable";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
+import PaginatedList from "@/components/common/PaginatedList";
+import { getStudentDeletionReview, type StudentDeletionReview } from "../services/student-deletion-review.service";
+import { formatCurrency } from "@/utils/currency";
 
 import {
   getStudents,
@@ -31,6 +36,12 @@ export default function StudentListPage() {
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [studentToDelete, setStudentToDelete] = useState<Student | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const [deletionReview, setDeletionReview] = useState<StudentDeletionReview | null>(null);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const reviewRequest = useRef(0);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -119,24 +130,37 @@ export default function StudentListPage() {
   // --------------------------------------------------
 
   async function handleDelete(student: Student) {
-    if (!student.id) return;
+    if (!student.id || !isAdmin || isDeleting) return;
+    const request = ++reviewRequest.current;
+    setDeleteError("");
+    setStudentToDelete(student);
+    setDeletionReview(null);
+    setReviewLoading(true);
+    try {
+      const review = await getStudentDeletionReview(student.id);
+      if (request === reviewRequest.current) setDeletionReview(review);
+    } catch (error) {
+      if (request === reviewRequest.current) setDeleteError(error instanceof Error ? error.message : "Could not check enrollments and payments. Please retry.");
+    } finally {
+      if (request === reviewRequest.current) setReviewLoading(false);
+    }
+  }
 
-    const confirmed = window.confirm(
-      `Are you sure you want to delete ${student.fullName}?`
-    );
-
-    if (!confirmed) return;
-
+  async function confirmDelete() {
+    const student = studentToDelete;
+    if (!student?.id || !isAdmin || isDeleting || reviewLoading || !deletionReview || deletionReview.unpaidInvoices.length > 0) return;
+    setIsDeleting(true);
+    setDeleteError("");
     try {
       await deleteStudent(student.id);
-
-      await loadStudents();
+      setStudents((current) => current.filter((item) => item.id !== student.id));
+      setEnrollments((current) => current.filter((item) => item.studentId !== student.id));
+      setStudentToDelete(null);
     } catch (error) {
       console.error(error);
-
-      window.alert(
-        "Failed to delete student."
-      );
+      setDeleteError(error instanceof Error ? error.message : "Failed to delete student. Please try again.");
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -155,6 +179,38 @@ export default function StudentListPage() {
 
   return (
     <div className="min-w-0 space-y-6">
+      <ConfirmDialog
+        open={Boolean(studentToDelete)}
+        title="Delete student?"
+        description={<>
+          <p>Delete <strong>{studentToDelete?.fullName}</strong> and their linked enrollments, attendance, invoices, and payments? This cannot be undone.</p>
+          {reviewLoading && <p role="status" className="mt-3">Checking enrollments and payment clearance…</p>}
+          {deletionReview && <>
+            <h3 className="mt-4 font-semibold text-slate-900">Linked enrollments ({deletionReview.enrollments.length})</h3>
+            {deletionReview.enrollments.length === 0 ? <p>No linked enrollments.</p> :
+              <PaginatedList sortable={false} items={deletionReview.enrollments} label="Linked enrollments">{(enrollment) =>
+                <div key={enrollment.id} className="mt-2 rounded-lg border border-slate-200 p-2">
+                  <strong>{enrollment.activityName || enrollment.activityCode || "Activity"}</strong>
+                  <p className="text-xs text-slate-500">{enrollment.enrollmentCode} · {enrollment.status || "Active"} · {enrollment.enrollmentDate}</p>
+                </div>
+              }</PaginatedList>}
+            {deletionReview.unpaidInvoices.length > 0 ? <div role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-red-800">
+              <p className="font-semibold">Deletion blocked: {formatCurrency(deletionReview.outstandingAmount)} outstanding.</p>
+              <p>Clear all unpaid invoices in Billing before deleting this student.</p>
+              <PaginatedList sortable={false} items={deletionReview.unpaidInvoices} label="Unpaid invoices">{(invoice) =>
+                <div key={invoice.id} className="flex flex-wrap justify-between gap-2 py-1"><span>{invoice.invoiceNumber}</span><strong>{formatCurrency(invoice.dueAmount)}</strong></div>
+              }</PaginatedList>
+            </div> : <p className="mt-3 rounded-lg bg-emerald-50 p-2 text-emerald-800">No outstanding invoice balance. Payments will be checked again before deletion.</p>}
+          </>}
+          {deleteError && <p role="alert" className="mt-3 text-red-600">{deleteError}</p>}
+          {!reviewLoading && !isDeleting && studentToDelete && <button type="button" className="mt-3 text-sm font-medium text-brand-700 underline" onClick={() => void handleDelete(studentToDelete)}>Refresh payment check</button>}
+        </>}
+        confirmLabel="Delete Student"
+        isLoading={isDeleting}
+        confirmDisabled={reviewLoading || !deletionReview || deletionReview.unpaidInvoices.length > 0}
+        onConfirm={() => void confirmDelete()}
+        onCancel={() => { if (!isDeleting) { reviewRequest.current++; setStudentToDelete(null); } }}
+      />
 
       {/* ============================================
           PAGE HEADER
@@ -163,7 +219,7 @@ export default function StudentListPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          <h1 className="ui-page-title">
             Students
           </h1>
 
@@ -178,7 +234,7 @@ export default function StudentListPage() {
           <button
             type="button"
             onClick={() => navigate("/students/add")}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:w-auto"
+            className="ui-button inline-flex w-full items-center justify-center gap-2 bg-brand-600 py-2.5 text-white shadow-sm transition hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 sm:w-auto"
           >
             <Plus size={18} />
             Add Student
@@ -190,7 +246,7 @@ export default function StudentListPage() {
           STUDENT DIRECTORY
       ============================================ */}
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="ui-surface overflow-hidden">
 
         {/* Section Header */}
 
@@ -198,13 +254,13 @@ export default function StudentListPage() {
 
           <div className="flex items-center gap-3">
 
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
               <Users size={18} />
             </div>
 
             <div className="min-w-0">
 
-              <h2 className="text-sm font-semibold text-slate-900">
+              <h2 className="ui-section-title text-sm">
                 Student Directory
               </h2>
 
@@ -232,14 +288,7 @@ export default function StudentListPage() {
 
               <Search
                 size={18}
-                className="
-                  pointer-events-none
-                  absolute
-                  left-3
-                  top-1/2
-                  -translate-y-1/2
-                  text-slate-400
-                "
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
               />
 
               <StudentSearch
@@ -248,6 +297,8 @@ export default function StudentListPage() {
               />
 
             </div>
+
+            <ListSortControl />
 
             {/* Status Filter */}
 
@@ -265,18 +316,7 @@ export default function StudentListPage() {
           {/* Filter Information */}
 
           <div
-            className="
-              mt-4
-              flex
-              flex-col
-              gap-2
-              border-t
-              border-slate-100
-              pt-4
-              sm:flex-row
-              sm:items-center
-              sm:justify-between
-            "
+            className="mt-4 flex flex-col gap-2 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between"
           >
 
             <p className="text-xs text-slate-500">
@@ -301,14 +341,7 @@ export default function StudentListPage() {
               <button
                 type="button"
                 onClick={clearFilters}
-                className="
-                  text-left
-                  text-xs
-                  font-medium
-                  text-blue-600
-                  transition
-                  hover:text-blue-700
-                "
+                className="text-left text-xs font-medium text-brand-600 transition hover:text-brand-700"
               >
                 Clear filters
               </button>
@@ -325,20 +358,12 @@ export default function StudentListPage() {
       ============================================ */}
 
       {loading && (
-        <div className="rounded-xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+        <div className="ui-surface p-10 text-center">
 
           <div className="flex flex-col items-center justify-center gap-3">
 
             <div
-              className="
-                h-8
-                w-8
-                animate-spin
-                rounded-full
-                border-2
-                border-slate-200
-                border-t-blue-600
-              "
+              className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-brand-600"
             />
 
             <p className="text-sm text-slate-500">
@@ -366,21 +391,7 @@ export default function StudentListPage() {
             onClick={() =>
               void loadStudents()
             }
-            className="
-              mt-4
-              inline-flex
-              items-center
-              gap-2
-              rounded-lg
-              bg-red-600
-              px-4
-              py-2
-              text-sm
-              font-medium
-              text-white
-              transition
-              hover:bg-red-700
-            "
+            className="ui-button mt-4 inline-flex items-center gap-2 bg-red-600 py-2 text-white transition hover:bg-red-700"
           >
             <RotateCw size={16} />
 

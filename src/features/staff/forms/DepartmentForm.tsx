@@ -40,9 +40,9 @@ export default function DepartmentForm({
       onSubmit={handleSubmit(onSubmit)}
       className="space-y-6"
     >
-      <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="sm:p-5 p-4 ui-surface">
 
-        <h2 className="mb-6 text-2xl font-semibold">
+        <h2 className="ui-section-title mb-6">
           Department Information
         </h2>
 
@@ -56,7 +56,7 @@ export default function DepartmentForm({
             <input
               {...register("name")}
               placeholder="Enter department name"
-              className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none transition focus:border-blue-500"
+              className="ui-field w-full px-4 outline-none transition focus:border-brand-600"
             />
 
             {errors.name && (
@@ -73,7 +73,7 @@ export default function DepartmentForm({
 
             <select
               {...register("status")}
-              className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none transition focus:border-blue-500"
+              className="ui-field w-full px-4 outline-none transition focus:border-brand-600"
             >
               <option value="Active">
                 Active
@@ -100,7 +100,7 @@ export default function DepartmentForm({
               rows={5}
               {...register("description")}
               placeholder="Enter department description"
-              className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none transition focus:border-blue-500"
+              className="ui-field w-full px-4 outline-none transition focus:border-brand-600"
             />
 
             {errors.description && (
@@ -117,7 +117,7 @@ export default function DepartmentForm({
         <button
           type="submit"
           disabled={isSubmitting}
-          className="rounded-xl bg-blue-600 px-8 py-3 font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="ui-button bg-brand-600 px-8 py-3 text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSubmitting ? "Saving..." : submitLabel}
         </button>

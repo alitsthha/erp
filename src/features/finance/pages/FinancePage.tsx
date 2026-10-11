@@ -1,3 +1,4 @@
+import PaginatedList from "@/components/common/PaginatedList";
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowDownCircle,
@@ -392,7 +393,7 @@ export default function FinancePage() {
   // Calculate revenue breakdown from invoices
   const revenueBreakdown = useMemo(() => {
     const categories: Record<string, number> = {};
-    const colors = ["#2563eb", "#14b8a6", "#8b5cf6", "#f59e0b"];
+    const colors = ["var(--color-brand-600)", "var(--color-brand-green)", "var(--color-brand-900)", "var(--color-brand-yellow)"];
 
     invoices.forEach((inv) => {
       const category = inv.description || "Other Fees";
@@ -412,7 +413,7 @@ export default function FinancePage() {
   // Calculate expense breakdown
   const expenseBreakdown = useMemo(() => {
     const categories: Record<string, number> = {};
-    const colors = ["#ef4444", "#f97316", "#facc15", "#84cc16"];
+    const colors = ["var(--color-brand-700)", "var(--color-brand-yellow)", "var(--color-brand-green)", "var(--color-brand-300)"];
 
     expenses.forEach((exp) => {
       const category = exp.category || "Other";
@@ -460,7 +461,6 @@ export default function FinancePage() {
 
     return allTxns
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 6)
       .map((txn) => {
         const now = new Date();
         const txnDate = new Date(txn.date);
@@ -551,7 +551,7 @@ export default function FinancePage() {
   ];
 
   const cashFlowMix = [
-    { name: "Income", value: summary.totalIncome || 1, color: "#10b981" },
+    { name: "Income", value: summary.totalIncome || 1, color: "var(--color-brand-green)" },
     { name: "Expenses", value: summary.totalExpenses || 1, color: "#f97316" },
   ];
 
@@ -559,15 +559,15 @@ export default function FinancePage() {
     <div className="min-w-0 space-y-6 pb-8">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div>
-          <p className="text-sm font-medium uppercase tracking-[0.18em] text-blue-600">Finance & accounting</p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">Financial performance overview</h1>
+          <p className="text-sm font-medium uppercase tracking-[0.18em] text-brand-600">Finance & accounting</p>
+          <h1 className="ui-page-title mt-2">Financial performance overview</h1>
           <p className="mt-2 text-sm text-slate-500">
             Student billing, fee collection, payroll, expenses, and profitability in one intelligent dashboard.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+          <div className="ui-surface inline-flex p-1">
             {periodOptions.map((option) => (
               <button
                 key={option.key}
@@ -575,7 +575,7 @@ export default function FinancePage() {
                 onClick={() => setPeriod(option.key)}
                 className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
                   period === option.key
-                    ? "bg-slate-900 text-white shadow-sm"
+                    ? "bg-brand-600 text-white shadow-sm"
                     : "text-slate-600 hover:bg-slate-100"
                 }`}
               >
@@ -588,7 +588,7 @@ export default function FinancePage() {
             type="button"
             onClick={handleExportReport}
             disabled={isExporting || isLoading}
-            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 disabled:opacity-60"
+            className="ui-button inline-flex items-center gap-2 bg-brand-600 py-2 text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-60"
           >
             <Download size={16} />
             {isExporting ? "Generating..." : "Export report"}
@@ -597,7 +597,7 @@ export default function FinancePage() {
       </div>
 
       {isLoading && (
-        <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-500 shadow-sm">
+        <div className="ui-surface flex items-center gap-2 p-4 text-sm text-slate-500">
           <Loader2 size={18} className="animate-spin" />
           Loading financial data...
         </div>
@@ -614,15 +614,15 @@ export default function FinancePage() {
                   : card.tone === "rose"
                     ? "bg-rose-50 text-rose-700"
                     : card.tone === "blue"
-                      ? "bg-blue-50 text-blue-700"
+                      ? "bg-brand-50 text-brand-700"
                       : card.tone === "amber"
                         ? "bg-amber-50 text-amber-700"
                         : card.tone === "violet"
-                          ? "bg-violet-50 text-violet-700"
+                          ? "bg-brand-50 text-brand-700"
                           : "bg-slate-100 text-slate-700";
 
               return (
-                <div key={card.title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+                <div key={card.title} className="ui-surface p-5 transition hover:-translate-y-0.5 hover:shadow-md">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-medium text-slate-500">{card.title}</p>
@@ -643,14 +643,14 @@ export default function FinancePage() {
           </section>
 
           <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
+            <div className="ui-surface p-5 xl:col-span-2">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-semibold text-slate-900">Cash flow trend</h2>
+                  <h2 className="ui-section-title">Cash flow trend</h2>
                   <p className="text-sm text-slate-500">Income vs expenses over the {period} period</p>
                 </div>
                 <div className="flex items-center gap-3 text-xs font-medium text-slate-500">
-                  <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-blue-500" /> Income</span>
+                  <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-brand-500" /> Income</span>
                   <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-amber-500" /> Expenses</span>
                 </div>
               </div>
@@ -660,8 +660,8 @@ export default function FinancePage() {
                   <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="incomeArea" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.35} />
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.04} />
+                        <stop offset="5%" stopColor="var(--color-brand-600)" stopOpacity={0.35} />
+                        <stop offset="95%" stopColor="var(--color-brand-600)" stopOpacity={0.04} />
                       </linearGradient>
                       <linearGradient id="expenseArea" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.25} />
@@ -672,15 +672,15 @@ export default function FinancePage() {
                     <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fill: "#64748b", fontSize: 12 }} />
                     <YAxis tickLine={false} axisLine={false} tick={{ fill: "#64748b", fontSize: 12 }} tickFormatter={(val) => `Rs. ${Number(val) / 1000}k`} />
                     <Tooltip formatter={(value: any, name: any) => [formatCurrency(Number(value ?? 0)), String(name ?? "Amount")] } />
-                    <Area type="monotone" dataKey="income" stroke="#3b82f6" strokeWidth={3} fill="url(#incomeArea)" />
+                    <Area type="monotone" dataKey="income" stroke="var(--color-brand-600)" strokeWidth={3} fill="url(#incomeArea)" />
                     <Area type="monotone" dataKey="expenses" stroke="#f59e0b" strokeWidth={3} fill="url(#expenseArea)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-lg font-semibold text-slate-900">Cash flow mix</h2>
+            <div className="ui-surface p-5">
+              <h2 className="ui-section-title">Cash flow mix</h2>
               <p className="mt-1 text-sm text-slate-500">Current period distribution</p>
 
               <div className="mt-5 h-64">
@@ -711,13 +711,13 @@ export default function FinancePage() {
           </section>
 
           <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="ui-surface p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-semibold text-slate-900">Revenue breakdown</h2>
+                  <h2 className="ui-section-title">Revenue breakdown</h2>
                   <p className="text-sm text-slate-500">Major fee streams</p>
                 </div>
-                <div className="rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">Annualized</div>
+                <div className="rounded-full bg-brand-50 px-2 py-1 text-xs font-medium text-brand-700">Annualized</div>
               </div>
 
               <div className="mt-5 h-72">
@@ -737,10 +737,10 @@ export default function FinancePage() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="ui-surface p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-semibold text-slate-900">Expense allocation</h2>
+                  <h2 className="ui-section-title">Expense allocation</h2>
                   <p className="text-sm text-slate-500">Operational spending mix</p>
                 </div>
                 <div className="rounded-full bg-rose-50 px-2 py-1 text-xs font-medium text-rose-700">Monthly</div>
@@ -765,21 +765,21 @@ export default function FinancePage() {
           </section>
 
           <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.4fr_0.9fr]">
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="ui-surface p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-semibold text-slate-900">Recent transactions</h2>
+                  <h2 className="ui-section-title">Recent transactions</h2>
                   <p className="text-sm text-slate-500">Latest fee collections and financial activity</p>
                 </div>
-                <Link to="/finance/billing" className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700">
+                <Link to="/finance/billing" className="inline-flex items-center gap-2 text-sm font-medium text-brand-600 hover:text-brand-700">
                   <Plus size={16} />
                   New invoice
                 </Link>
               </div>
 
               <div className="mt-5 overflow-hidden rounded-xl border border-slate-200">
-                <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
-                  <thead className="bg-slate-50 text-slate-600">
+                <table className="ui-table divide-y divide-slate-200">
+                  <thead className="ui-table-head">
                     <tr>
                       <th className="px-4 py-3 font-medium">Type</th>
                       <th className="px-4 py-3 font-medium">Student / party</th>
@@ -796,7 +796,7 @@ export default function FinancePage() {
                         </td>
                       </tr>
                     ) : (
-                      recentTransactions.map((entry, idx) => (
+                      <PaginatedList items={recentTransactions} table>{(entry, idx) => (
                         <tr key={idx} className="hover:bg-slate-50">
                           <td className="px-4 py-3 text-slate-700 text-sm">{entry.type}</td>
                           <td className="px-4 py-3 text-slate-700 text-sm max-w-xs truncate">{entry.description}</td>
@@ -806,7 +806,7 @@ export default function FinancePage() {
                           <td className="px-4 py-3">
                             <span className={`rounded-full px-2 py-1 text-[11px] font-medium ${
                               entry.status === "Paid" ? "bg-emerald-50 text-emerald-700" :
-                              entry.status === "Recorded" ? "bg-blue-50 text-blue-700" :
+                              entry.status === "Recorded" ? "bg-brand-50 text-brand-700" :
                               "bg-amber-50 text-amber-700"
                             }`}>
                               {entry.status}
@@ -814,7 +814,7 @@ export default function FinancePage() {
                           </td>
                           <td className="px-4 py-3 text-slate-500 text-sm">{entry.time}</td>
                         </tr>
-                      ))
+                      )}</PaginatedList>
                     )}
                   </tbody>
                 </table>
@@ -822,8 +822,8 @@ export default function FinancePage() {
             </div>
 
             <div className="space-y-6">
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <h2 className="text-lg font-semibold text-slate-900">Profit & loss</h2>
+              <div className="ui-surface p-5">
+                <h2 className="ui-section-title">Profit & loss</h2>
                 <p className="mt-1 text-sm text-slate-500">Current period performance</p>
 
                 <div className="mt-6 space-y-4">
@@ -859,8 +859,8 @@ export default function FinancePage() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <h2 className="text-lg font-semibold text-slate-900">Finance tools</h2>
+              <div className="ui-surface p-5">
+                <h2 className="ui-section-title">Finance tools</h2>
                 <div className="mt-4 space-y-3">
                   {[
                     { label: "Invoice generation", icon: FileText, href: "/finance/billing" },

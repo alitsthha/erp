@@ -13,7 +13,7 @@ export default function DashboardFilters({
       onChange={(event) =>
         onChange?.(event.target.value)
       }
-      className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 md:w-56"
+      className="ui-field w-full px-4 text-slate-700 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-100 md:w-56"
     >
       <option value="all">
         All Students

@@ -11,7 +11,7 @@ export default function FormField({
 }: Props) {
   return (
     <div className="space-y-2">
-      <label className="font-medium text-gray-700">
+      <label className="font-medium text-slate-700">
         {label}
 
         {required && (

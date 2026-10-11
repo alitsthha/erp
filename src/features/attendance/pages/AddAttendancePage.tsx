@@ -10,12 +10,13 @@ import type { Enrollment } from "@/features/enrollments/types/enrollment.types";
 import { getAllEnrollments } from "@/features/enrollments/services/enrollment.service";
 
 import AttendanceForm from "@/features/attendance/forms/AttendanceForm";
+import { attendanceLink } from "../utils/attendance-navigation";
 
 export default function AddAttendancePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryDate = searchParams.get("date") || "";
-  const queryActivity = searchParams.get("activity") || "";
+  const queryActivity = searchParams.get("activityId") || searchParams.get("activity") || "";
 
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -132,7 +133,7 @@ export default function AddAttendancePage() {
   }, [enrollments, activityId]);
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+    <div className="ui-page mx-auto w-full space-y-6">
       {/* HEADER */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
@@ -141,7 +142,7 @@ export default function AddAttendancePage() {
             onClick={() =>
               navigate("/attendance")
             }
-            className="mb-4 inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="ui-button mb-4 inline-flex items-center gap-2 border border-slate-300 bg-white py-2 text-slate-700 shadow-sm transition hover:bg-slate-50"
           >
             <ArrowLeft size={17} />
 
@@ -149,16 +150,16 @@ export default function AddAttendancePage() {
           </button>
 
           <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white shadow-sm">
               <ClipboardCheck size={21} />
             </div>
 
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+              <h1 className="ui-page-title">
                 Daily Attendance
               </h1>
 
-              <p className="mt-1 max-w-2xl text-sm text-slate-500 sm:text-base">
+              <p className="mt-1 max-w-2xl text-sm text-slate-500">
                 Select an activity and attendance
                 date, then mark students present or
                 absent.
@@ -170,7 +171,7 @@ export default function AddAttendancePage() {
 
       {/* LOADING */}
       {isLoading ? (
-        <div className="flex min-h-60 items-center justify-center rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+        <div className="ui-surface flex min-h-60 items-center justify-center p-8">
           <div className="flex flex-col items-center gap-3 text-slate-500">
             <Loader2
               size={28}
@@ -184,8 +185,8 @@ export default function AddAttendancePage() {
         </div>
       ) : enrollments.length === 0 ? (
         /* NO ENROLLMENTS */
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-white text-slate-400 shadow-sm">
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+          <div className="ui-surface mx-auto flex h-12 w-12 items-center justify-center text-slate-400">
             <ClipboardCheck size={22} />
           </div>
 
@@ -203,7 +204,7 @@ export default function AddAttendancePage() {
             onClick={() =>
               navigate("/enrollments/add")
             }
-            className="mt-5 rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800"
+            className="ui-button mt-5 bg-brand-600 py-3 text-white shadow-sm transition hover:bg-brand-700"
           >
             Add Enrollment
           </button>
@@ -217,8 +218,8 @@ export default function AddAttendancePage() {
           activityName={selectedActivityName}
           activities={activities}
           onActivityChange={setActivityId}
-          onSuccess={() =>
-            navigate("/attendance")
+          onSuccess={(dateBS) =>
+            navigate(attendanceLink(dateBS, activityId || "all"))
           }
         />
       )}

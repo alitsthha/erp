@@ -61,12 +61,12 @@ export default function EditAttendancePage() {
   if (!attendance) {
     return (
       <div className="mx-auto flex min-h-[60vh] max-w-xl items-center justify-center px-4">
-        <div className="w-full rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+        <div className="ui-surface w-full p-8 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-600">
             <ClipboardCheck size={22} />
           </div>
 
-          <h1 className="mt-4 text-xl font-bold text-slate-900">
+          <h1 className="ui-page-title mt-4">
             Attendance record not found
           </h1>
 
@@ -77,7 +77,7 @@ export default function EditAttendancePage() {
           <button
             type="button"
             onClick={() => navigate("/attendance")}
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-slate-800"
+            className="ui-button mt-6 inline-flex items-center gap-2 bg-brand-600 py-3 text-white transition hover:bg-brand-700"
           >
             <ArrowLeft size={17} />
             Back to Attendance
@@ -88,29 +88,29 @@ export default function EditAttendancePage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+    <div className="ui-page mx-auto w-full space-y-6">
       {/* Header */}
       <div>
         <button
           type="button"
           onClick={() => navigate("/attendance")}
-          className="mb-4 inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+          className="ui-button mb-4 inline-flex items-center gap-2 border border-slate-300 bg-white py-2 text-slate-700 transition hover:bg-slate-50"
         >
           <ArrowLeft size={17} />
           Back to Attendance
         </button>
 
         <div className="flex items-start gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white">
             <ClipboardCheck size={21} />
           </div>
 
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            <h1 className="ui-page-title">
               Attendance Roster for {attendance.sessionDateBS || attendance.sessionDate}
             </h1>
 
-            <p className="mt-1 text-sm text-slate-500 sm:text-base">
+            <p className="mt-1 text-sm text-slate-500">
               Editing record for{" "}
               <span className="font-medium text-slate-700">
                 {attendance.studentName}

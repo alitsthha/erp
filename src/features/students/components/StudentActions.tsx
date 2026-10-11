@@ -23,7 +23,7 @@ export default function StudentActions({
         onClick={onView}
         aria-label="View student"
         title="View student"
-        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-blue-50 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100"
+        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-brand-50 hover:text-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-100"
       >
         <Eye size={17} />
       </button>

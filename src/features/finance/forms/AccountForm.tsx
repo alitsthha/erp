@@ -17,13 +17,13 @@ type AccountFormProps = {
 };
 
 const inputClass =
-  "h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-500 focus:ring-2 focus:ring-slate-100 disabled:cursor-not-allowed disabled:bg-slate-50";
+  "ui-field w-full border-slate-300 bg-white px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-600 focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-50";
 
 const selectClass =
-  "h-11 w-full rounded-xl border border-slate-300 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-100 disabled:cursor-not-allowed disabled:bg-slate-50";
+  "ui-field w-full border-slate-300 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-50";
 
 const textareaClass =
-  "min-h-28 w-full resize-y rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-500 focus:ring-2 focus:ring-slate-100 disabled:cursor-not-allowed disabled:bg-slate-50";
+  "min-h-28 w-full resize-y rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-600 focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-50";
 
 const errorClass =
   "mt-1 text-xs text-red-500";
@@ -104,9 +104,9 @@ export default function AccountForm({
       {/* ACCOUNT INFORMATION */}
       {/* ------------------------------------------------ */}
 
-      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <section className="ui-surface">
         <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
-          <h2 className="text-lg font-semibold text-slate-900">
+          <h2 className="ui-section-title">
             Account Information
           </h2>
 
@@ -252,9 +252,9 @@ export default function AccountForm({
       {/* BALANCE INFORMATION */}
       {/* ------------------------------------------------ */}
 
-      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <section className="ui-surface">
         <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
-          <h2 className="text-lg font-semibold text-slate-900">
+          <h2 className="ui-section-title">
             Balance Information
           </h2>
 
@@ -335,9 +335,9 @@ export default function AccountForm({
       {/* CASH / BANK SETTINGS */}
       {/* ------------------------------------------------ */}
 
-      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <section className="ui-surface">
         <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
-          <h2 className="text-lg font-semibold text-slate-900">
+          <h2 className="ui-section-title">
             Account Settings
           </h2>
 
@@ -423,9 +423,9 @@ export default function AccountForm({
       {/* DESCRIPTION */}
       {/* ------------------------------------------------ */}
 
-      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <section className="ui-surface">
         <div className="border-b border-slate-200 px-5 py-5 sm:px-6">
-          <h2 className="text-lg font-semibold text-slate-900">
+          <h2 className="ui-section-title">
             Additional Information
           </h2>
         </div>
@@ -459,7 +459,7 @@ export default function AccountForm({
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-slate-900 px-6 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+          className="ui-button inline-flex w-full items-center justify-center bg-brand-600 py-3 text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         >
           {submitting
             ? "Saving..."

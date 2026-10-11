@@ -7,7 +7,7 @@ export default function StaffStatusBadge({
 }: Props) {
   const colors = {
     Active: "bg-green-100 text-green-700",
-    Inactive: "bg-gray-100 text-gray-700",
+    Inactive: "bg-slate-100 text-slate-700",
     Resigned: "bg-red-100 text-red-700",
   };
 
@@ -15,7 +15,7 @@ export default function StaffStatusBadge({
     <span
       className={`rounded-full px-3 py-1 text-sm font-medium ${
         colors[status as keyof typeof colors] ??
-        "bg-gray-100 text-gray-700"
+        "bg-slate-100 text-slate-700"
       }`}
     >
       {status}

@@ -41,7 +41,7 @@ export default function AttendanceActions({
 
       {deleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-[2px]">
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-xl">
             <h3 className="text-base font-bold text-slate-900">
               Delete Attendance Record
             </h3>
@@ -52,7 +52,7 @@ export default function AttendanceActions({
               <button
                 type="button"
                 onClick={() => setDeleteConfirm(false)}
-                className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                className="ui-button border border-slate-300 bg-white py-2 text-slate-700 transition hover:bg-slate-50"
               >
                 Cancel
               </button>
@@ -62,7 +62,7 @@ export default function AttendanceActions({
                   onDelete(recordId);
                   setDeleteConfirm(false);
                 }}
-                className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700"
+                className="ui-button bg-rose-600 py-2 text-white shadow-sm transition hover:bg-rose-700"
               >
                 Delete Record
               </button>
