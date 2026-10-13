@@ -14,6 +14,7 @@ import {
 } from "firebase/auth";
 
 import { auth } from "@/lib/firebase";
+import { getSessionExpiresAt, watchSessionExpiry } from "@/lib/auth-session";
 import {
   createDefaultPermissions,
   normalizePermissions,
@@ -95,6 +96,7 @@ type AuthContextValue = {
   permissions: ModulePermissions;
   activityIds: string[];
   loading: boolean;
+  sessionExpired: boolean;
   isAdmin: boolean;
   isTeacher: boolean;
   login: (
@@ -114,9 +116,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
   const [loading, setLoading] = useState(true);
   const [activityIds, setActivityIds] = useState<string[]>([]);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   useEffect(() => {
+    let revision = 0;
+    let stopSessionWatch: (() => void) | undefined;
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      const currentRevision = ++revision;
+      stopSessionWatch?.();
       if (!currentUser) {
         setUser(null);
         setRole(null);
@@ -128,6 +135,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const email = currentUser.email?.trim().toLowerCase() ?? "";
       const tokenResult = await currentUser.getIdTokenResult();
+      if (currentRevision !== revision) return;
+      const expiresAt = getSessionExpiresAt(tokenResult.authTime);
+      stopSessionWatch = watchSessionExpiry(expiresAt, () => {
+        ++revision;
+        setSessionExpired(true);
+        setUser(null);
+        setRole(null);
+        setPermissions(createDefaultPermissions("teacher"));
+        setActivityIds([]);
+        setLoading(false);
+        void signOut(auth).catch((error) => console.warn("Session sign out error:", error));
+      });
+      if (currentRevision !== revision) return;
+      setSessionExpired(false);
       const tokenClaims = tokenResult.claims as {
         role?: AppRole;
         permissions?: Partial<ModulePermissions>;
@@ -157,6 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         nextPermissions.attendance = true;
       }
 
+      if (currentRevision !== revision || auth.currentUser !== currentUser) return;
       setUser(currentUser);
       setRole(nextRole);
       setPermissions(nextPermissions);
@@ -164,7 +186,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    return unsubscribe;
+    return () => {
+      ++revision;
+      stopSessionWatch?.();
+      unsubscribe();
+    };
   }, []);
 
   const login = async (
@@ -233,6 +259,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         nextPermissions.attendance = true;
       }
 
+      if (auth.currentUser !== currentUser || Date.now() >= getSessionExpiresAt(tokenResult.authTime)) {
+        return { success: false, error: "Your session has expired. Please sign in again." };
+      }
+      setSessionExpired(false);
       setUser(currentUser);
       setRole(nextRole);
       setPermissions(nextPermissions);
@@ -303,13 +333,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       permissions,
       activityIds,
       loading,
+      sessionExpired,
       isAdmin: role === "admin",
       isTeacher:
         isTeacherRole(role),
       login,
       logout,
     }),
-    [user, role, permissions, activityIds, loading]
+    [user, role, permissions, activityIds, loading, sessionExpired]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

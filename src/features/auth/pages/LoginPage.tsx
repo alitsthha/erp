@@ -14,12 +14,11 @@ import yeaLogo from "/yea-logo.png";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { user, role, loading, login } = useAuth();
+  const { user, role, loading, login, sessionExpired } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [resetSubmitting, setResetSubmitting] = useState(false);
   const [resetCode, setResetCode] = useState<string | null>(null);
@@ -178,6 +177,13 @@ export default function LoginPage() {
         </p>
 
         {/* Error Message */}
+        {sessionExpired && (
+          <div role="alert" className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm text-amber-800">
+              Your 30-minute session has expired. Please sign in again.
+            </p>
+          </div>
+        )}
         {error && (
           <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
             <p className="text-sm text-red-700">{error}</p>
@@ -278,15 +284,7 @@ export default function LoginPage() {
 
           {/* Remember Me & Forgot Password */}
           <div className="flex items-center justify-between">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
-              />
-              <span className="text-sm text-slate-600">Remember me</span>
-            </label>
+            <span className="text-sm text-slate-500">Session lasts 30 minutes</span>
             <button
               type="button"
               onClick={handlePasswordReset}
