@@ -1,3 +1,4 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm, useWatch } from "react-hook-form";
@@ -57,6 +58,7 @@ export default function ActivityForm({ activityId }: Props) {
 
   const {
     register,
+    watch,
     handleSubmit,
     reset,
     setValue,
@@ -374,7 +376,7 @@ export default function ActivityForm({ activityId }: Props) {
                     className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                 />
 
-                <select
+                <SearchableSelect value={watch("coachStaffId")}
                     id="coachStaffId"
                     {...register("coachStaffId", { onChange: (event) => {
                         const selected = staff.find((item) => item.id === event.target.value);
@@ -384,7 +386,7 @@ export default function ActivityForm({ activityId }: Props) {
                 >
                   <option value="">Select instructor</option>
                   {staff.map((member) => <option key={member.id} value={member.id}>{member.fullName} ({member.staffCode})</option>)}
-                </select>
+                </SearchableSelect>
               </div>
             </div>
 
@@ -641,7 +643,7 @@ export default function ActivityForm({ activityId }: Props) {
                 Status
               </label>
 
-              <select
+              <SearchableSelect value={watch("status")}
                   id="status"
                   {...register("status")}
                   className="ui-field w-full px-4 font-medium text-slate-900 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
@@ -653,7 +655,7 @@ export default function ActivityForm({ activityId }: Props) {
                 <option value="Inactive">
                   Inactive
                 </option>
-              </select>
+              </SearchableSelect>
 
               <p className="mt-1.5 text-xs text-slate-400">
                 Inactive activities remain in your records.

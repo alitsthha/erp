@@ -1,3 +1,4 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -175,7 +176,7 @@ export default function AccountForm({
                 <span className="ml-1 text-red-500">*</span>
               </label>
 
-              <select
+              <SearchableSelect value={watch("accountType")}
                 {...register("accountType")}
                 disabled={submitting}
                 className={selectClass}
@@ -199,7 +200,7 @@ export default function AccountForm({
                 <option value="Expense">
                   Expense
                 </option>
-              </select>
+              </SearchableSelect>
 
               {errors.accountType && (
                 <p className={errorClass}>
@@ -396,7 +397,7 @@ export default function AccountForm({
               Status
             </label>
 
-            <select
+            <SearchableSelect value={watch("status")}
               {...register("status")}
               disabled={submitting}
               className={selectClass}
@@ -408,7 +409,7 @@ export default function AccountForm({
               <option value="Inactive">
                 Inactive
               </option>
-            </select>
+            </SearchableSelect>
 
             {errors.status && (
               <p className={errorClass}>

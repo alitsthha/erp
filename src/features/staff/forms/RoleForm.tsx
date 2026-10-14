@@ -1,3 +1,4 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -54,6 +55,7 @@ export default function RoleForm({
 }: RoleFormProps) {
   const {
     register,
+    watch,
     handleSubmit,
     formState: {
       errors,
@@ -108,13 +110,13 @@ export default function RoleForm({
               Status
             </label>
 
-            <select
+            <SearchableSelect value={watch("status")}
               {...register("status")}
               className="ui-field w-full px-4"
             >
               <option value="Active">Active</option>
               <option value="Inactive">Inactive</option>
-            </select>
+            </SearchableSelect>
           </div>
 
           <div>
@@ -177,7 +179,7 @@ export default function RoleForm({
               Badge Color
             </label>
 
-            <select
+            <SearchableSelect value={watch("color")}
               {...register("color")}
               className="ui-field w-full px-4"
             >
@@ -187,7 +189,7 @@ export default function RoleForm({
               <option value="Orange">Orange</option>
               <option value="Red">Red</option>
               <option value="Gray">Gray</option>
-            </select>
+            </SearchableSelect>
           </div>
 
           <div>

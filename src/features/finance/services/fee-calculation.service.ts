@@ -6,6 +6,10 @@ import {
 } from "firebase/firestore";
 
 import { db } from "@/firebase/config";
+import { getKathmanduToday } from "@/utils/calendar-date";
+import { applyBillingSelection, type BillingSelection } from "./billing-selection.service";
+import { getBillingCalendarAttendance } from "./billing-sessions.service";
+import { billedEnrollmentCharges, billingDateKey, summarizeBillingHistory, type BillingRecord } from "./billing-history.service";
 
 import type {
   Enrollment,
@@ -25,6 +29,12 @@ import {
 ========================================================= */
 
 export interface StudentFeeLine {
+  billedMonths?: string[];
+  attendanceIds?: string[];
+  attendanceDates?: string[];
+  /** Calendar attendance across the selected period, including previously billed sessions. */
+  takenSessions?: number;
+  heldSessions?: number;
   enrollmentId: string;
 
   activityId: string;
@@ -66,6 +76,13 @@ export interface StudentFeeLine {
 }
 
 export interface StudentFeeSummary {
+  /** Fees in the selected period, before removing previously invoiced fees. */
+  grossAmount: number;
+  previouslyBilledAmount: number;
+  previousInvoiceTotal: number;
+  paidThroughDate: number;
+  previousBalance: number;
+  availableAdvance: number;
   studentId: string;
   studentName: string;
   studentCode: string;
@@ -73,18 +90,18 @@ export interface StudentFeeSummary {
   /** Billing month in BS (`YYYY-MM`) */
   month: string;
 
-  /** Exact BS billing date used for the monthly due date check (`""` when month level) */
+  /** Inclusive BS cutoff for attendance and payments (`""` for month-end). */
   billingDate: string;
 
   lines: StudentFeeLine[];
 
-  /** Sum of the monthly fees that fell due on the billing date */
+  /** Sum of monthly fees not already reserved by another invoice. */
   monthlyFeeTotal: number;
 
   /** Sum of the attendance based charges */
   sessionFeeTotal: number;
 
-  /** monthlyFeeTotal + sessionFeeTotal */
+  /** Newly unbilled monthlyFeeTotal + sessionFeeTotal, before discounts/advances. */
   totalAmount: number;
 
   /**
@@ -98,13 +115,14 @@ export interface StudentFeeSummary {
 }
 
 export interface FeeCalculationOptions {
+  /** Invoice issue date used for payment history, independent of the fee period. */
+  paymentDate?: string;
+  selection?: BillingSelection;
   /**
    * Exact BS billing date (`YYYY-MM-DD`).
    *
-   * When provided, a monthly fee is only charged if that date is the
-   * enrollment's monthly due date (the enrollment day of a later month).
-   * When omitted the calculation stays at month level and charges a monthly
-   * fee whose due date falls anywhere inside the billing month.
+   * Attendance and payments after this date are excluded. Monthly fees are
+   * charged once per included month. Defaults to month-end when omitted.
    */
   billingDate?: string;
 
@@ -453,7 +471,7 @@ export function calculateEnrollmentFee(
   let monthlyFeeApplied = false;
   let monthlyFeeAmount = 0;
   let sessionAmount = 0;
-  let monthlyFeeNote = "";
+  let monthlyFeeNote: string;
 
   if (!countedMonthly) {
     // Session mode: charge every present session
@@ -509,7 +527,7 @@ export async function getStudentEnrollments(studentId: string): Promise<Enrollme
   const q = query(collection(db, "enrollments"), where("studentId", "==", studentId));
   const snapshot = await getDocs(q);
 
-  return snapshot.docs.map((enrollmentDoc) => ({
+  return snapshot.docs.filter((enrollmentDoc) => !enrollmentDoc.data().deletedAt).map((enrollmentDoc) => ({
     id: enrollmentDoc.id,
     ...enrollmentDoc.data(),
   })) as Enrollment[];
@@ -606,34 +624,79 @@ export async function calculateStudentMonthlyFee(
   options?: FeeCalculationOptions
 ): Promise<StudentFeeSummary> {
   const { month, billingDate } = resolveBillingPeriod(period, options?.billingDate);
-  const startMonth = getMonthKey(options?.startMonth) || month;
+  if (!studentId || !month) throw new Error("A student and valid billing period are required.");
+  const requestedStart = getMonthKey(options?.startMonth) || month;
+  const startMonth = requestedStart > month ? month : requestedStart;
   const billingMonths = getBillingMonths(
     startMonth,
     options?.months ?? getInclusiveBsMonthCount(startMonth, month)
   );
 
-  const enrollments = await getStudentEnrollments(studentId);
+  const cutoff = billingDate || `${month}-${String(getDaysInBsMonth(Number(month.slice(0, 4)), Number(month.slice(5, 7)))).padStart(2, "0")}`;
+  const paymentCutoff = billingDateKey(options?.paymentDate) || cutoff;
+  const [enrollments, invoiceSnapshot, advanceSnapshot] = await Promise.all([
+    getStudentEnrollments(studentId),
+    getDocs(query(collection(db, "invoices"), where("studentId", "==", studentId))),
+    getDocs(query(collection(db, "financeIncome"), where("studentId", "==", studentId))),
+  ]);
+  const invoices: BillingRecord[] = invoiceSnapshot.docs.map((item) => ({ ...item.data(), id: item.id }));
+  const advances: BillingRecord[] = advanceSnapshot.docs.map((item) => ({ ...item.data(), id: item.id }));
+  // Query by invoice so legacy receipts without a studentId are included too.
+  const paymentSnapshots = await Promise.all(invoices.filter((item) => !item.deletedAt && item.status !== "Cancelled").map((item) =>
+    getDocs(query(collection(db, "financePayments"), where("invoiceId", "==", item.id)))
+  ));
+  const payments: BillingRecord[] = paymentSnapshots.flatMap((snapshot) => snapshot.docs.map((item) => ({ ...item.data(), id: item.id })));
   const activeEnrollments = enrollments.filter((enrollment) => enrollment.status === "Active");
+  const attendanceCutoff = [cutoff, getKathmanduToday().bs].sort()[0];
+  const calendarAttendance = await getBillingCalendarAttendance(`${startMonth}-01`, attendanceCutoff);
 
   const lines: StudentFeeLine[] = [];
+  let grossAmount = 0;
 
   for (const enrollment of activeEnrollments) {
     if (!enrollment.id) {
       continue;
     }
 
-    const attendanceByMonth = await Promise.all(
-      billingMonths.map((billingMonth) =>
-        getEnrollmentAttendance(enrollment.id as string, billingMonth)
-      )
-    );
-    const attendance = attendanceByMonth.flat();
-
-    const line = calculateEnrollmentFee(enrollment, attendance.length, month, { billingDate });
+    const snapshot = await getDocs(query(collection(db, "attendances"), where("enrollmentId", "==", enrollment.id)));
+    // Keep every historical ID for recognizing older bills, even when duplicate
+    // records now collapse into a single calendar class date.
+    const allAttendance = snapshot.docs.filter((item) => !item.data().deletedAt)
+      .map((item) => mapAttendance(item.id, item.data()))
+      .filter((item) => item.status === "Present");
+    const enrollmentDate = normalizeBsDate(enrollment.enrollmentDate);
+    const inPeriod = (item: Attendance) => {
+      const date = billingDateKey(item.sessionDateBS || item.sessionDate);
+      return Boolean(date && date <= attendanceCutoff && (!enrollmentDate || date >= enrollmentDate)
+        && billingMonths.includes(date.slice(0, 7)));
+    };
+    const calendarRecords = calendarAttendance.filter(inPeriod);
+    const studentRecords = calendarRecords.filter((item) => item.enrollmentId
+      ? item.enrollmentId === enrollment.id
+      : item.studentId === studentId && item.activityId === enrollment.activityId);
+    // Include legacy enrollment records without a normalized sessionDateBS field.
+    const presentRecords = [...allAttendance.filter(inPeriod), ...studentRecords.filter((item) => item.status === "Present")];
+    const byDate = new Map<string, Attendance>();
+    for (const item of presentRecords) byDate.set(billingDateKey(item.sessionDateBS || item.sessionDate), item);
+    const attendance = [...byDate.values()].sort((a, b) => billingDateKey(a.sessionDateBS || a.sessionDate).localeCompare(billingDateKey(b.sessionDateBS || b.sessionDate)));
+    const billed = billedEnrollmentCharges(enrollment.id, enrollment.activityId, invoices, [...allAttendance, ...presentRecords]);
+    const unbilledAttendance = attendance.filter((item) => !billed.attendanceDates.has(billingDateKey(item.sessionDateBS || item.sessionDate)));
+    const line = calculateEnrollmentFee(enrollment, unbilledAttendance.length, month, { billingDate });
+    line.takenSessions = attendance.length;
+    // An Absent mark still confirms that the activity took place that day.
+    const heldDates = new Set(calendarRecords.filter((item) => item.activityId === enrollment.activityId)
+      .map((item) => billingDateKey(item.sessionDateBS || item.sessionDate)));
+    for (const date of byDate.keys()) heldDates.add(date);
+    line.heldSessions = heldDates.size;
+    line.attendanceDates = line.countedMonthly ? [] : unbilledAttendance.map((item) => billingDateKey(item.sessionDateBS || item.sessionDate));
+    grossAmount += line.countedMonthly ? line.monthlyFee * billingMonths.length : attendance.length * line.sessionFee;
+    line.billedMonths = line.countedMonthly ? billingMonths.filter((value) => !billed.months.has(value)) : [];
+    line.attendanceIds = line.countedMonthly ? [] : unbilledAttendance.map((item) => item.id!);
     if (line.countedMonthly && line.monthlyFeeAmount > 0) {
-      line.monthlyFeeAmount = roundMoney(line.monthlyFeeAmount * billingMonths.length);
+      line.monthlyFeeAmount = roundMoney(line.monthlyFeeAmount * line.billedMonths.length);
+      line.monthlyFeeApplied = line.monthlyFeeAmount > 0;
       line.calculatedAmount = roundMoney(line.monthlyFeeAmount + line.sessionAmount);
-      line.monthlyFeeNote = `${line.monthlyFeeNote} ${billingMonths.length} month(s) included.`;
+      line.monthlyFeeNote = line.billedMonths.length ? `New monthly fees for ${line.billedMonths.join(", ")}.` : "Monthly fees already invoiced for this period.";
     }
     lines.push(line);
   }
@@ -661,7 +724,10 @@ export async function calculateStudentMonthlyFee(
 
   const firstEnrollment = activeEnrollments[0];
 
-  return {
+  return applyBillingSelection({
+    grossAmount: roundMoney(grossAmount),
+    previouslyBilledAmount: roundMoney(Math.max(grossAmount - totalAmount, 0)),
+    ...summarizeBillingHistory(studentId, paymentCutoff, invoices, payments, advances),
     studentId,
     studentName: firstEnrollment?.studentName ?? "",
     studentCode: firstEnrollment?.studentCode ?? "",
@@ -673,7 +739,7 @@ export async function calculateStudentMonthlyFee(
     totalAmount,
     nextMonthlyDueDate: upcomingDueDates[0] ?? "",
     months: billingMonths.length,
-  };
+  }, options?.selection);
 }
 
 export async function countPresentSessions(

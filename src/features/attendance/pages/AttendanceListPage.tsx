@@ -1,6 +1,7 @@
+import { attendanceSelectionRecords } from "../utils/attendance-selection";
 import "../attendance.css";
 import ListSortControl from "@/components/common/ListSortControl";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   CalendarDays,
   CheckCircle2,
@@ -13,6 +14,7 @@ import {
   UserRound,
   ListFilter,
   Send,
+  Trash2,
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { filterActivityRecords, readAttendanceFilters } from "../utils/attendance-navigation";
@@ -30,7 +32,7 @@ import {
   fetchAttendanceDatesBS,
 } from "@/features/attendance/services/attendance-list.service";
 
-import { deleteAttendance } from "@/features/attendance/services/attendance.service";
+import { deleteAttendanceRecords } from "@/features/attendance/services/attendance.service";
 
 import { formatBSDate } from "@/utils/nepali-date";
 
@@ -55,7 +57,7 @@ type GroupedAttendanceRow = AttendanceListRow;
 
 export default function AttendanceListPage() {
   const navigate = useNavigate();
-  const { role, activityIds } = useAuth();
+  const { role, activityIds, isAdmin } = useAuth();
 
   // Current BS Date by default
   const [todayBS, setTodayBS] = useState(() => getKathmanduToday().bs);
@@ -83,6 +85,13 @@ export default function AttendanceListPage() {
   const [loadError, setLoadError] = useState(false);
   const [sendingAlerts, setSendingAlerts] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
+  const [refreshVersion, setRefreshVersion] = useState(0);
+  const [deleting, setDeleting] = useState(false);
+  const deletionInProgress = useRef(false);
+  const [deleteMessage, setDeleteMessage] = useState("");
+  const selectionScope = JSON.stringify([selectedDateBS, viewMode, selectedActivityId, searchTerm, filterStatus, role, activityIds]);
+  const [selection, setSelection] = useState<{ scope: string; ids: string[] }>({ scope: selectionScope, ids: [] });
+  if (selection.scope !== selectionScope) setSelection({ scope: selectionScope, ids: [] });
   const [activityColors, setActivityColors] = useState<ActivityColors>({});
 
   useEffect(() => subscribeActivityColors(setActivityColors, () => setActivityColors({})), []);
@@ -143,7 +152,7 @@ export default function AttendanceListPage() {
     return () => {
       cancelled = true;
     };
-  }, [selectedDateBS, viewMode, todayBS]);
+  }, [selectedDateBS, viewMode, todayBS, refreshVersion]);
 
   // Determine active raw records list based on view mode and role access
   const activeRecords: Attendance[] = useMemo(() => {
@@ -351,38 +360,37 @@ export default function AttendanceListPage() {
     navigate(`/attendance/edit/${recordId}`);
   };
 
-  const handleDelete = async (recordId: string) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this attendance record?"
-    );
+  const visibleRecords = attendanceSelectionRecords(filteredAttendances);
+  const selectedRecords = selection.scope === selectionScope ? visibleRecords.filter((record) => selection.ids.includes(record.id!)) : [];
+  const selectedIds = selectedRecords.map((record) => record.id!);
 
-    if (!confirmed) {
-      return;
-    }
-
+  const handleDeleteRecords = async (records: Attendance[]) => {
+    if (!isAdmin || deletionInProgress.current || !records.length) return;
+    if (!window.confirm(`Delete ${records.length} attendance ${records.length === 1 ? "record" : "records"}? Selected student rows include all activity records shown in the current filter. This cannot be undone.`)) return;
+    deletionInProgress.current = true;
+    setDeleting(true);
+    setDeleteMessage("");
     try {
-      await deleteAttendance(recordId);
-
-      // Update state locally
-      if (viewMode === "daily" && dailyData) {
-        const updatedList = dailyData.attendances.filter(
-          (item) => item.id !== recordId
-        );
-        setDailyData({
-          ...dailyData,
-          attendances: updatedList,
-          totalRecords: updatedList.length,
-          presentCount: updatedList.filter((r) => r.status === "Present").length,
-          absentCount: updatedList.filter((r) => r.status === "Absent").length,
-        });
-      }
-      setAllAttendances((previous) =>
-        previous.filter((item) => item.id !== recordId)
-      );
+      const result = await deleteAttendanceRecords(records);
+      setDeleteMessage(`${result.deleted.length} attendance records deleted.${result.failed.length ? ` ${result.failed.length} could not be deleted. Refresh and retry those records.` : ""}`);
+      const deletedIds = new Set(result.deleted.map((record) => record.id));
+      setSelection((previous) => ({ ...previous, ids: previous.ids.filter((id) => !deletedIds.has(id)) }));
+      setRefreshVersion((value) => value + 1);
+      const dates = await fetchAttendanceDatesBS();
+      setRecordedDates(dates);
     } catch (error) {
       console.error("Error deleting attendance:", error);
-      alert("Failed to delete attendance record.");
+      setDeleteMessage("Could not finish refreshing attendance. Refresh the page before retrying.");
+      setRefreshVersion((value) => value + 1);
+    } finally {
+      deletionInProgress.current = false;
+      setDeleting(false);
     }
+  };
+
+  const handleDelete = (recordId: string) => {
+    const row = filteredAttendances.find((record) => record.id === recordId);
+    if (row) void handleDeleteRecords(attendanceSelectionRecords([row]));
   };
 
   const clearFilters = () => {
@@ -815,6 +823,15 @@ export default function AttendanceListPage() {
           </div>
         )}
 
+        {isAdmin && filteredAttendances.length > 0 && <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+          <p className="text-sm text-slate-600">{selectedRecords.length} activity records selected · Select all includes every filtered page.</p>
+          <div className="flex gap-2">
+            <button type="button" disabled={deleting || !selectedRecords.length} onClick={() => setSelection({ scope: selectionScope, ids: [] })} className="ui-button border border-slate-300 bg-white text-slate-700 disabled:opacity-50">Clear selection</button>
+            <button type="button" disabled={deleting || isLoading || !selectedRecords.length} onClick={() => void handleDeleteRecords(selectedRecords)} className="ui-button inline-flex items-center gap-2 bg-rose-600 text-white disabled:opacity-50"><Trash2 size={16} />{deleting ? "Deleting..." : `Delete selected (${selectedRecords.length})`}</button>
+          </div>
+        </div>}
+        {deleteMessage && <p role="status" className="border-b border-slate-100 px-4 py-3 text-sm text-slate-700">{deleteMessage}</p>}
+
         {/* Table / Content */}
         <div>
           {isLoading ? (
@@ -874,7 +891,10 @@ export default function AttendanceListPage() {
               data={filteredAttendances}
               onEdit={handleEdit}
               onDelete={handleDelete}
-              isLoading={isLoading}
+              isLoading={isLoading || deleting}
+              canDelete={isAdmin}
+              selectedIds={selectedIds}
+              onSelectionChange={isAdmin ? (ids) => setSelection({ scope: selectionScope, ids }) : undefined}
               classHistory={classHistory}
               activityColors={activityColors}
             />

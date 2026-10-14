@@ -1,3 +1,4 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { getCurrentBSDate } from "@/utils/nepali-date";
@@ -69,7 +70,7 @@ export default function ExpenseForm({
           <label className="mb-1.5 block text-sm font-medium text-slate-700">
             Category <span className="text-red-500">*</span>
           </label>
-          <select
+          <SearchableSelect
             value={category}
             onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
             className="ui-field w-full px-3 text-slate-900 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
@@ -78,7 +79,7 @@ export default function ExpenseForm({
             {CATEGORIES.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
-          </select>
+          </SearchableSelect>
         </div>
 
         <NepaliDatePickerInput label="Date" value={expenseDate} onChange={setExpenseDate} required />
@@ -134,7 +135,7 @@ export default function ExpenseForm({
           <label className="mb-1.5 block text-sm font-medium text-slate-700">
             Payment Method
           </label>
-          <select
+          <SearchableSelect
             value={paymentMethod}
             onChange={(e) => setPaymentMethod(e.target.value)}
             className="ui-field w-full px-3 text-slate-900 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
@@ -145,7 +146,7 @@ export default function ExpenseForm({
             <option value="Online">Online</option>
             <option value="Card">Card</option>
             <option value="Other">Other</option>
-          </select>
+          </SearchableSelect>
         </div>
 
         <div>

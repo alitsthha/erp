@@ -1,3 +1,4 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 import { useFormContext } from "react-hook-form";
 import type { StudentFormData } from "../../schemas/student.schema";
 
@@ -8,6 +9,7 @@ interface Props {
 export default function StatusInformation({ saving }: Props) {
   const {
     register,
+    watch,
     formState: { errors },
   } = useFormContext<StudentFormData>();
 
@@ -23,13 +25,13 @@ export default function StatusInformation({ saving }: Props) {
             Student Status
           </label>
 
-          <select
+          <SearchableSelect value={watch("status")}
             {...register("status")}
             className="ui-field w-full px-4 transition focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-200"
           >
             <option value="Active">Active</option>
             <option value="Inactive">Inactive</option>
-          </select>
+          </SearchableSelect>
 
           {errors.status && (
             <p className="mt-2 text-sm text-red-500">

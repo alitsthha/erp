@@ -1,3 +1,4 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -96,7 +97,7 @@ export default function AddSalaryConfigPage() {
               >
                 Staff Member <span className="text-red-500">*</span>
               </label>
-              <select
+              <SearchableSelect value={watch("staffId")}
                 id="staffId"
                 {...register("staffId", { onChange: (event) => { const selected = staff.find((item) => item.id === event.target.value); setValue("staffName", selected?.fullName ?? ""); setValue("role", selected?.designation ?? ""); } })}
                 className={`w-full rounded-lg border px-4 py-2.5 text-sm outline-none transition ${
@@ -108,7 +109,7 @@ export default function AddSalaryConfigPage() {
               >
                 <option value="">Select staff member</option>
                 {staff.map((member) => <option key={member.id} value={member.id}>{member.fullName} ({member.staffCode})</option>)}
-              </select>
+              </SearchableSelect>
               {errors.staffId && (
                 <p className="mt-1.5 text-xs font-medium text-red-500">
                   {errors.staffId.message}
@@ -124,7 +125,7 @@ export default function AddSalaryConfigPage() {
               >
                 Salary Type <span className="text-red-500">*</span>
               </label>
-              <select
+              <SearchableSelect value={watch("salaryType")}
                 id="salaryType"
                 {...register("salaryType")}
                 className="ui-field w-full px-4 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
@@ -132,7 +133,7 @@ export default function AddSalaryConfigPage() {
                 <option value="Monthly">Monthly</option>
                 <option value="Hourly">Hourly</option>
                 <option value="Per Class">Per Class</option>
-              </select>
+              </SearchableSelect>
             </div>
 
             {/* Status */}
@@ -143,14 +144,14 @@ export default function AddSalaryConfigPage() {
               >
                 Status
               </label>
-              <select
+              <SearchableSelect value={watch("status")}
                 id="status"
                 {...register("status")}
                 className="ui-field w-full px-4 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
               >
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
-              </select>
+              </SearchableSelect>
             </div>
           </div>
         </div>

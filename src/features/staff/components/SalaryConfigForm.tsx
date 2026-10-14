@@ -1,3 +1,4 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
@@ -83,10 +84,10 @@ export default function SalaryConfigForm({
             <label className="mb-2 block font-medium">
               Staff Member
             </label>
-            <select {...register("staffId", { onChange: (event) => { const selected = staff.find((item) => item.id === event.target.value); setValue("staffName", selected?.fullName ?? ""); setValue("role", selected?.designation ?? ""); } })} className="ui-field w-full px-4" required>
+            <SearchableSelect value={watch("staffId")} {...register("staffId", { onChange: (event) => { const selected = staff.find((item) => item.id === event.target.value); setValue("staffName", selected?.fullName ?? ""); setValue("role", selected?.designation ?? ""); } })} className="ui-field w-full px-4" required>
               <option value="">Select staff member</option>
               {staff.map((item) => <option key={item.id} value={item.id}>{item.fullName} ({item.staffCode})</option>)}
-            </select>
+            </SearchableSelect>
             <p className="text-sm text-red-500">{errors.staffId?.message}</p>
           </div>
 
@@ -95,14 +96,14 @@ export default function SalaryConfigForm({
               Salary Type
             </label>
 
-            <select
+            <SearchableSelect value={watch("salaryType")}
               {...register("salaryType")}
               className="ui-field w-full px-4"
             >
               <option>Monthly</option>
               <option>Hourly</option>
               <option>Per Class</option>
-            </select>
+            </SearchableSelect>
           </div>
 
           <div>
@@ -207,13 +208,13 @@ export default function SalaryConfigForm({
               Status
             </label>
 
-            <select
+            <SearchableSelect value={watch("status")}
               {...register("status")}
               className="ui-field w-full px-4"
             >
               <option>Active</option>
               <option>Inactive</option>
-            </select>
+            </SearchableSelect>
           </div>
 
         </div>

@@ -1,3 +1,4 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 import ListSortControl from "@/components/common/ListSortControl";
 import PaginatedList from "@/components/common/PaginatedList";
 import { useEffect, useMemo, useState } from "react";
@@ -598,7 +599,7 @@ export default function AttendanceForm({
               <label htmlFor="attendance-activity" className="mb-2 block text-sm font-medium text-slate-700">
                 Filter by activity
               </label>
-              <select
+              <SearchableSelect
                 id="attendance-activity"
                 value={activityId}
                 onChange={(event) => onActivityChange?.(event.target.value)}
@@ -611,7 +612,7 @@ export default function AttendanceForm({
                     {option.name}
                   </option>
                 ))}
-              </select>
+              </SearchableSelect>
             </div>
 
             <div className="flex items-end">

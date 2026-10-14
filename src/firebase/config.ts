@@ -4,14 +4,11 @@ import { getFirestore } from "firebase/firestore";
 import { getFunctions } from "firebase/functions";
 import { getStorage } from "firebase/storage";
 
-export const firebaseConfig = {
-  apiKey: "AIzaSyCPy_fSz1TfZazP7If1JYfhdHaBHjS4Y3c",
-  authDomain: "academy-erp-451f2.firebaseapp.com",
-  projectId: "academy-erp-451f2",
-  storageBucket: "academy-erp-451f2.firebasestorage.app",
-  messagingSenderId: "421398081894",
-  appId: "1:421398081894:web:0ae495180f3d8264e8d8a7",
-};
+import { resolveFirebaseEnvironment } from "./environment";
+
+const environment = resolveFirebaseEnvironment(import.meta.env, import.meta.env.MODE);
+export const firebaseConfig = environment.config;
+export const firebaseEnvironment = environment.target;
 
 export const app = initializeApp(firebaseConfig);
 

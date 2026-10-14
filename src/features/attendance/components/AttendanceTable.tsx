@@ -1,3 +1,4 @@
+import { attendanceSelectionRecords } from "../utils/attendance-selection";
 import PaginatedList from "@/components/common/PaginatedList";
 import type { Attendance, AttendanceListRow } from "@/features/attendance/types/attendance.types";
 import AttendanceActions from "@/features/attendance/components/AttendanceActions";
@@ -12,7 +13,10 @@ interface AttendanceTableProps {
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
   isLoading?: boolean;
+  canDelete?: boolean;
   classHistory?: Record<string, Attendance[]>;
+  selectedIds?: string[];
+  onSelectionChange?: (ids: string[]) => void;
 }
 
 export default function AttendanceTable({
@@ -20,9 +24,15 @@ export default function AttendanceTable({
   onEdit,
   onDelete,
   isLoading,
+  canDelete = true,
   classHistory = {},
   activityColors = {},
+  selectedIds = [],
+  onSelectionChange,
 }: AttendanceTableProps) {
+
+  const selectableIds = attendanceSelectionRecords(data).map((record) => record.id!);
+  const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.includes(id));
 
   if (data.length === 0) {
     return (
@@ -38,6 +48,11 @@ export default function AttendanceTable({
         <caption className="sr-only">Attendance records with student, date, status, classes taken and teacher</caption>
         <thead className="ui-table-head border-b border-slate-100">
           <tr>
+            {onSelectionChange && <th scope="col" className="w-12 px-4 py-3">
+              <input type="checkbox" aria-label={`Select all ${selectableIds.length} filtered attendance records across pages`} checked={allSelected}
+                ref={(node) => { if (node) node.indeterminate = !allSelected && selectableIds.some((id) => selectedIds.includes(id)); }}
+                disabled={isLoading || !selectableIds.length} onChange={() => onSelectionChange(allSelected ? [] : selectableIds)} />
+            </th>}
             <th scope="col" className="px-4 py-3">Code</th>
             <th scope="col" className="px-4 py-3">Student</th>
             <th scope="col" className="px-4 py-3">Nepali Date (BS)</th>
@@ -50,6 +65,8 @@ export default function AttendanceTable({
         </thead>
         <tbody className="divide-y divide-slate-100 text-sm">
           {<PaginatedList showSort={false} items={data} table>{(record) => {
+            const rowIds = attendanceSelectionRecords([record]).map((item) => item.id!);
+            const checked = rowIds.length > 0 && rowIds.every((id) => selectedIds.includes(id));
             const isPresent = record.status === "Present";
             const dateBS = record.sessionDateBS || record.sessionDate;
             const attendedClasses = classHistory[record.studentId] ?? [];
@@ -61,6 +78,11 @@ export default function AttendanceTable({
                 key={record.id || `${record.studentId}-${record.activityId}-${dateBS}`}
                 className="transition hover:bg-brand-50/40"
               >
+                {onSelectionChange && <td className="px-4 py-3">
+                  <input type="checkbox" aria-label={`Select ${record.studentName} on ${dateBS}: ${rowIds.length} activity records`} checked={checked}
+                    ref={(node) => { if (node) node.indeterminate = !checked && rowIds.some((id) => selectedIds.includes(id)); }}
+                    disabled={isLoading || !rowIds.length} onChange={() => onSelectionChange(checked ? selectedIds.filter((id) => !rowIds.includes(id)) : [...new Set([...selectedIds, ...rowIds])])} />
+                </td>}
                 {/* Code */}
                 <td className="px-4 py-3 align-middle font-mono text-xs font-semibold text-brand-600">
                   {record.attendanceCode || "—"}
@@ -146,6 +168,7 @@ export default function AttendanceTable({
                     onEdit={onEdit}
                     onDelete={onDelete}
                     isLoading={isLoading}
+                    canDelete={canDelete}
                   />
                 </td>
               </tr>

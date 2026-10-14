@@ -1,3 +1,4 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 import { Controller, useFormContext } from "react-hook-form";
 import NepaliDatePickerInput from "@/components/forms/NepaliDatePickerInput";
 import type { StudentFormData } from "../../schemas/student.schema";
@@ -5,6 +6,7 @@ import type { StudentFormData } from "../../schemas/student.schema";
 export default function StudentInformation() {
   const {
     register,
+    watch,
     control,
     formState: { errors },
   } = useFormContext<StudentFormData>();
@@ -43,14 +45,14 @@ export default function StudentInformation() {
             Gender
           </label>
 
-          <select
+          <SearchableSelect value={watch("gender")}
             {...register("gender")}
             className="ui-field w-full px-4 transition focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-200"
           >
             <option value="Male">Male</option>
             <option value="Female">Female</option>
             <option value="Other">Other</option>
-          </select>
+          </SearchableSelect>
         </div>
 
         {/* DOB */}

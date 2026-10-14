@@ -1,3 +1,4 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 import PaginatedList from "@/components/common/PaginatedList";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -208,7 +209,7 @@ export default function ExpensesPage() {
 
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">Category</label>
-                <select
+                <SearchableSelect
                   value={form.category}
                   onChange={(event) => setForm((current) => ({ ...current, category: event.target.value as ExpenseCategory }))}
                   className="ui-field w-full bg-slate-50 px-3 text-slate-900 outline-none transition focus:border-slate-400 focus:bg-white"
@@ -216,7 +217,7 @@ export default function ExpensesPage() {
                   {expenseCategories.map((item) => (
                     <option key={item} value={item}>{item}</option>
                   ))}
-                </select>
+                </SearchableSelect>
               </div>
 
               <div>
@@ -257,7 +258,7 @@ export default function ExpensesPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-slate-700">Payment Method</label>
-                  <select
+                  <SearchableSelect
                     value={form.paymentMethod}
                     onChange={(event) => setForm((current) => ({ ...current, paymentMethod: event.target.value }))}
                     className="ui-field w-full bg-slate-50 px-3 text-slate-900 outline-none transition focus:border-slate-400 focus:bg-white"
@@ -267,7 +268,7 @@ export default function ExpensesPage() {
                     <option value="Online">Online</option>
                     <option value="Card">Card</option>
                     <option value="Other">Other</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
 
                 <div>
@@ -312,7 +313,7 @@ export default function ExpensesPage() {
 
             </div>
 
-            <ListToolbar search={search} onSearchChange={setSearch} placeholder="Search description, vendor, or reference..." resultCount={filteredExpenses.length} onClear={() => { setSearch(""); setCategoryFilter("all"); }} filter={<select aria-label="Filter expenses by category" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="ui-field w-full px-3"><option value="all">All categories</option>{expenseCategories.map((category) => <option key={category}>{category}</option>)}</select>} />
+            <ListToolbar search={search} onSearchChange={setSearch} placeholder="Search description, vendor, or reference..." resultCount={filteredExpenses.length} onClear={() => { setSearch(""); setCategoryFilter("all"); }} filter={<SearchableSelect aria-label="Filter expenses by category" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="ui-field w-full px-3"><option value="all">All categories</option>{expenseCategories.map((category) => <option key={category}>{category}</option>)}</SearchableSelect>} />
 
             {loading ? (
               <ListSkeleton rows={5} columns={4} />

@@ -1,3 +1,4 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -19,6 +20,7 @@ export default function DepartmentForm({
 }: DepartmentFormProps) {
   const {
     register,
+    watch,
     handleSubmit,
     formState: {
       errors,
@@ -71,7 +73,7 @@ export default function DepartmentForm({
               Status
             </label>
 
-            <select
+            <SearchableSelect value={watch("status")}
               {...register("status")}
               className="ui-field w-full px-4 outline-none transition focus:border-brand-600"
             >
@@ -82,7 +84,7 @@ export default function DepartmentForm({
               <option value="Inactive">
                 Inactive
               </option>
-            </select>
+            </SearchableSelect>
 
             {errors.status && (
               <p className="mt-1 text-sm text-red-500">

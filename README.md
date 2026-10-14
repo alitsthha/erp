@@ -1,3 +1,7 @@
+# Firebase setup
+
+Local development and production builds use separate Firebase projects. See [Firebase environments](docs/firebase-environments.md) for configuration, backup, and deployment instructions.
+
 # Email delivery
 
 Invoice emails and attendance alerts are written to the Firestore `mail` collection. Invoice emails include the generated PDF as a base64 attachment.

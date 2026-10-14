@@ -1,3 +1,4 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { Plus, X } from "lucide-react";
@@ -108,8 +109,8 @@ export default function CalendarDayDialog({ date, today, items, colors = {}, act
         : <form onSubmit={(event) => void save(event)} className="space-y-3">
           <h3 className="font-semibold">Add to {formatBSDate(date)} BS</h3>
           <fieldset disabled={busy} className="space-y-3">
-            <label className="block text-sm">Type<select value={type} onChange={(event) => setType(event.target.value as CalendarEntryType)} className={inputClass}><option value="class">Planned class</option><option value="event">Event</option><option value="holiday">Holiday</option></select></label>
-            {type === "class" ? <label className="block text-sm">Activity<select required value={activityId} onChange={(event) => setActivityId(event.target.value)} className={inputClass}><option value="">Choose an activity</option>{activities.map((activity) => <option key={activity.id} value={activity.id}>{activity.name}</option>)}</select>{!activities.length && <span className="text-xs text-slate-500">Add an activity enrollment first.</span>}</label>
+            <label className="block text-sm">Type<SearchableSelect value={type} onChange={(event) => setType(event.target.value as CalendarEntryType)} className={inputClass}><option value="class">Planned class</option><option value="event">Event</option><option value="holiday">Holiday</option></SearchableSelect></label>
+            {type === "class" ? <label className="block text-sm">Activity<SearchableSelect required value={activityId} onChange={(event) => setActivityId(event.target.value)} className={inputClass}><option value="">Choose an activity</option>{activities.map((activity) => <option key={activity.id} value={activity.id}>{activity.name}</option>)}</SearchableSelect>{!activities.length && <span className="text-xs text-slate-500">Add an activity enrollment first.</span>}</label>
               : <label className="block text-sm">Title<input required maxLength={120} value={title} onChange={(event) => setTitle(event.target.value)} className={inputClass} /></label>}
             <label className="block text-sm">Time in Nepal (optional)<input type="time" value={time} onChange={(event) => setTime(event.target.value)} className={inputClass} /></label>
             <label className="block text-sm">Notes (optional)<textarea maxLength={2000} value={notes} onChange={(event) => setNotes(event.target.value)} className={inputClass} /></label>

@@ -26,6 +26,8 @@ import {
 import type {
   StudentFeeSummary,
 } from "./fee-calculation.service";
+import type { BillingSelection } from "./billing-selection.service";
+import { availableAdvance, billingDateKey } from "./billing-history.service";
 import { updateFinancialRecord } from "./financial-concurrency.service";
 
 /* =========================================================
@@ -68,38 +70,16 @@ function roundMoney(
 }
 
 /**
- * Explains why a bill came out as Rs. 0, naming the monthly due dates the user
- * has to pick as the billing date instead of just reporting a zero total.
+ * Explain when fees are already covered by earlier invoices.
  */
 function buildNothingToBillMessage(
   feeSummary: StudentFeeSummary,
   billingDate: string
 ): string {
-  const pendingMonthly =
-    feeSummary.lines.filter(
-      (line) =>
-        line.countedMonthly &&
-        line.monthlyFee > 0 &&
-        !line.monthlyFeeApplied
-    );
-
-  if (pendingMonthly.length === 0) {
-    return `There is nothing to bill on ${billingDate}: no monthly fee is due and no attended sessions were found.`;
+  if (feeSummary.previouslyBilledAmount > 0) {
+    return `No new fees to invoice through ${billingDate}. Existing fees are already invoiced; record any outstanding payment against those invoices.`;
   }
-
-  const details =
-    pendingMonthly
-      .map(
-        (line) =>
-          `${line.activityName || "Activity"} is due on ${
-            line.monthlyDueDate ||
-            feeSummary.nextMonthlyDueDate ||
-            "a later date"
-          }`
-      )
-      .join("; ");
-
-  return `No monthly fee is due on ${billingDate}. ${details}. Select the due date as the billing date to generate that bill.`;
+  return `There are no new monthly fees or attended sessions to invoice through ${billingDate}.`;
 }
 
 /**
@@ -110,7 +90,8 @@ function buildNothingToBillMessage(
  * never be consumed at all if writing the invoice fails.
  */
 async function findStudentAdvanceRefs(
-  studentId: string
+  studentId: string,
+  cutoff: string
 ): Promise<DocumentReference[]> {
   if (!studentId) {
     return [];
@@ -124,20 +105,8 @@ async function findStudentAdvanceRefs(
   const snapshot = await getDocs(advanceQuery);
 
   return snapshot.docs
-    .filter((docSnap) => !docSnap.data().deletedAt)
-    .filter((docSnap) => docSnap.data().category === "Student Fee (Advance)")
-    .sort((a, b) => {
-      const aValue = a.data().incomeDate;
-      const bValue = b.data().incomeDate;
-      const aTime = aValue ? new Date(String(aValue)).getTime() : 0;
-      const bTime = bValue ? new Date(String(bValue)).getTime() : 0;
-
-      if (Number.isNaN(aTime) || Number.isNaN(bTime)) {
-        return String(aValue ?? "").localeCompare(String(bValue ?? ""));
-      }
-
-      return aTime - bTime;
-    })
+    .filter((docSnap) => availableAdvance({ ...docSnap.data(), id: docSnap.id }, studentId, cutoff) > 0)
+    .sort((a, b) => billingDateKey(a.data().incomeDate).localeCompare(billingDateKey(b.data().incomeDate)))
     .map((docSnap) => docSnap.ref);
 }
 
@@ -176,6 +145,8 @@ function mapInvoice(
       toString(
         data.billingMonth
       ),
+
+    billingDate: toString(data.billingDate) || undefined,
 
     invoiceDate:
       toString(
@@ -336,13 +307,12 @@ export async function createInvoiceFromStudentFee(
     dueDate?: string;
     invoiceDate?: string;
     /**
-     * Exact BS billing date the bill was calculated for. A monthly fee is only
-     * invoiced when this date is the enrollment's monthly due date.
-     * Defaults to `invoiceDate`.
+     * Inclusive BS cutoff for attendance. Payments use invoiceDate. Defaults to invoiceDate.
      */
     billingDate?: string;
     months?: number;
     startMonth?: string;
+    selection?: BillingSelection;
     notes?: string;
   }
 ): Promise<string> {
@@ -358,13 +328,16 @@ export async function createInvoiceFromStudentFee(
     );
   }
 
-  const invoiceDate =
-    options?.invoiceDate ??
-    getCurrentBSDate();
+  const invoiceDate = billingDateKey(options?.invoiceDate ?? getCurrentBSDate());
 
-  const billingDate =
-    options?.billingDate ??
-    invoiceDate;
+  const billingDate = billingDateKey(options?.billingDate ?? invoiceDate);
+  if (!invoiceDate || !billingDate) throw new Error("A valid invoice date and billing date are required.");
+
+  // All periods for a student share a generation guard. A concurrent invoice
+  // changes this revision and forces a fresh calculation before reserving fees.
+  const invoiceLockRef = doc(db, "invoiceLocks", `student_${encodeURIComponent(studentId)}`);
+  const initialLock = await getDoc(invoiceLockRef);
+  const generation = toNumber(initialLock.data()?.generation);
 
   /*
    * Attendance + monthly cycle → Fee Calculation.
@@ -375,7 +348,7 @@ export async function createInvoiceFromStudentFee(
     await calculateStudentMonthlyFee(
       studentId,
       billingMonth,
-      { billingDate, months: options?.months, startMonth: options?.startMonth }
+      { billingDate, months: options?.months, startMonth: options?.startMonth, paymentDate: invoiceDate, selection: options?.selection }
     );
 
   if (!feeSummary.studentId) {
@@ -403,22 +376,6 @@ export async function createInvoiceFromStudentFee(
     );
   }
 
-  /*
-   * Prevent duplicate invoice
-   * for same student + billing month.
-   */
-  const existing =
-    await getInvoiceByStudentAndMonth(
-      studentId,
-      billingMonth
-    );
-
-  if (existing) {
-    throw new Error(
-      `Invoice ${existing.invoiceNumber} already exists for this billing month.`
-    );
-  }
-
   const invoiceNumber =
     await generateInvoiceNumber();
 
@@ -428,7 +385,7 @@ export async function createInvoiceFromStudentFee(
    */
   const lines:
     InvoiceLine[] =
-      feeSummary.lines.map(
+      feeSummary.lines.filter((line) => line.calculatedAmount > 0).map(
         (line) => ({
           enrollmentId:
             line.enrollmentId,
@@ -469,6 +426,11 @@ export async function createInvoiceFromStudentFee(
             ),
 
           countedMonthly: !!line.countedMonthly,
+          billedMonths: line.billedMonths ?? [],
+          attendanceIds: line.attendanceIds ?? [],
+          attendanceDates: line.attendanceDates ?? [],
+          takenSessions: line.takenSessions ?? line.attendedSessions,
+          heldSessions: line.heldSessions ?? 0,
 
           monthlyDueDate:
             line.monthlyDueDate,
@@ -534,7 +496,7 @@ export async function createInvoiceFromStudentFee(
 
   const advanceRefs =
     await findStudentAdvanceRefs(
-      studentId
+      studentId, invoiceDate
     );
 
   const invoiceRef =
@@ -544,11 +506,7 @@ export async function createInvoiceFromStudentFee(
         COLLECTION_NAME
       )
     );
-  const invoiceLockRef = doc(
-    db,
-    "invoiceLocks",
-    `${encodeURIComponent(studentId)}_${encodeURIComponent(billingMonth)}`
-  );
+
 
   /*
    * Consuming the student's advance and writing the invoice happen in one
@@ -557,8 +515,8 @@ export async function createInvoiceFromStudentFee(
    */
   await runTransaction(db, async (transaction) => {
     const lockSnapshot = await transaction.get(invoiceLockRef);
-    if (lockSnapshot.exists()) {
-      throw new Error("An invoice already exists for this student and billing month.");
+    if (toNumber(lockSnapshot.data()?.generation) !== generation) {
+      throw new Error("Another invoice was generated for this student. Calculate the bill again to include it.");
     }
 
     let remainingBill = billBeforeAdvance;
@@ -590,7 +548,7 @@ export async function createInvoiceFromStudentFee(
 
       const amount = roundMoney(Math.max(0, toNumber(data.amount)));
       const applied = roundMoney(Math.max(0, toNumber(data.appliedAmount)));
-      const available = roundMoney(Math.max(amount - applied, 0));
+      const available = availableAdvance({ ...data, id: advanceRef.id }, studentId, invoiceDate);
 
       if (available <= 0) {
         continue;
@@ -614,16 +572,9 @@ export async function createInvoiceFromStudentFee(
       advanceApplied = roundMoney(advanceApplied + applyNow);
     }
 
-    const totalAmount =
-      roundMoney(
-        Math.max(
-          billBeforeAdvance -
-            advanceApplied,
-          0
-        )
-      );
-
-    const paidAmount = 0;
+    // Advances are payments, not discounts: preserve the full invoice total.
+    const totalAmount = billBeforeAdvance;
+    const paidAmount = advanceApplied;
 
     const dueAmount =
       roundMoney(
@@ -665,6 +616,7 @@ export async function createInvoiceFromStudentFee(
 
     transaction.set(invoiceLockRef, {
       studentId,
+      generation: generation + 1,
       billingMonth: feeSummary.month || billingMonth,
       invoiceId: invoiceRef.id,
       createdAt: serverTimestamp(),
@@ -706,6 +658,9 @@ export async function createInvoiceFromStudentFee(
         feeSummary.sessionFeeTotal,
 
       advanceApplied,
+      advanceIncludedInPaidAmount: true,
+      months: feeSummary.months,
+      billingStartMonth: options?.startMonth || feeSummary.month,
 
       totalAmount,
 

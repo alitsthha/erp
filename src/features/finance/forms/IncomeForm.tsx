@@ -1,3 +1,4 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import NepaliDatePickerInput from "@/components/forms/NepaliDatePickerInput";
@@ -59,7 +60,7 @@ export default function IncomeForm({
           <label className="mb-1.5 block text-sm font-medium text-slate-700">
             Category <span className="text-red-500">*</span>
           </label>
-          <select
+          <SearchableSelect
             value={category}
             onChange={(event) => setCategory(event.target.value as IncomeFormData["category"])}
             className="ui-field w-full px-3 text-slate-900 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
@@ -68,7 +69,7 @@ export default function IncomeForm({
             {CATEGORIES.map((item) => (
               <option key={item} value={item}>{item}</option>
             ))}
-          </select>
+          </SearchableSelect>
         </div>
         <NepaliDatePickerInput label="Income Date" value={incomeDate} onChange={setIncomeDate} required />
       </div>
@@ -120,7 +121,7 @@ export default function IncomeForm({
           <label className="mb-1.5 block text-sm font-medium text-slate-700">
             Payment Method
           </label>
-          <select
+          <SearchableSelect
             value={paymentMethod}
             onChange={(event) => setPaymentMethod(event.target.value)}
             className="ui-field w-full px-3 text-slate-900 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
@@ -130,7 +131,7 @@ export default function IncomeForm({
             <option value="Online">Online</option>
             <option value="Card">Card</option>
             <option value="Other">Other</option>
-          </select>
+          </SearchableSelect>
         </div>
 
         <div>

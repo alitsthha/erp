@@ -1,3 +1,7 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
+import BillingChargeEditor from "../components/BillingChargeEditor";
+import { applyBillingSelection, defaultBillingSelection, type BillingSelection } from "../services/billing-selection.service";
+import { billingLineQuantity, billingLineDetail, billingLineRate } from "../components/invoice-document";
 import {
   useEffect,
   useMemo,
@@ -5,7 +9,7 @@ import {
   useState,
 } from "react";
 
-import jsPDF from "jspdf";
+import type jsPDF from "jspdf";
 
 import {
   AlertCircle,
@@ -18,7 +22,8 @@ import {
   UserRound,
 } from "lucide-react";
 
-import yeaLogo from "/yea-logo.png";
+import InvoiceDocument from "../components/InvoiceDocument";
+import { buildInvoicePdf } from "../services/invoice-pdf.service";
 
 import {
   formatBSDate,
@@ -93,17 +98,26 @@ export default function BillingPage() {
   const [billingDate, setBillingDate] =
     useState(getCurrentBSDate());
 
-  const currentMonth = getCurrentBSDate().slice(0, 7);
+  const [invoiceDate, setInvoiceDate] = useState(getCurrentBSDate());
+  const [billingStartMonth, setBillingStartMonth] = useState(getCurrentBSDate().slice(0, 7));
+  const [selection, setSelection] = useState<BillingSelection>({});
   const month = billingDate.slice(0, 7);
-  const monthCount = getInclusiveBsMonthCount(currentMonth, month);
+  const monthCount = getInclusiveBsMonthCount(billingStartMonth, month);
+  const calculationRequest = useRef(0);
 
-  const [summary, setSummary] =
+  const [calculatedSummary, setSummary] =
     useState<StudentFeeSummary | null>(
       null
     );
 
+  const summary = useMemo(() => calculatedSummary ? applyBillingSelection(calculatedSummary, selection) : null, [calculatedSummary, selection]);
+
   const [discount, setDiscount] =
     useState(0);
+  const appliedDiscount = Math.min(Math.max(discount, 0), summary?.totalAmount ?? 0);
+  const newInvoiceTotal = Math.round(((summary?.totalAmount ?? 0) - appliedDiscount) * 100) / 100;
+  const advanceToApply = Math.min(summary?.availableAdvance ?? 0, newInvoiceTotal);
+  const newInvoiceDue = Math.round((newInvoiceTotal - advanceToApply) * 100) / 100;
 
   const [invoices, setInvoices] =
     useState<Invoice[]>([]);
@@ -136,9 +150,11 @@ export default function BillingPage() {
   const [editInvoiceDate, setEditInvoiceDate] = useState("");
   const [editInvoiceTotal, setEditInvoiceTotal] = useState(0);
 
-  const [invoiceCustomer, setInvoiceCustomer] = useState<Student | null>(null);
+  const [loadedInvoiceCustomer, setInvoiceCustomer] = useState<Student | null>(null);
+  const invoiceCustomer = loadedInvoiceCustomer?.id === selectedInvoiceForPreview?.studentId
+    ? loadedInvoiceCustomer
+    : null;
 
-  const invoicePreviewRef = useRef<HTMLDivElement | null>(null);
   const [exportingInvoicePdf, setExportingInvoicePdf] = useState(false);
   const [sendingInvoice, setSendingInvoice] = useState(false);
   const [isSendInvoiceModalOpen, setIsSendInvoiceModalOpen] = useState(false);
@@ -216,7 +232,6 @@ export default function BillingPage() {
 
   useEffect(() => {
     if (!selectedInvoiceForPreview) {
-      setInvoiceCustomer(null);
       return;
     }
 
@@ -257,202 +272,15 @@ async function createInvoicePdf(): Promise<jsPDF | null> {
   }
 
   try {
-    const pdf = new jsPDF({ unit: "pt", format: "a4" });
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const margin = 40;
-    const innerWidth = pageWidth - margin * 2;
-    const invoice = selectedInvoiceForPreview;
-    const parentName = invoiceCustomer?.guardianName || invoiceCustomer?.parentName || "Parent / Guardian";
-    const studentName = invoiceCustomer?.fullName || invoice.studentName;
-
-    let hasLogo = false;
-    const logo = new Image();
-    logo.src = "/yea-logo.png";
-    await new Promise<void>((resolve) => {
-      logo.onload = () => {
-        hasLogo = true;
-        resolve();
-      };
-      logo.onerror = () => {
-        resolve();
-      };
+    return await buildInvoicePdf({
+      invoice: selectedInvoiceForPreview,
+      customer: invoiceCustomer,
+      organization: ORGANIZATION_DETAILS,
+      pan: organizationPan,
     });
-
-    // ---- Header background ----
-    pdf.setFillColor(241, 245, 249);
-    pdf.rect(0, 0, pageWidth, 140, "F");
-    pdf.setDrawColor(203, 213, 225);
-    pdf.line(margin, 140, pageWidth - margin, 140);
-
-    // ---- Logo (width increased to 100, height stays 72) ----
-    if (hasLogo) {
-      //                    width ↑   height ↓
-      pdf.addImage(logo, "PNG", margin, 22, 200, 72);
-    }
-
-    // ---- Organisation details beside logo ----
-    pdf.setTextColor(51, 65, 85);
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(10);
-    const textX = margin + 350; // logo width (100) + 15pt gap
-    // Vertical center of logo is at y = 22 + 36 = 58.
-    // 4 lines, line height ~14pt → top line starts at 58 - 21 = 37
-    const startY = 37;
-    pdf.text("Baluwatar, Kathmandu, Nepal", textX, startY);
-    pdf.text("+977-1-4567890", textX, startY + 14);
-    pdf.text("info@youngexplorers.edu.np", textX, startY + 28);
-    pdf.text("www.youngexplorers.edu.np", textX, startY + 42);
-    if (organizationPan) {
-      pdf.text(`PAN: ${organizationPan}`, textX, startY + 56);
-    }
-
-  // ---- Big title: Student Fee Invoice ----
-    pdf.setTextColor(15, 23, 42);
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(26);
-    pdf.text("Student Fee Invoice", margin, 176);
-
-    // ---- Invoice summary box (now below the title, on the left) ----
-    const summaryBoxY = 196; // 20pt gap after title
-    pdf.setFillColor(224, 242, 254);
-    pdf.roundedRect(margin, summaryBoxY, 260, 68, 10, 10, "F");
-    pdf.setTextColor(51, 65, 85);
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(9);
-    pdf.text("INVOICE #", margin + 18, summaryBoxY + 24);
-    pdf.text("ISSUE DATE", margin + 18, summaryBoxY + 44);
-
-    pdf.setTextColor(15, 23, 42);
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(12);
-    pdf.text(invoice.invoiceNumber, margin + 110, summaryBoxY + 24);
-    pdf.text(formatBSDate(invoice.invoiceDate), margin + 110, summaryBoxY + 44);
-
-    // ---- Invoice To & Student details (moved down) ----
-    const detailsBottom = summaryBoxY + 68;
-    const nextY = detailsBottom + 20; // gap
-
-    pdf.setFillColor(248, 250, 252);
-    pdf.roundedRect(margin, nextY, innerWidth, 94, 10, 10, "F");
-    pdf.setTextColor(100, 116, 139);
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(10);
-    pdf.text("INVOICE TO", margin + 18, nextY + 28);
-
-    pdf.setTextColor(15, 23, 42);
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(18);
-    pdf.text(parentName, margin + 18, nextY + 56);
-
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(11);
-    pdf.text("Parent / Guardian", margin + 18, nextY + 78);
-
-    pdf.setFillColor(224, 242, 254);
-    pdf.roundedRect(pageWidth - margin - 250, nextY + 16, 220, 64, 10, 10, "F");
-    pdf.setTextColor(51, 65, 85);
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(9);
-    pdf.text("STUDENT", pageWidth - margin - 222, nextY + 36);
-    pdf.setTextColor(15, 23, 42);
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(11);
-    pdf.text(studentName, pageWidth - margin - 222, nextY + 56);
-    pdf.text(`Code: ${invoice.studentCode}`, pageWidth - margin - 222, nextY + 72);
-
-    // ---- Invoice lines table (moved down) ----
-    const tableY = nextY + 94 + 20; // after Invoice To box + gap
-    pdf.setFillColor(15, 23, 42);
-    pdf.roundedRect(margin, tableY, innerWidth, 24, 6, 6, "F");
-    pdf.setTextColor(255, 255, 255);
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(10);
-    pdf.text("ACTIVITY", margin + 16, tableY + 17);
-    pdf.text("SESSIONS", margin + 252, tableY + 17);
-    pdf.text("SESSION FEE", margin + 338, tableY + 17);
-    pdf.text("AMOUNT", margin + 450, tableY + 17);
-
-    let currentY = tableY + 26;
-    pdf.setTextColor(15, 23, 42);
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(11);
-
-    invoice.lines.forEach((line) => {
-      if (currentY > 640) {
-        pdf.addPage();
-        currentY = 60;
-      }
-
-      pdf.setDrawColor(226, 232, 240);
-      pdf.line(margin, currentY, pageWidth - margin, currentY);
-
-      const rowY = currentY + 16;
-      pdf.text(line.activityName, margin + 16, rowY);
-      pdf.text(`${line.sessionCount} / ${line.expectedSessions}`, margin + 252, rowY);
-      pdf.text(`NPR ${formatCurrency(line.sessionFee)}`, margin + 338, rowY);
-      pdf.text(`NPR ${formatCurrency(line.amount)}`, margin + 450, rowY);
-
-      currentY += 32;
-    });
-
-    // ---- Totals and payment info ----
-    pdf.setDrawColor(203, 213, 225);
-    pdf.line(margin, currentY + 12, pageWidth - margin, currentY + 12);
-
-    pdf.setTextColor(51, 65, 85);
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(10);
-    pdf.text("Payment Information", margin, currentY + 40);
-
-    pdf.setFillColor(241, 245, 249);
-    pdf.roundedRect(margin, currentY + 54, 230, 52, 8, 8, "F");
-    pdf.setTextColor(15, 23, 42);
-    pdf.setFont("helvetica", "normal");
-    pdf.text("Bank A/C No:", margin + 14, currentY + 76);
-    pdf.setFont("helvetica", "bold");
-    pdf.text("1234567890123", margin + 110, currentY + 76);
-    pdf.setFont("helvetica", "normal");
-    pdf.text("Accepted Methods:", margin + 14, currentY + 92);
-    pdf.text("Online Banking, Wallet", margin + 110, currentY + 92);
-
-    pdf.setTextColor(51, 65, 85);
-    pdf.setFont("helvetica", "normal");
-    pdf.text("Subtotal", pageWidth - margin - 140, currentY + 40, { align: "right" });
-    pdf.text(`NPR ${formatCurrency(invoice.subtotal)}`, pageWidth - margin - 18, currentY + 40, { align: "right" });
-
-    if (invoice.discount > 0) {
-      pdf.setTextColor(239, 68, 68);
-      pdf.text("Discount", pageWidth - margin - 140, currentY + 58, { align: "right" });
-      pdf.text(`- NPR ${formatCurrency(invoice.discount)}`, pageWidth - margin - 18, currentY + 58, { align: "right" });
-    }
-
-    pdf.setFillColor(15, 23, 42);
-    pdf.roundedRect(pageWidth - margin - 196, currentY + 90, 188, 28, 6, 6, "F");
-    pdf.setTextColor(255, 255, 255);
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(12);
-    pdf.text("TOTAL DUE", pageWidth - margin - 176, currentY + 109);
-    pdf.text(`NPR ${formatCurrency(invoice.totalAmount)}`, pageWidth - margin - 18, currentY + 109, { align: "right" });
-
-    // ---- Page numbering ----
-    const totalInvoicePages = pdf.getNumberOfPages();
-    for (let p = 1; p <= totalInvoicePages; p++) {
-      pdf.setPage(p);
-      pdf.setDrawColor(203, 213, 225);
-      pdf.setLineWidth(0.75);
-      pdf.line(margin, pageHeight - 36, pageWidth - margin, pageHeight - 36);
-
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(8.5);
-      pdf.setTextColor(100, 116, 139);
-      pdf.text("Official Student Fee Invoice — Computer Generated (No Signature Required)", margin, pageHeight - 20);
-      pdf.text(`Page ${p} of ${totalInvoicePages}`, pageWidth - margin, pageHeight - 20, { align: "right" });
-    }
-
-    return pdf;
   } catch (err) {
     console.error("Failed to export invoice PDF:", err);
+    setError("Unable to prepare the invoice PDF. Please try again.");
     return null;
   }
 }
@@ -575,6 +403,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
   function handleStudentChange(
     studentId: string
   ) {
+    calculationRequest.current++;
     setSelectedStudentId(
       studentId
     );
@@ -597,18 +426,21 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
 
     try {
       setCreatingInvoice(true);
+      calculationRequest.current++;
       setError("");
       setSuccess("");
 
       await createInvoiceFromStudentFee(selectedStudentId, month, {
         discount,
-        invoiceDate: billingDate,
+        invoiceDate,
+        selection,
         billingDate,
         months: monthCount,
-        startMonth: currentMonth,
+        startMonth: billingStartMonth,
       });
 
       await loadInvoices();
+      setSummary(null);
 
       setSuccess(
         `Invoice generated successfully for ${selectedStudent?.fullName ?? "student"}.`
@@ -685,6 +517,8 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
 
       await createPayment(data);
       await loadInvoices();
+      calculationRequest.current++;
+      setSummary(null);
       setIsPaymentModalOpen(false);
       setSelectedInvoice(null);
       setSuccess(
@@ -723,27 +557,35 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
       return;
     }
 
+    if (!/^\d{4}-\d{2}$/.test(billingStartMonth) || billingStartMonth > month) {
+      setError("The billing period must start on or before the charges through date.");
+      return;
+    }
+
+    const request = ++calculationRequest.current;
     try {
       setLoadingFee(true);
+      setSummary(null);
       setError("");
 
       const result =
         await calculateStudentMonthlyFee(
           selectedStudentId,
           month,
-          { billingDate, months: monthCount, startMonth: currentMonth }
+          { billingDate, months: monthCount, startMonth: billingStartMonth, paymentDate: invoiceDate }
         );
 
-      setSummary(result);
+      if (request === calculationRequest.current) {
+        setSelection(defaultBillingSelection(result));
+        setSummary(result);
+      }
     } catch (err) {
       console.error(
         "Failed to calculate student fee:",
         err
       );
 
-      setError(
-        "Unable to calculate the student's fee."
-      );
+      if (request === calculationRequest.current) setError("Unable to calculate the student's fee.");
     } finally {
       setLoadingFee(false);
     }
@@ -823,14 +665,14 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              Select a student to calculate the current amount for the current Nepali month.
+              Calculate new fees and payments received through the selected billing date.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)_180px_auto]">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
             {/* Student */}
-            <div>
+            <div className="sm:col-span-2">
               <label
                 htmlFor="student"
                 className="mb-2 block text-sm font-medium text-slate-700"
@@ -844,7 +686,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                   className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                 />
 
-                <select
+                <SearchableSelect
                   id="student"
                   value={
                     selectedStudentId
@@ -878,38 +720,45 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                       </option>
                     )
                   )}
-                </select>
+                </SearchableSelect>
               </div>
 
-              {/* Search */}
-              <div className="relative mt-2">
-                <Search
-                  size={16}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                />
-
-                <input
-                  value={search}
-                  onChange={(event) =>
-                    setSearch(
-                      event.target.value
-                    )
-                  }
-                  placeholder="Search student name or code"
-                  className="ui-field w-full bg-slate-50 pl-9 pr-3 outline-none transition focus:border-slate-400 focus:bg-white"
-                />
-              </div>
             </div>
 
+            <div className="grid min-w-0 grid-cols-1 gap-4 sm:col-span-2 lg:grid-cols-3">
             <NepaliDatePickerInput
-              label="Billing Date (BS)"
+              label="Invoice date (BS)"
+              value={invoiceDate}
+              onChange={(value) => {
+                calculationRequest.current++;
+                setInvoiceDate(value);
+                setSummary(null);
+              }}
+              helperText="Date printed on the invoice. Payments are included through this date; changing it does not add monthly fees."
+            />
+
+            <NepaliDatePickerInput
+              label="Billing period starts (BS)"
+              value={billingStartMonth ? `${billingStartMonth}-01` : ""}
+              onChange={(value) => {
+                calculationRequest.current++;
+                setBillingStartMonth(value.slice(0, 7));
+                setSummary(null);
+              }}
+              helperText="Choose the first month to review. You can uncheck individual months after calculating."
+            />
+
+            <NepaliDatePickerInput
+              label="Charges through (BS)"
               value={billingDate}
               onChange={(value) => {
+                calculationRequest.current++;
                 setBillingDate(value);
                 setSummary(null);
               }}
-              helperText="Monthly fees apply only on the next-month enrollment-day due date."
+              helperText="Review attended sessions through this date. Select which monthly fees to include after calculating."
             />
+            </div>
 
             <div>
               <label
@@ -934,8 +783,8 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
             {/* Calculate */}
             <div className="flex items-end">
               <div className="flex w-full flex-col gap-2 lg:w-auto">
-                <p className="text-sm font-semibold text-red-600">
-                  {monthCount} month{monthCount === 1 ? "" : "s"}
+                <p className="text-sm font-medium text-slate-600">
+                  {monthCount} month{monthCount === 1 ? "" : "s"} to review
                 </p>
                 <button
                   type="button"
@@ -944,6 +793,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                   }
                   disabled={
                     loadingFee ||
+                    creatingInvoice ||
                     !selectedStudentId ||
                     !month
                   }
@@ -1023,13 +873,13 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
               {summary && (
                 <div className="rounded-xl bg-slate-50 px-5 py-4">
                   <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                    Total Due
+                    New invoice due
                   </p>
 
                   <p className="mt-1 text-2xl font-bold text-slate-900">
                     Rs.{" "}
                     {formatCurrency(
-                      summary.totalAmount
+                      newInvoiceDue
                     )}
                   </p>
                 </div>
@@ -1070,11 +920,13 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                   </p>
 
                   <p className="mt-1 font-semibold text-slate-900">
-                    {formatBSDate(billingDate)}
+                    {formatBSDate(invoiceDate)}
                   </p>
                 </div>
               </div>
             </div>
+
+            {calculatedSummary && <BillingChargeEditor summary={calculatedSummary} selection={selection} onChange={setSelection} disabled={creatingInvoice || loadingFee} />}
 
             {/* Desktop table */}
             <div className="hidden overflow-x-auto md:block">
@@ -1086,11 +938,11 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                     </th>
 
                     <th className="px-4 py-3 font-semibold">
-                      Sessions
+                      Sessions / period
                     </th>
 
                     <th className="px-4 py-3 font-semibold">
-                      Session Fee
+                      Rate
                     </th>
 
                     <th className="px-4 py-3 font-semibold">
@@ -1144,19 +996,14 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                           </td>
 
                           <td className="px-4 py-3 text-sm text-slate-700">
-                            {
-                              line.attendedSessions
-                            }{" "}
-                            /{" "}
-                            {
-                              line.expectedSessions
-                            }
+                            {billingLineQuantity(line)}
+                            <span className="block text-xs text-slate-500">{billingLineDetail(line)}</span>
                           </td>
 
                           <td className="px-4 py-3 text-sm text-slate-700">
                             Rs.{" "}
                             {formatCurrency(
-                              line.sessionFee
+                              billingLineRate(line)
                             )}
                           </td>
 
@@ -1225,29 +1072,24 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                       <div className="mt-4 grid grid-cols-3 gap-3 border-t border-slate-100 pt-3">
                         <div>
                           <p className="text-xs text-slate-400">
-                            Sessions
+                            Sessions / period
                           </p>
 
                           <p className="mt-1 text-sm font-medium text-slate-700">
-                            {
-                              line.attendedSessions
-                            }{" "}
-                            /{" "}
-                            {
-                              line.expectedSessions
-                            }
+                            {billingLineQuantity(line)}
+                            <span className="block text-xs text-slate-500">{billingLineDetail(line)}</span>
                           </p>
                         </div>
 
                         <div>
                           <p className="text-xs text-slate-400">
-                            Session Fee
+                            Rate
                           </p>
 
                           <p className="mt-1 text-sm font-medium text-slate-700">
                             Rs.{" "}
                             {formatCurrency(
-                              line.sessionFee
+                              billingLineRate(line)
                             )}
                           </p>
                         </div>
@@ -1273,7 +1115,22 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
 
             {/* Totals */}
             <div className="border-t border-slate-200 bg-slate-50 p-5 sm:p-6">
+              <div className="mb-6 rounded-xl border border-brand-100 bg-white p-4">
+                <h3 className="text-sm font-semibold text-slate-900">Earlier invoices through {formatBSDate(invoiceDate)}</h3>
+                <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-3">
+                  <div><dt className="text-slate-500">Previously invoiced</dt><dd className="mt-1 font-semibold">Rs. {formatCurrency(summary.previousInvoiceTotal)}</dd></div>
+                  <div><dt className="text-slate-500">Payments received</dt><dd className="mt-1 font-semibold text-emerald-700">Rs. {formatCurrency(summary.paidThroughDate)}</dd></div>
+                  <div><dt className="text-slate-500">Remaining on earlier invoices</dt><dd className="mt-1 font-semibold">Rs. {formatCurrency(summary.previousBalance)}</dd></div>
+                </dl>
+                <p className="mt-3 text-xs text-slate-500">Earlier balances stay on their original invoices. The new invoice contains only fees not already billed.</p>
+              </div>
               <div className="ml-auto w-full max-w-md space-y-3">
+                <div className="flex justify-between text-sm text-slate-600"><span>Fees for selected period</span><span>Rs. {formatCurrency(summary.grossAmount)}</span></div>
+                <div className="flex justify-between text-sm text-slate-600"><span>Already invoiced in this period</span><span>− Rs. {formatCurrency(summary.previouslyBilledAmount)}</span></div>
+                {calculatedSummary && calculatedSummary.totalAmount > summary.totalAmount && <div className="flex justify-between text-sm text-slate-600"><span>Left for a later invoice</span><span>− Rs. {formatCurrency(calculatedSummary.totalAmount - summary.totalAmount)}</span></div>}
+                <div className="flex justify-between text-sm font-semibold"><span>Selected new fees</span><span>Rs. {formatCurrency(summary.totalAmount)}</span></div>
+                {appliedDiscount > 0 && <div className="flex justify-between text-sm text-slate-600"><span>Discount</span><span>− Rs. {formatCurrency(appliedDiscount)}</span></div>}
+                <div className="flex justify-between text-sm text-emerald-700"><span>Advance payment applied</span><span>− Rs. {formatCurrency(advanceToApply)}</span></div>
 
                 <div className="flex items-center justify-between text-sm text-slate-600">
                   <span>
@@ -1281,24 +1138,25 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                   </span>
 
                   <span>
-                    {summary.lines.length}
+                    {summary.lines.filter((line) => line.calculatedAmount > 0).length}
                   </span>
                 </div>
 
                 <div className="flex items-center justify-between border-t border-slate-200 pt-4">
                   <span className="text-base font-semibold text-slate-900">
-                    Total Amount
+                    New invoice due
                   </span>
 
                   <span className="text-2xl font-bold text-slate-900">
                     Rs.{" "}
                     {formatCurrency(
-                      summary.totalAmount
+                      newInvoiceDue
                     )}
                   </span>
                 </div>
 
               </div>
+              {summary.totalAmount <= 0 && <p className="mt-4 text-sm text-brand-700">No charges selected for this invoice.{summary.previouslyBilledAmount > 0 ? " Existing charges have already been billed." : ""}</p>}
             </div>
           </section>
         )}
@@ -1363,12 +1221,12 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
 
       {selectedInvoiceForPreview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-          <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-2xl">
-            <div className="mb-5 flex items-center justify-between gap-3">
+          <div className="max-h-[94vh] w-full max-w-4xl overflow-y-auto rounded-xl border border-slate-200 bg-slate-100 p-3 shadow-2xl sm:p-6" role="dialog" aria-modal="true" aria-label="Invoice preview">
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
               <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
                 Invoice Preview
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => void handleDownloadInvoicePdf()}
@@ -1388,7 +1246,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSelectedInvoiceForPreview(null)}
+                  onClick={() => { setSelectedInvoiceForPreview(null); setIsSendInvoiceModalOpen(false); }}
                   className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
                 >
                   Close
@@ -1440,84 +1298,12 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
               </div>
             )}
 
-            <div ref={invoicePreviewRef} className="sm:p-5 p-4 ui-surface">
-              <div className="flex flex-col gap-5 border-b border-slate-200 pb-6 sm:flex-row sm:items-start sm:justify-between">
-                <div className="flex items-center gap-4">
-                  <img src={yeaLogo} alt="Young Explorers Academy" className="h-16 w-auto rounded-xl border border-slate-200 bg-slate-50 p-2" />
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-900">{ORGANIZATION_DETAILS.name}</h3>
-                    <p className="text-xs uppercase tracking-[0.14em] text-slate-500">{ORGANIZATION_DETAILS.tagline}</p>
-                    <p className="mt-1 text-xs text-slate-500">{ORGANIZATION_DETAILS.address}</p>
-                  </div>
-                </div>
-
-                <div className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                  <p><span className="font-semibold text-slate-900">Phone:</span> {ORGANIZATION_DETAILS.phone}</p>
-                  <p><span className="font-semibold text-slate-900">Email:</span> {ORGANIZATION_DETAILS.email}</p>
-                  <p><span className="font-semibold text-slate-900">Website:</span> {ORGANIZATION_DETAILS.website}</p>
-                  <p><span className="font-semibold text-slate-900">PAN:</span> {organizationPan || "Not configured"}</p>
-                </div>
-              </div>
-
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Invoice To</p>
-                  <div className="mt-2 rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
-                    <p className="font-semibold text-slate-900">
-                      {invoiceCustomer?.guardianName || invoiceCustomer?.parentName || "Parent / Guardian"}
-                    </p>
-                    <p className="mt-1 text-slate-600">Student: {invoiceCustomer?.fullName || selectedInvoiceForPreview.studentName}</p>
-                    <p className="mt-1 text-slate-500">Student Code: {selectedInvoiceForPreview.studentCode}</p>
-                  </div>
-                </div>
-
-                <div className="text-left md:text-right">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Invoice Details</p>
-                  <div className="mt-2 space-y-1 text-sm text-slate-600">
-                    <p><span className="font-medium">Invoice #:</span> {selectedInvoiceForPreview.invoiceNumber}</p>
-                    <p><span className="font-medium">Issue Date:</span> {formatBSDate(selectedInvoiceForPreview.invoiceDate)}</p>
-                    <p><span className="font-medium">PAN:</span> {organizationPan || "Not configured"}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-6 overflow-hidden rounded-xl border border-slate-200">
-                <table className="ui-table">
-                  <thead className="ui-table-head">
-                    <tr>
-                      <th className="px-4 py-3 font-semibold">Activity</th>
-                      <th className="px-4 py-3 font-semibold">Sessions</th>
-                      <th className="px-4 py-3 font-semibold text-right">Session Fee</th>
-                      <th className="px-4 py-3 font-semibold text-right">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 bg-white">
-                    {selectedInvoiceForPreview.lines.map((line, index) => (
-                      <tr key={`${line.activityName}-${index}`}>
-                        <td className="px-4 py-3 text-slate-700">{line.activityName}</td>
-                        <td className="px-4 py-3 text-slate-700">{line.sessionCount} / {line.expectedSessions}</td>
-                        <td className="px-4 py-3 text-right text-slate-700">{formatCurrency(line.sessionFee)}</td>
-                        <td className="px-4 py-3 text-right font-semibold text-slate-900">{formatCurrency(line.amount)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="mt-6 ml-auto max-w-md space-y-2 text-sm text-slate-700">
-                <div className="flex justify-between"><span>Subtotal</span><span>{formatCurrency(selectedInvoiceForPreview.subtotal)}</span></div>
-                {selectedInvoiceForPreview.discount > 0 && (
-                  <div className="flex justify-between text-red-600"><span>Discount</span><span>-{formatCurrency(selectedInvoiceForPreview.discount)}</span></div>
-                )}
-                <div className="flex justify-between border-t border-slate-200 pt-2 text-base font-semibold text-slate-900"><span>Total Due</span><span>{formatCurrency(selectedInvoiceForPreview.totalAmount)}</span></div>
-              </div>
-
-              {selectedInvoiceForPreview.notes && (
-                <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                  <span className="font-semibold">Notes:</span> {selectedInvoiceForPreview.notes}
-                </div>
-              )}
-            </div>
+            <InvoiceDocument
+              invoice={selectedInvoiceForPreview}
+              customer={invoiceCustomer}
+              organization={ORGANIZATION_DETAILS}
+              pan={organizationPan}
+            />
           </div>
         </div>
       )}
@@ -1525,7 +1311,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
       {editingInvoice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
           <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-5 shadow-2xl">
-            <div className="mb-5 flex items-center justify-between gap-3">
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Edit Invoice</p>
                 <h3 className="mt-1 text-xl font-bold text-slate-900">{editingInvoice.invoiceNumber}</h3>
@@ -1594,7 +1380,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
       {isPaymentModalOpen && selectedInvoice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
           <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-slate-200 bg-white p-5 shadow-2xl">
-            <div className="mb-5 flex items-center justify-between gap-3">
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
                   Record Payment

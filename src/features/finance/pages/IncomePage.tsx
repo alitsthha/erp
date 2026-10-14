@@ -1,3 +1,4 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 import PaginatedList from "@/components/common/PaginatedList";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -207,13 +208,13 @@ export default function IncomePage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-slate-700">Category</label>
-                  <select
+                  <SearchableSelect
                     value={incomeCategory}
                     onChange={(event) => setIncomeCategory(event.target.value as IncomeCategory)}
                     className="ui-field w-full px-3 text-slate-900 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
                   >
                     <option value="Student Fee (Advance)">Student Fee (Advance)</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
 
                 <NepaliDatePickerInput label="Date" value={incomeDate} onChange={setIncomeDate} required />
@@ -221,7 +222,7 @@ export default function IncomePage() {
 
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">Student</label>
-                <select
+                <SearchableSelect
                   value={selectedStudentId}
                   onChange={(event) => setSelectedStudentId(event.target.value)}
                   className="ui-field w-full px-3 text-slate-900 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
@@ -230,7 +231,7 @@ export default function IncomePage() {
                   {students.map((student) => (
                     <option key={student.id} value={student.id}>{student.fullName} — {student.studentCode}</option>
                   ))}
-                </select>
+                </SearchableSelect>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
@@ -249,7 +250,7 @@ export default function IncomePage() {
 
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-slate-700">Payment Method</label>
-                  <select
+                  <SearchableSelect
                     value={paymentMethod}
                     onChange={(event) => setPaymentMethod(event.target.value)}
                     className="ui-field w-full px-3 text-slate-900 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
@@ -259,7 +260,7 @@ export default function IncomePage() {
                     <option value="Online">Online</option>
                     <option value="Card">Card</option>
                     <option value="Other">Other</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
               </div>
 
@@ -310,7 +311,7 @@ export default function IncomePage() {
                 setCategoryFilter("all");
               }}
               filter={
-                <select
+                <SearchableSelect
                   aria-label="Filter income by category"
                   value={categoryFilter}
                   onChange={(event) => setCategoryFilter(event.target.value)}
@@ -319,7 +320,7 @@ export default function IncomePage() {
                   <option value="all">All categories</option>
                   <option value="Student Fee">Student Fee</option>
                   <option value="Student Fee (Advance)">Student Fee (Advance)</option>
-                </select>
+                </SearchableSelect>
               }
             />
             {loading ? (

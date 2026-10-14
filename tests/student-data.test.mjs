@@ -762,3 +762,108 @@ test('attendance table replaces session fees with teacher names and activity-col
   assert.match(html, /AfterSchool: 1 class taken/);
   assert.match(html, /background-color:#123456/);
 });
+
+test('attendance selection expands grouped activities once and respects the filtered rows', () => {
+  const { attendanceSelectionRecords } = loadModule('src/features/attendance/utils/attendance-selection.ts');
+  const first = attendanceRow({ id: 'r1' });
+  const second = attendanceRow({ id: 'r2', activityId: 'music' });
+  const grouped = { ...first, groupedRecords: [first, second] };
+  assert.deepEqual([...attendanceSelectionRecords([grouped, first]).map((record) => record.id)], ['r1', 'r2']);
+  assert.deepEqual([...attendanceSelectionRecords([first]).map((record) => record.id)], ['r1']);
+  assert.equal(attendanceSelectionRecords([{ ...first, id: undefined }]).length, 0);
+});
+
+test('attendance deletion removes individual and summary copies and preserves unselected activities', async () => {
+  const first = attendanceRow({ id: 'r1', sessionFee: 100 });
+  const second = attendanceRow({ id: 'r2', activityId: 'music', sessionFee: 200 });
+  const db = database({
+    'attendances/r1': first, 'attendances/r2': second,
+    'daily_attendances/2083-06-25': { sessionDateBS: '2083-06-25', attendances: [first, second], totalRecords: 2 },
+  });
+  const service = loadModule('src/features/attendance/services/attendance.service.ts', db.mocks);
+  const result = await service.deleteAttendanceRecords([first, first]);
+  assert.equal(result.deleted.length, 1);
+  assert.equal(result.failed.length, 0);
+  assert.equal(db.data.has('attendances/r1'), false);
+  assert.equal(db.data.has('attendances/r2'), true);
+  const daily = db.data.get('daily_attendances/2083-06-25');
+  assert.equal(daily.totalRecords, 1);
+  assert.equal(daily.presentCount, 1);
+  assert.equal(daily.totalSessionFees, 200);
+  assert.equal(daily.activitiesCount, 1);
+  assert.equal(daily.activities[0].activityId, 'music');
+  assert.equal(daily.attendances[0].id, 'r2');
+  await service.deleteAttendance('r2');
+  assert.equal(db.data.has('daily_attendances/2083-06-25'), false);
+  assert.equal(await service.getDailyAttendanceByDate('2083-06-25'), null, 'last deleted attendance must not return via daily fallback');
+});
+
+test('legacy daily-only attendance can be deleted without touching a different student', async () => {
+  const first = attendanceRow();
+  const second = attendanceRow({ studentId: 's2' });
+  delete first.id;
+  delete second.id;
+  const db = database({ 'daily_attendances/2083-06-25': { sessionDateBS: '2083-06-25', attendances: [first, second] } });
+  const service = loadModule('src/features/attendance/services/attendance.service.ts', db.mocks);
+  const daily = await service.getDailyAttendanceByDate('2083-06-25');
+  const result = await service.deleteAttendanceRecords([daily.attendances.find((record) => record.studentId === first.studentId)]);
+  assert.equal(result.deleted.length, 1);
+  assert.equal(result.failed.length, 0);
+  const remaining = await service.getDailyAttendanceByDate('2083-06-25');
+  assert.equal(remaining.attendances.length, 1);
+  assert.equal(remaining.attendances[0].studentId, 's2');
+});
+
+test('a changed attendance identity prevents deleting any records in its transaction', async () => {
+  const first = attendanceRow({ id: 'r1' });
+  const db = database({ 'attendances/r1': { ...first, studentId: 'different-student' } });
+  const service = loadModule('src/features/attendance/services/attendance.service.ts', db.mocks);
+  const result = await service.deleteAttendanceRecords([first]);
+  assert.equal(result.deleted.length, 0);
+  assert.equal(result.failed.length, 1);
+  assert.equal(db.writes, 0);
+  assert.equal(db.data.get('attendances/r1').studentId, 'different-student');
+});
+
+test('bulk attendance deletion chunks large selections and retains failed records for retry', async () => {
+  const rows = Array.from({ length: 201 }, (_, index) => attendanceRow({ id: `r${index}`, studentId: `s${index}` }));
+  const db = database(Object.fromEntries(rows.map((record) => [`attendances/${record.id}`, record])));
+  const runTransaction = db.mocks['firebase/firestore'].runTransaction;
+  let transactions = 0;
+  db.mocks['firebase/firestore'].runTransaction = async (...args) => {
+    if (++transactions === 2) throw new Error('permission-denied');
+    return runTransaction(...args);
+  };
+  const service = loadModule('src/features/attendance/services/attendance.service.ts', db.mocks);
+  const result = await service.deleteAttendanceRecords(rows);
+  assert.equal(transactions, 2);
+  assert.equal(result.deleted.length, 200);
+  assert.equal(result.failed.length, 1);
+  assert.equal(db.data.has('attendances/r200'), true);
+  assert.equal(db.data.has('attendances/r0'), false);
+});
+
+test('attendance selectors select every filtered record across pages and expand grouped rows', () => {
+  const Table = loadModule('src/features/attendance/components/AttendanceTable.tsx').default;
+  const rows = Array.from({ length: 12 }, (_, index) => attendanceRow({ id: `r${index}`, studentId: `s${index}`, studentName: `Student ${index}` }));
+  rows[0].groupedRecords = [rows[0], attendanceRow({ id: 'music', activityId: 'music' })];
+  let selected = [];
+  const tree = Table({ data: rows, onEdit: () => {}, onDelete: () => {}, onSelectionChange: (ids) => { selected = ids; } });
+  const inputs = [];
+  function visit(node) {
+    if (Array.isArray(node)) return node.forEach(visit);
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'input') inputs.push(node);
+    visit(node.props?.children);
+  }
+  visit(tree);
+  inputs[0].props.onChange();
+  assert.equal(selected.length, 13);
+  assert.ok(selected.includes('music'));
+  const html = require('react-dom/server').renderToStaticMarkup(require('react').createElement(Table, {
+    data: rows, selectedIds: selected, onSelectionChange: () => {}, onEdit: () => {}, onDelete: () => {},
+  }));
+  assert.match(html, /Select all 13 filtered attendance records across pages/);
+  assert.match(html, /Select Student 0 on 2083-06-25: 2 activity records/);
+  assert.match(html, /type="checkbox"[^>]*checked=""/);
+});

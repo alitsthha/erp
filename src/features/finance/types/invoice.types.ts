@@ -8,6 +8,13 @@ export type InvoiceStatus =
   | "Sent (WhatsApp)";
 
 export interface InvoiceLine {
+  /** Fee events reserved by this invoice, so later bills cannot charge them again. */
+  billedMonths?: string[];
+  attendanceIds?: string[];
+  attendanceDates?: string[];
+  /** Actual calendar counts frozen when generated; absent on legacy invoices. */
+  takenSessions?: number;
+  heldSessions?: number;
   enrollmentId?: string;
 
   activityId?: string;
@@ -27,8 +34,7 @@ export interface InvoiceLine {
   expectedSessions: number;
 
   /**
-   * Number of Present sessions
-   * during the billing month.
+   * Number of newly billed Present sessions in the selected period.
    */
   sessionCount: number;
 
@@ -88,6 +94,9 @@ export interface Invoice {
    * 2083-04
    */
   billingMonth: string;
+
+  /** Attendance cutoff, independent of the issue date. */
+  billingDate?: string;
 
   /**
    * Invoice creation date.

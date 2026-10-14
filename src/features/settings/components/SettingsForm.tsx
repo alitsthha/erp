@@ -1,3 +1,4 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -525,7 +526,7 @@ export default function SettingsForm() {
                   size={17}
                   className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 z-10"
                 />
-                <select
+                <SearchableSelect value={watch("currency")}
                   id="currency"
                   {...register("currency")}
                   className={`pl-10 ${selectClass(Boolean(errors.currency))}`}
@@ -536,7 +537,7 @@ export default function SettingsForm() {
                   <option value="INR (₹)">INR (Indian Rupee - ₹)</option>
                   <option value="EUR (€)">EUR (Euro - €)</option>
                   <option value="GBP (£)">GBP (British Pound - £)</option>
-                </select>
+                </SearchableSelect>
               </div>
               {errors.currency && (
                 <p className="mt-1.5 text-xs font-medium text-red-500">
@@ -558,7 +559,7 @@ export default function SettingsForm() {
                   size={17}
                   className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 z-10"
                 />
-                <select
+                <SearchableSelect value={watch("timeZone")}
                   id="timeZone"
                   {...register("timeZone")}
                   className={`pl-10 ${selectClass(Boolean(errors.timeZone))}`}
@@ -577,7 +578,7 @@ export default function SettingsForm() {
                   <option value="Europe/London (+00:00)">
                     Europe/London (GMT +00:00)
                   </option>
-                </select>
+                </SearchableSelect>
               </div>
             </div>
 
@@ -589,7 +590,7 @@ export default function SettingsForm() {
               >
                 Default System Language
               </label>
-              <select
+              <SearchableSelect value={watch("defaultLanguage")}
                 id="defaultLanguage"
                 {...register("defaultLanguage")}
                 className={selectClass(Boolean(errors.defaultLanguage))}
@@ -597,7 +598,7 @@ export default function SettingsForm() {
               >
                 <option value="English">English</option>
                 <option value="Nepali">Nepali (नेपाली)</option>
-              </select>
+              </SearchableSelect>
             </div>
 
             {/* Theme */}
@@ -608,7 +609,7 @@ export default function SettingsForm() {
               >
                 Application Theme
               </label>
-              <select
+              <SearchableSelect value={watch("theme")}
                 id="theme"
                 {...register("theme")}
                 className={selectClass(Boolean(errors.theme))}
@@ -617,7 +618,7 @@ export default function SettingsForm() {
                 <option value="light">Light Mode</option>
                 <option value="dark">Dark Mode (Coming Soon)</option>
                 <option value="system">System Default</option>
-              </select>
+              </SearchableSelect>
             </div>
           </div>
         </section>

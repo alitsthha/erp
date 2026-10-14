@@ -1,3 +1,4 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/app/providers/AuthProvider";
@@ -84,7 +85,7 @@ function CalendarContent() {
     <div className="flex flex-wrap gap-3">
       <input aria-label="Search calendar entries" placeholder="Search activities or events…" value={search} onChange={(event) => setSearch(event.target.value)} className="ui-field min-w-0 basis-full flex-1 sm:basis-48 px-4" />
       <ListSortControl />
-      <select aria-label="Filter calendar by activity" value={activity} onChange={(event) => setActivity(event.target.value)} className="ui-field w-full min-w-0 px-3 sm:w-auto sm:max-w-xs"><option value="all">All activities and events</option>{activities.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
+      <SearchableSelect aria-label="Filter calendar by activity" value={activity} onChange={(event) => setActivity(event.target.value)} className="ui-field w-full min-w-0 px-3 sm:w-auto sm:max-w-xs"><option value="all">All activities and events</option>{activities.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</SearchableSelect>
     </div>
     {data.attendanceError && <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-700">Some attendance could not be loaded. Class counts may be incomplete. Reload the page to retry.</p>}
     {colorError && <p role="alert" className="rounded-xl bg-amber-50 p-4 text-sm text-amber-800">Activity colors could not be loaded. Dots are temporarily gray. Reload the page to retry.</p>}

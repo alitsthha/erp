@@ -1,3 +1,4 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 import ListSortControl from "@/components/common/ListSortControl";
 import PaginatedList from "@/components/common/PaginatedList";
 import { useMemo, useState } from "react";
@@ -127,7 +128,7 @@ export default function StaffListPage() {
 
               {/* Employment Type Filter */}
               <div className="w-full lg:w-48">
-                <select
+                <SearchableSelect
                   value={employmentFilter}
                   onChange={(e) => setEmploymentFilter(e.target.value)}
                   className="ui-field w-full px-4 text-slate-900 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
@@ -138,7 +139,7 @@ export default function StaffListPage() {
                   <option value="Contract">Contract</option>
                   <option value="Temporary">Temporary</option>
                   <option value="Volunteer">Volunteer</option>
-                </select>
+                </SearchableSelect>
               </div>
 
               {/* Clear Filters */}

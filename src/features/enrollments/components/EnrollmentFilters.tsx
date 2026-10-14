@@ -1,3 +1,4 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 import { SlidersHorizontal } from "lucide-react";
 
 type Props = {
@@ -16,7 +17,7 @@ export default function EnrollmentFilters({
         className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
       />
 
-      <select
+      <SearchableSelect
         value={value}
         onChange={(event) =>
           onChange?.(event.target.value)
@@ -26,7 +27,7 @@ export default function EnrollmentFilters({
         <option value="all">All Enrollments</option>
         <option value="active">Active</option>
         <option value="inactive">Inactive</option>
-      </select>
+      </SearchableSelect>
     </div>
   );
 }

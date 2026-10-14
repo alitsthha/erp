@@ -1,3 +1,4 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 import PaginatedList from "@/components/common/PaginatedList";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -164,7 +165,7 @@ export default function SalaryConfigPage() {
             placeholder="Search by role or salary type..."
             resultCount={filteredConfigs.length}
             onClear={clearFilters}
-            filter={<select aria-label="Filter salary configurations by status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="ui-field w-full px-3 text-slate-900 outline-none focus:border-brand-600"><option value="all">All statuses</option><option value="Active">Active</option><option value="Inactive">Inactive</option></select>}
+            filter={<SearchableSelect aria-label="Filter salary configurations by status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="ui-field w-full px-3 text-slate-900 outline-none focus:border-brand-600"><option value="all">All statuses</option><option value="Active">Active</option><option value="Inactive">Inactive</option></SearchableSelect>}
           />
 
           {selectedIds.length > 0 && (

@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "academy-erp-451f2"
+    "default": "academy-erp-451f2",
+    "production": "academy-erp-451f2",
+    "demo": "demoerp-b1895"
   }
 }

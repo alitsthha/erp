@@ -1,3 +1,4 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 import PaginatedList from "@/components/common/PaginatedList";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -170,7 +171,7 @@ export default function AccountsPage() {
           placeholder="Search by account code or name..."
           resultCount={filteredAccounts.length}
           onClear={() => { setSearch(""); setTypeFilter("all"); }}
-          filter={<select aria-label="Filter accounts by type" value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} className="ui-field w-full px-3"><option value="all">All account types</option>{["Asset", "Liability", "Equity", "Income", "Expense"].map((type) => <option key={type}>{type}</option>)}</select>}
+          filter={<SearchableSelect aria-label="Filter accounts by type" value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} className="ui-field w-full px-3"><option value="all">All account types</option>{["Asset", "Liability", "Equity", "Income", "Expense"].map((type) => <option key={type}>{type}</option>)}</SearchableSelect>}
         />
 
         {selectedIds.length > 0 && <div className="mb-4 flex flex-col gap-2 rounded-lg border border-brand-100 bg-brand-50 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between"><span className="font-medium text-brand-900">{selectedIds.length} accounts selected</span><button type="button" onClick={() => setDeleteTarget("bulk")} className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-xs font-medium text-white"><Trash2 size={14} /> Delete selected</button></div>}

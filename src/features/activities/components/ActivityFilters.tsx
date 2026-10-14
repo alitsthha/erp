@@ -1,3 +1,4 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 type Props = {
   value?: string;
   onChange?: (value: string) => void;
@@ -8,7 +9,7 @@ export default function ActivityFilters({
   onChange,
 }: Props) {
   return (
-    <select
+    <SearchableSelect
       value={value}
       onChange={(e) =>
         onChange?.(e.target.value)
@@ -26,6 +27,6 @@ export default function ActivityFilters({
       <option value="inactive">
         Inactive
       </option>
-    </select>
+    </SearchableSelect>
   );
 }

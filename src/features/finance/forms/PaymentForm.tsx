@@ -1,3 +1,4 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import type { Payment } from "../types/payment.types";
@@ -105,7 +106,7 @@ export default function PaymentForm({
           <label className="mb-1.5 block text-sm font-medium text-slate-700">
             Payment Method <span className="text-red-500">*</span>
           </label>
-          <select
+          <SearchableSelect
             value={paymentMethod}
             onChange={(e) => setPaymentMethod(e.target.value as Payment["paymentMethod"])}
             className="ui-field w-full px-3 text-slate-900 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
@@ -116,7 +117,7 @@ export default function PaymentForm({
             <option value="Online">Online</option>
             <option value="Card">Card</option>
             <option value="Other">Other</option>
-          </select>
+          </SearchableSelect>
         </div>
       </div>
 

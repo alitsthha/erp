@@ -1,3 +1,4 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 import { forwardRef } from "react";
 
 interface Props
@@ -9,7 +10,7 @@ const Select = forwardRef<HTMLSelectElement, Props>(
   ({ children, error, className = "", ...props }, ref) => {
     return (
       <div className="space-y-1">
-        <select
+        <SearchableSelect
           ref={ref}
           {...props}
           className={`ui-field
@@ -33,7 +34,7 @@ const Select = forwardRef<HTMLSelectElement, Props>(
           `}
         >
           {children}
-        </select>
+        </SearchableSelect>
 
         {error && (
           <p className="text-red-500 text-sm">

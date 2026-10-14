@@ -1,3 +1,4 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 import ListSortControl from "@/components/common/ListSortControl";
 import PaginatedList from "@/components/common/PaginatedList";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
@@ -636,7 +637,7 @@ export default function RoleAssignmentPage() {
             <label className="mb-1.5 block text-xs font-semibold text-slate-700">
               Role Template
             </label>
-            <select
+            <SearchableSelect
               value={role === "admin" ? "admin" : assignedActivityIds.length === 1 ? `activity:${assignedActivityIds[0]}` : assignedActivityIds.length > 1 ? "custom-activities" : role}
               onChange={(e) => e.target.value.startsWith("activity:")
                 ? applyActivityTemplate(e.target.value.replace("activity:", ""))
@@ -665,7 +666,7 @@ export default function RoleAssignmentPage() {
                     Existing: {existingUserRole.label ?? existingUserRole.role}
                   </option>
                 )}
-            </select>
+            </SearchableSelect>
           </div>
 
           {activities.length > 0 && role !== "admin" && (

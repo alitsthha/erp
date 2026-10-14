@@ -1,7 +1,7 @@
 import {
   addDoc,
   collection,
-  deleteDoc,
+  runTransaction,
   doc,
   getDoc,
   getDocs,
@@ -750,13 +750,66 @@ export async function deleteAttendance(
     );
   }
 
-  await deleteDoc(
-    doc(
-      db,
-      COLLECTION_NAME,
-      id
-    )
-  );
+  const record = await getAttendanceById(id);
+  if (!record) return;
+  const result = await deleteAttendanceRecords([record]);
+  if (result.failed.length) throw new Error("Unable to delete attendance. Please retry.");
+}
+
+/** Delete selected records and their daily-summary copies together. Each
+ * transaction stays below Firestore's write limit; failures are reported so
+ * the UI can retain only the records that still need deleting.
+ */
+export async function deleteAttendanceRecords(records: Attendance[]): Promise<{ deleted: Attendance[]; failed: Attendance[] }> {
+  const unique = [...new Map(records.filter((record) => record.id).map((record) => [record.id!, record])).values()];
+  const deleted: Attendance[] = [];
+  const failed: Attendance[] = [];
+  for (let offset = 0; offset < unique.length; offset += 200) {
+    const chunk = unique.slice(offset, offset + 200);
+    try {
+      await runTransaction(db, async (transaction) => {
+        const dates = [...new Set(chunk.map((record) => record.sessionDateBS))];
+        if (dates.some((date) => !/^\d{4}-\d{2}-\d{2}$/.test(date))) throw new Error("Attendance date is missing.");
+        const refs = chunk.map((record) => doc(db, COLLECTION_NAME, record.id!));
+        const dailyRefs = dates.map((date) => doc(db, DAILY_COLLECTION_NAME, date));
+        const snapshots = await Promise.all(refs.map((ref) => transaction.get(ref)));
+        const summaries = await Promise.all(dailyRefs.map((ref) => transaction.get(ref)));
+        snapshots.forEach((snapshot, index) => {
+          if (snapshot.exists() && getAttendanceKey(snapshot.data() as Attendance) !== getAttendanceKey(chunk[index])) {
+            throw new Error("Attendance changed. Refresh and select it again.");
+          }
+        });
+        const keys = new Set(chunk.map(getAttendanceKey));
+        summaries.forEach((snapshot, index) => {
+          if (!snapshot.exists()) return;
+          const data = snapshot.data();
+          const source = (Array.isArray(data.attendances) ? data.attendances : []) as Attendance[];
+          const remaining = source.filter((record) => !keys.has(getAttendanceKey({ ...record, sessionDateBS: record.sessionDateBS || dates[index] })));
+          if (!remaining.length) {
+            transaction.delete(dailyRefs[index]);
+            return;
+          }
+          const activities = groupAttendancesByActivity(remaining);
+          transaction.update(dailyRefs[index], {
+            attendances: remaining,
+            totalRecords: remaining.length,
+            presentCount: remaining.filter((record) => record.status === "Present").length,
+            absentCount: remaining.filter((record) => record.status === "Absent").length,
+            totalSessionFees: remaining.filter((record) => record.status === "Present").reduce((sum, record) => sum + (record.sessionFee || 0), 0),
+            activities,
+            activitiesCount: activities.length,
+            updatedAt: Timestamp.now(),
+          });
+        });
+        snapshots.forEach((snapshot, index) => { if (snapshot.exists()) transaction.delete(refs[index]); });
+      });
+      deleted.push(...chunk);
+    } catch (error) {
+      console.error("Unable to delete selected attendance:", error);
+      failed.push(...chunk);
+    }
+  }
+  return { deleted, failed };
 }
 
 /* =========================================================

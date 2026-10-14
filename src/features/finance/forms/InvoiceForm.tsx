@@ -1,3 +1,4 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 import { useState } from "react";
 import { Loader2, Sparkles, Plus, Trash2 } from "lucide-react";
 import { formatCurrency } from "@/utils/currency";
@@ -163,7 +164,7 @@ export default function InvoiceForm({
           <label className="mb-1.5 block text-sm font-medium text-slate-700">
             Student <span className="text-red-500">*</span>
           </label>
-          <select
+          <SearchableSelect
             value={studentId}
             onChange={(e) => handleStudentChange(e.target.value)}
             className="ui-field w-full px-3 text-slate-900 shadow-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
@@ -175,7 +176,7 @@ export default function InvoiceForm({
                 {s.fullName} ({s.studentCode})
               </option>
             ))}
-          </select>
+          </SearchableSelect>
         </div>
 
         <div>

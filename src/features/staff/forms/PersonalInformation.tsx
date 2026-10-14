@@ -1,6 +1,8 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 import type {
   FieldErrors,
   UseFormRegister,
+  UseFormWatch,
 } from "react-hook-form";
 import { User, Phone, Mail, MapPin } from "lucide-react";
 
@@ -8,11 +10,13 @@ import type { StaffFormData } from "../schemas/staff.schema";
 
 type Props = {
   register: UseFormRegister<StaffFormData>;
+  watch: UseFormWatch<StaffFormData>;
   errors: FieldErrors<StaffFormData>;
 };
 
 export default function PersonalInformation({
   register,
+  watch,
   errors,
 }: Props) {
   return (
@@ -62,7 +66,7 @@ export default function PersonalInformation({
           Gender <span className="text-red-500">*</span>
         </label>
 
-        <select
+        <SearchableSelect value={watch("gender")}
           id="gender"
           {...register("gender")}
           className={`ui-field w-full bg-white px-4 text-sm text-slate-900 outline-none transition focus:ring-2 ${
@@ -75,7 +79,7 @@ export default function PersonalInformation({
           <option value="Male">Male</option>
           <option value="Female">Female</option>
           <option value="Other">Other</option>
-        </select>
+        </SearchableSelect>
 
         {errors.gender && (
           <p className="mt-1.5 text-xs font-medium text-red-500">

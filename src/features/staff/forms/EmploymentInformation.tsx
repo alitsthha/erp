@@ -1,6 +1,8 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 import type {
   FieldErrors,
   UseFormRegister,
+  UseFormWatch,
 } from "react-hook-form";
 import { Briefcase, CheckCircle } from "lucide-react";
 
@@ -9,6 +11,7 @@ import type { StaffFormData } from "../schemas/staff.schema";
 
 type Props = {
   register: UseFormRegister<StaffFormData>;
+  watch: UseFormWatch<StaffFormData>;
   errors: FieldErrors<StaffFormData>;
   value?: string;
   onChange?: (value: string) => void;
@@ -16,6 +19,7 @@ type Props = {
 
 export default function EmploymentInformation({
   register,
+  watch,
   errors,
   value = "",
   onChange,
@@ -63,7 +67,7 @@ export default function EmploymentInformation({
             className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
           />
 
-          <select
+          <SearchableSelect value={watch("employmentType")}
             id="employmentType"
             {...register("employmentType")}
             className={`ui-field w-full bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:ring-2 ${
@@ -78,7 +82,7 @@ export default function EmploymentInformation({
             <option value="Contract">Contract</option>
             <option value="Temporary">Temporary</option>
             <option value="Volunteer">Volunteer</option>
-          </select>
+          </SearchableSelect>
         </div>
 
         {errors.employmentType && (
@@ -103,7 +107,7 @@ export default function EmploymentInformation({
             className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
           />
 
-          <select
+          <SearchableSelect value={watch("status")}
             id="status"
             {...register("status")}
             className={`ui-field w-full bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:ring-2 ${
@@ -115,7 +119,7 @@ export default function EmploymentInformation({
             <option value="Active">Active</option>
             <option value="Inactive">Inactive</option>
             <option value="Resigned">Resigned</option>
-          </select>
+          </SearchableSelect>
         </div>
 
         {errors.status && (

@@ -1,3 +1,4 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 import { useRef } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { BS_MONTHS, formatBSDate } from "@/utils/nepali-date";
@@ -37,7 +38,7 @@ export default function CalendarMonthView({ month, calendar, today, selectedDate
         <details ref={picker} className="calendar-month-picker">
           <summary aria-label="Choose Nepali month and year"><h2 aria-label={`${name} ${month.slice(0, 4)} BS`}>{name} {month.slice(0, 4)}</h2><ChevronDown size={20} aria-hidden="true" /></summary>
           <div className="calendar-month-options">
-            <label>Month<select aria-label="Nepali month" value={month.slice(-2)} onChange={(event) => chooseMonth(`${month.slice(0, 4)}-${event.target.value}`)}>{BS_MONTHS.map((item) => <option key={item.value} value={item.value}>{item.name}</option>)}</select></label>
+            <label>Month<SearchableSelect aria-label="Nepali month" value={month.slice(-2)} onChange={(event) => chooseMonth(`${month.slice(0, 4)}-${event.target.value}`)}>{BS_MONTHS.map((item) => <option key={item.value} value={item.value}>{item.name}</option>)}</SearchableSelect></label>
             <label>Year<input key={month.slice(0, 4)} aria-label="Nepali year" type="number" defaultValue={Number(month.slice(0, 4))} onBlur={(event) => {
               const value = `${event.target.value}-${month.slice(-2)}`;
               if (isValidBSDate(`${value}-01`)) chooseMonth(value);

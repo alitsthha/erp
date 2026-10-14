@@ -1,3 +1,4 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 type DashboardFiltersProps = {
   value?: string;
   onChange?: (value: string) => void;
@@ -8,7 +9,7 @@ export default function DashboardFilters({
   onChange,
 }: DashboardFiltersProps) {
   return (
-    <select
+    <SearchableSelect
       value={value}
       onChange={(event) =>
         onChange?.(event.target.value)
@@ -26,6 +27,6 @@ export default function DashboardFilters({
       <option value="inactive">
         Inactive Students
       </option>
-    </select>
+    </SearchableSelect>
   );
 }

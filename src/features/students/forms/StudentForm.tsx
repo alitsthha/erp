@@ -1,3 +1,4 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -33,6 +34,7 @@ export default function StudentForm({
 }: StudentFormProps) {
   const {
     register,
+    watch,
     control,
     handleSubmit,
     reset,
@@ -201,14 +203,14 @@ export default function StudentForm({
                 className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
               />
 
-              <select
+              <SearchableSelect value={watch("status")}
                 id="status"
                 {...register("status")}
                 className="ui-field w-full appearance-none pl-10 pr-4 text-slate-900 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
               >
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
-              </select>
+              </SearchableSelect>
             </div>
           </div>
 

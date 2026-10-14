@@ -108,6 +108,7 @@ export default function StaffForm({
 
         <div className="p-5 sm:p-7">
           <PersonalInformation
+            watch={watch}
             register={register}
             errors={errors}
           />
@@ -136,6 +137,7 @@ export default function StaffForm({
 
         <div className="p-5 sm:p-7">
           <EmploymentInformation
+            watch={watch}
             register={register}
             errors={errors}
             value={joiningDateValue}

@@ -1,3 +1,4 @@
+import SearchableSelect from "@/components/forms/SearchableSelect";
 import PaginatedList from "@/components/common/PaginatedList";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -182,7 +183,7 @@ export default function PaymentGrantPage() {
 
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-700">Payment Type *</label>
-                <select
+                <SearchableSelect value={watch("paymentType")}
                   {...register("paymentType")}
                   className="ui-field w-full px-4 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
                 >
@@ -191,7 +192,7 @@ export default function PaymentGrantPage() {
                   <option value="bonus">Bonus</option>
                   <option value="advance">Advance</option>
                   <option value="other">Other</option>
-                </select>
+                </SearchableSelect>
                 {errors.paymentType && <p className="mt-1 text-sm text-red-600">{errors.paymentType.message}</p>}
               </div>
 
@@ -210,14 +211,14 @@ export default function PaymentGrantPage() {
 
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-700">Status *</label>
-                <select
+                <SearchableSelect value={watch("status")}
                   {...register("status")}
                   className="ui-field w-full px-4 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
                 >
                   <option value="pending">Pending</option>
                   <option value="paid">Paid</option>
                   <option value="cancelled">Cancelled</option>
-                </select>
+                </SearchableSelect>
                 {errors.status && <p className="mt-1 text-sm text-red-600">{errors.status.message}</p>}
               </div>
 
