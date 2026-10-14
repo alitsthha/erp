@@ -17,7 +17,6 @@ import {
   Loader2,
   Mail,
   MessageCircle,
-  Search,
   Send,
   UserRound,
 } from "lucide-react";
@@ -370,30 +369,6 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
   }, []);
 
   /* =====================================================
-     FILTER STUDENTS
-  ===================================================== */
-
-  const filteredStudents =
-    useMemo(() => {
-      const value =
-        search.trim().toLowerCase();
-
-      if (!value) {
-        return students;
-      }
-
-      return students.filter(
-        (student) =>
-          student.fullName
-            .toLowerCase()
-            .includes(value) ||
-          student.studentCode
-            .toLowerCase()
-            .includes(value)
-      );
-    }, [students, search]);
-
-  /* =====================================================
      SELECT STUDENT
   ===================================================== */
 
@@ -704,7 +679,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                       : "Select student"}
                   </option>
 
-                  {filteredStudents.map(
+                  {students.map(
                     (student) => (
                       <option
                         key={student.id}
@@ -719,7 +694,6 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                   )}
                 </SearchableSelect>
               </div>
-
             </div>
 
             <div className="grid min-w-0 grid-cols-1 gap-4 sm:col-span-2 lg:grid-cols-3">
