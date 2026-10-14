@@ -166,9 +166,6 @@ export default function BillingPage() {
   const [success, setSuccess] =
     useState("");
 
-  const [search, setSearch] =
-    useState("");
-
   /* =====================================================
      LOAD STUDENTS
   ===================================================== */
