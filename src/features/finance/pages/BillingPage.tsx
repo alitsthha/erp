@@ -83,8 +83,8 @@ const ORGANIZATION_DETAILS = {
   tagline: "Quality Education • Holistic Growth",
   address: "Baluwatar, Kathmandu, Nepal",
   phone: "+977-1-4567890",
-  email: "info@youngexplorers.edu.np",
-  website: "www.youngexplorers.edu.np",
+  email: "info@youngexplorersnepal.com",
+  website: "https://youngexplorersnepal.com/",
 };
 
 export default function BillingPage() {
