@@ -83,5 +83,8 @@ export function invoiceRecipient({ invoice, customer }: InvoiceDocumentProps) {
   };
 }
 
-export const INVOICE_PAYMENT_NOTE = "Please quote your invoice number when making a payment. Contact the academy for payment details.";
-export const INVOICE_THANK_YOU = "Thank you for being part of our learning journey.";
+export const INVOICE_PAYMENT_ACCOUNT = {
+  name: "Shreeju khadka",
+  number: "01623128616",
+  qrImage: "/pays.jpeg",
+};

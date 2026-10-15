@@ -2,8 +2,7 @@ import { Globe, Mail, MapPin, Phone } from "lucide-react";
 import { formatBSDate } from "@/utils/nepali-date";
 import yeaLogo from "/yea-logo.png";
 import {
-  INVOICE_PAYMENT_NOTE,
-  INVOICE_THANK_YOU,
+  INVOICE_PAYMENT_ACCOUNT,
   invoiceMoney,
   billingLineQuantity,
   billingLineDetail,
@@ -75,11 +74,14 @@ export default function InvoiceDocument(props: InvoiceDocumentProps) {
         </div>
 
         <section className="invoice-document__summary">
-          <div className="invoice-document__notes">
+          <div className="invoice-document__payment">
             <h3>Payment information</h3>
-            <p>{INVOICE_PAYMENT_NOTE}</p>
-            <h3>Notes</h3>
-            <p>{invoice.notes || INVOICE_THANK_YOU}</p>
+            <dl className="invoice-document__account">
+              <div><dt>Account name</dt><dd>{INVOICE_PAYMENT_ACCOUNT.name}</dd></div>
+              <div><dt>Account number</dt><dd>{INVOICE_PAYMENT_ACCOUNT.number}</dd></div>
+            </dl>
+            <img className="invoice-document__payment-qr" src={INVOICE_PAYMENT_ACCOUNT.qrImage} alt="Scan QR code to pay Shreeju khadka" />
+            <a className="invoice-document__save-qr" href={INVOICE_PAYMENT_ACCOUNT.qrImage} download="Shreeju-khadka-payment-QR.jpeg">Save QR</a>
           </div>
           <div>
             <dl className="invoice-document__totals">

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Save payment QR</title>
+    <style>
+      body { margin: 0; padding: 32px 16px; background: #fffdf8; color: #203747; font: 16px/1.6 system-ui, sans-serif; }
+      main { max-width: 360px; margin: auto; padding: 24px; border: 1px solid #d9e2e6; border-radius: 10px; background: #eef6fc; }
+      h1 { margin: 0 0 16px; color: #103f63; font-size: 22px; }
+      p { margin: 8px 0; }
+      img { display: block; width: 100%; height: auto; margin: 20px 0; }
+      a { display: block; padding: 12px; border-radius: 6px; background: #1776bc; color: white; text-align: center; text-decoration: none; font-weight: 600; }
+      .hint { color: #607481; font-size: 14px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Payment information</h1>
+      <p>Account name: <strong>Shreeju khadka</strong></p>
+      <p>Account number: <strong>01623128616</strong></p>
+      <img src="/pays.jpeg" alt="Payment QR for Shreeju khadka" />
+      <a id="download" href="/pays.jpeg" download="Shreeju-khadka-payment-QR.jpeg">Save QR</a>
+      <p class="hint">If your download does not start, tap Save QR. You can also press and hold the image to save it.</p>
+    </main>
+    <script>
+      document.getElementById('download').click();
+    </script>
+  </body>
+</html>

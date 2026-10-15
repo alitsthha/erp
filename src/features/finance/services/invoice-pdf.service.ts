@@ -2,8 +2,7 @@ import jsPDF from "jspdf";
 import { formatBSDate } from "@/utils/nepali-date";
 import {
   INVOICE_COLORS as color,
-  INVOICE_PAYMENT_NOTE,
-  INVOICE_THANK_YOU,
+  INVOICE_PAYMENT_ACCOUNT,
   invoiceMoney,
   billingLineQuantity,
   billingLineDetail,
@@ -30,6 +29,15 @@ export async function buildInvoicePdf(props: InvoiceDocumentProps): Promise<jsPD
     img.onerror = () => resolve(null);
     img.src = "/yea-logo.png";
   });
+
+  const paymentQr = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("Unable to load the payment QR image."));
+    img.src = INVOICE_PAYMENT_ACCOUNT.qrImage;
+  });
+  const qrWidth = 180;
+  const qrHeight = qrWidth * paymentQr.naturalHeight / paymentQr.naturalWidth;
 
   function text(value: string | string[], x: number, y: number, size = 9, ink = color.ink, bold = false, align: "left" | "right" | "center" = "left") {
     pdf.setFont("helvetica", bold ? "bold" : "normal");
@@ -156,7 +164,7 @@ export async function buildInvoicePdf(props: InvoiceDocumentProps): Promise<jsPD
     ["Amount paid", invoiceMoney(invoice.paidAmount)],
     ["Balance due", invoiceMoney(invoice.dueAmount)],
   ];
-  const summaryHeight = totalRows.length * 25 + 58;
+  const summaryHeight = Math.max(totalRows.length * 25 + 58, 134 + qrHeight);
   if (y + summaryHeight > bottom) y = nextPage();
   const summaryY = y;
   totalRows.forEach(([label, value], index) => {
@@ -173,19 +181,24 @@ export async function buildInvoicePdf(props: InvoiceDocumentProps): Promise<jsPD
   pdf.text("Thank you!", 439, y + 37, { align: "center" });
   text("FOR GROWING WITH US", 439, y + 53, 7, color.muted, false, "center");
 
-  // Keep long notes inside the printable area, continuing onto a branded page.
-  let notesY = summaryY + 11;
-  const noteBlocks = [["PAYMENT INFORMATION", INVOICE_PAYMENT_NOTE], ["NOTES", invoice.notes || INVOICE_THANK_YOU]];
-  noteBlocks.forEach(([heading, body]) => {
-    if (notesY + 40 > bottom) notesY = nextPage();
-    text(heading, margin, notesY, 8, color.blue, true);
-    notesY += 19;
-    for (const line of wrap(body, 240, 9)) {
-      if (notesY + 14 > bottom) notesY = nextPage();
-      text(line, margin, notesY, 9, color.muted);
-      notesY += 13.5;
-    }
-    notesY += 20;
+  const paymentWidth = 240;
+  const paymentHeight = 134 + qrHeight;
+  pdf.setFillColor(color.tint);
+  pdf.setDrawColor(color.border);
+  pdf.roundedRect(margin, summaryY, paymentWidth, paymentHeight, 7, 7, "FD");
+  text("PAYMENT INFORMATION", margin + 12, summaryY + 20, 8, color.blue, true);
+  text("ACCOUNT NAME", margin + 12, summaryY + 38, 7, color.muted);
+  text(INVOICE_PAYMENT_ACCOUNT.name, margin + 12, summaryY + 51, 9, color.ink, true);
+  text("ACCOUNT NUMBER", margin + 12, summaryY + 68, 7, color.muted);
+  text(INVOICE_PAYMENT_ACCOUNT.number, margin + 12, summaryY + 81, 9, color.ink, true);
+  pdf.addImage(paymentQr, "JPEG", margin + 30, summaryY + 91, qrWidth, qrHeight);
+  const buttonY = summaryY + 101 + qrHeight;
+  pdf.setFillColor(color.blue);
+  pdf.roundedRect(margin + 30, buttonY, qrWidth, 24, 4, 4, "F");
+  text("Save QR", margin + 30 + qrWidth / 2, buttonY + 16, 9, "#ffffff", true, "center");
+  // A hosted download page works after the PDF is saved or shared to another device.
+  pdf.link(margin + 30, buttonY, qrWidth, 24, {
+    url: new URL("/save-qr.html", window.location.origin).href,
   });
 
   const pages = pdf.getNumberOfPages();
