@@ -21,7 +21,9 @@ export async function buildInvoicePdf(props: InvoiceDocumentProps): Promise<jsPD
   const margin = 36;
   const right = width - margin;
   const contentWidth = right - margin;
-  const bottom = height - 120;
+  // Reserve the legal notice and the highest point of the footer wave.
+  const bottom = height - 170;
+  const continuationTop = 200;
 
   const logo = await new Promise<HTMLImageElement | null>((resolve) => {
     const img = new Image();
@@ -65,39 +67,32 @@ export async function buildInvoicePdf(props: InvoiceDocumentProps): Promise<jsPD
     ]).fill();
   }
 
-  function page(first = false) {
+  function page() {
     pdf.setFillColor(color.paper);
     pdf.rect(0, 0, width, height, "F");
-    if (first) {
-      headerCurve(12, color.yellow);
-      headerCurve(0, color.blue);
-      pdf.setFillColor("#ffffff");
-      pdf.roundedRect(margin, 27, 224, 88, 3, 3, "F");
-      if (logo) {
-        const logoWidth = 200;
-        pdf.addImage(logo, "PNG", margin + 12, 36, logoWidth, logoWidth * logo.naturalHeight / logo.naturalWidth);
-      } else {
-        text(wrap(organization.name, 198, 17), margin + 12, 56, 17, color.blue, true);
-      }
-      text(organization.tagline, margin, 132, 7, "#ffffff");
-      text("STUDENT FEES", right, 126, 7, color.muted, false, "right");
-      text("INVOICE", right, 154, 28, color.navy, true, "right");
-      text(invoice.status, right, 174, 9, invoice.status === "Paid" ? "#206635" : color.blue, true, "right");
+    headerCurve(12, color.yellow);
+    headerCurve(0, color.blue);
+    pdf.setFillColor("#ffffff");
+    pdf.roundedRect(margin, 27, 224, 88, 3, 3, "F");
+    if (logo) {
+      const logoWidth = 200;
+      pdf.addImage(logo, "PNG", margin + 12, 36, logoWidth, logoWidth * logo.naturalHeight / logo.naturalWidth);
     } else {
-      pdf.setFillColor(color.blue);
-      pdf.rect(0, 0, width, 7, "F");
-      text(organization.name, margin, 36, 11, color.blue, true);
-      text(invoice.invoiceNumber, right, 36, 9, color.muted, false, "right");
+      text(wrap(organization.name, 198, 17), margin + 12, 56, 17, color.blue, true);
     }
+    text(organization.tagline, margin, 132, 7, "#ffffff");
+    text("STUDENT FEES", right, 126, 7, color.muted, false, "right");
+    text("INVOICE", right, 154, 28, color.navy, true, "right");
+    text(invoice.status, right, 174, 9, invoice.status === "Paid" ? "#206635" : color.blue, true, "right");
   }
 
   function nextPage() {
     pdf.addPage();
     page();
-    return 62;
+    return continuationTop;
   }
 
-  page(true);
+  page();
   text("BILL TO", margin, 200, 8, color.blue, true);
   let recipientY = 220;
   const recipientLines = [recipient.name, recipient.student, `Student code: ${invoice.studentCode}`, recipient.address, recipient.phone, recipient.email].filter((value): value is string => Boolean(value));
@@ -139,6 +134,13 @@ export async function buildInvoicePdf(props: InvoiceDocumentProps): Promise<jsPD
     const cells = values.map((value, column) => wrap(value, edges[column + 1] - edges[column] - 20, 8));
     let offset = 0;
     const lineCount = Math.max(...cells.map((cell) => cell.length));
+    const fullRowHeight = Math.max(32, lineCount * 12 + 18);
+    // Keep a row intact when it fits on a fresh page. Exceptionally long
+    // descriptions can still continue across pages without losing text.
+    if (y + fullRowHeight > bottom && fullRowHeight <= bottom - continuationTop - 30) {
+      y = nextPage();
+      tableHead();
+    }
     while (offset < lineCount) {
       if (y + 32 > bottom) { y = nextPage(); tableHead(); }
       const count = Math.min(lineCount - offset, Math.max(1, Math.floor((bottom - y - 18) / 12)));
@@ -204,25 +206,60 @@ export async function buildInvoicePdf(props: InvoiceDocumentProps): Promise<jsPD
   const pages = pdf.getNumberOfPages();
   for (let number = 1; number <= pages; number++) {
     pdf.setPage(number);
-    const top = height - 108;
+    const footerHeight = 112.5;
+    const top = height - footerHeight;
+    const sx = width / 794;
+    const sy = footerHeight / 150;
     const footer = (offset: number, fill: string) => {
       pdf.setFillColor(fill);
       pdf.path([
-        { op: "m", c: [0, top + 30 + offset] },
-        { op: "c", c: [130, top - 35 + offset, 224, top + 35 + offset, 335, top + 22 + offset] },
-        { op: "c", c: [450, top + 12 + offset, 490, top - 30 + offset, width, top - 13 + offset] },
+        { op: "m", c: [0, top + (66 + offset) * sy] },
+        { op: "c", c: [170 * sx, top + (-30 + offset) * sy, 286 * sx, top + (36 + offset) * sy, 422 * sx, top + (50 + offset) * sy] },
+        { op: "c", c: [592 * sx, top + (78 + offset) * sy, 649 * sx, top + (-15 + offset) * sy, width, top + (8 + offset) * sy] },
         { op: "l", c: [width, height] }, { op: "l", c: [0, height] }, { op: "h", c: [] },
       ]).fill();
     };
+    text("Computer-generated invoice - No signature required", margin, bottom + 19, 7, color.muted);
     footer(0, color.yellow);
-    footer(6, color.blue);
-    text(organization.phone, margin, top + 48, 8, "#ffffff");
-    text(organization.email, margin, top + 62, 8, "#ffffff");
-    text(organization.website, margin, top + 76, 8, "#ffffff");
-    text(wrap(organization.name, 220, 8), 339, top + 48, 8, "#ffffff", true);
-    text(wrap(organization.address, 220, 8), 339, top + 64, 8, "#ffffff");
-    text("Computer-generated invoice - No signature required", margin, height - 10, 6, "#ffffff");
-    text(`Page ${number} of ${pages}`, right, height - 10, 6, "#ffffff", false, "right");
+    footer(8, color.blue);
+
+    // Small vector contact icons stay sharp when the PDF is printed.
+    function icon(kind: "phone" | "mail" | "globe" | "pin", x: number, y: number) {
+      pdf.setDrawColor(color.yellow);
+      pdf.setLineWidth(1);
+      if (kind === "mail") {
+        pdf.rect(x, y, 9, 7);
+        pdf.line(x, y, x + 4.5, y + 4);
+        pdf.line(x + 4.5, y + 4, x + 9, y);
+      } else if (kind === "globe") {
+        pdf.circle(x + 4.5, y + 4, 4.5);
+        pdf.ellipse(x + 4.5, y + 4, 2, 4.5);
+        pdf.line(x, y + 4, x + 9, y + 4);
+      } else if (kind === "pin") {
+        pdf.circle(x + 4.5, y + 3, 4);
+        pdf.circle(x + 4.5, y + 3, 1.3);
+        pdf.line(x + 1, y + 5, x + 4.5, y + 11);
+        pdf.line(x + 8, y + 5, x + 4.5, y + 11);
+      } else {
+        pdf.path([
+          { op: "m", c: [x + 1, y] }, { op: "l", c: [x + 3, y] },
+          { op: "l", c: [x + 4, y + 3] }, { op: "l", c: [x + 2.5, y + 4] },
+          { op: "c", c: [x + 3, y + 6, x + 5, y + 7, x + 6, y + 7] },
+          { op: "l", c: [x + 7, y + 5.5] }, { op: "l", c: [x + 10, y + 7] },
+          { op: "l", c: [x + 10, y + 9] },
+          { op: "c", c: [x + 3, y + 11, x - 1, y + 4, x + 1, y] },
+        ]).stroke();
+      }
+    }
+    const contactY = top + 63;
+    [organization.phone, organization.email, organization.website].forEach((value, index) => {
+      icon((["phone", "mail", "globe"] as const)[index], margin, contactY + index * 14 - 7);
+      text(value, margin + 18, contactY + index * 14, 8, "#ffffff");
+    });
+    icon("pin", 339, contactY + 7);
+    text(wrap(organization.name, right - 357, 8), 357, contactY + 14, 8, "#ffffff", true);
+    text(wrap(organization.address, right - 357, 7), 357, contactY + 31, 7, "#ffffff");
+    text(`Page ${number} of ${pages}`, right, height - 8, 6, "#ffffff", false, "right");
   }
   return pdf;
 }
