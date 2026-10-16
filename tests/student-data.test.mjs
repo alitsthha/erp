@@ -973,8 +973,9 @@ test('new enrollments and attendance store activity IDs and load the current nam
     'activities/a1': { activityName: 'Original', activityCode: 'AC1', feePerSession: 125 },
     'students/s1': { fullName: 'Student' },
   });
-  db.mocks['@/features/attendance/services/attendance-recorder.service'] = { getAttendanceActor: async () => ({ userId: 'admin', name: 'Admin' }) };
+  db.mocks['@/features/attendance/services/attendance-recorder.service'] = { getAttendanceActor: async () => ({ uid: 'admin', name: 'Admin' }) };
   db.mocks['./attendance-recorder.service'] = db.mocks['@/features/attendance/services/attendance-recorder.service'];
+  db.mocks['@/firebase/config'].auth = { currentUser: { uid: 'admin' } };
   const enrollmentService = loadModule('src/features/enrollments/services/enrollment.service.ts', db.mocks);
   const attendanceService = loadModule('src/features/attendance/services/attendance.service.ts', db.mocks);
   const input = { studentId: 's1', activityId: 'a1', enrollmentDate: '2083-06-01', status: 'Active' };
@@ -1020,4 +1021,81 @@ test('calendar updates attendance and scheduled class labels when the activity s
   }
   stop();
   assert.equal(stopped.length, 4);
+});
+
+test('attendance actor uses staff full name instead of role label or auth display name', async () => {
+  const db = database({
+    'staff/staff1': { fullName: 'Mina Shrestha', email: 'teacher@example.com' },
+    'user_roles/teacher@example.com': { role: 'music_teacher', label: 'music_teacher' },
+  });
+  db.mocks['@/firebase/config'].auth = { currentUser: { uid: 't1', email: 'teacher@example.com', displayName: 'Music Teacher' } };
+  const { getAttendanceActor } = loadModule('src/features/attendance/services/attendance-recorder.service.ts', db.mocks);
+  const actor = await getAttendanceActor();
+  assert.equal(actor.name, 'Mina Shrestha');
+  assert.equal(actor.staffId, 'staff1');
+  assert.equal(actor.email, 'teacher@example.com');
+});
+
+test('admin attendance identifies the administrator by email, even when a display name or staff record exists', async () => {
+  const db = database({
+    'staff/admin1': { fullName: 'Admin Full Name', email: 'owner@example.com' },
+    'user_roles/owner@example.com': { role: 'admin', label: 'Director' },
+  });
+  db.mocks['@/firebase/config'].auth = { currentUser: { uid: 'a1', email: 'owner@example.com', displayName: 'Director' } };
+  const actor = await loadModule('src/features/attendance/services/attendance-recorder.service.ts', db.mocks).getAttendanceActor();
+  assert.equal(actor.name, 'owner@example.com');
+  assert.equal(actor.role, 'admin');
+});
+
+test('every attendance save appends actor and field changes without replacing the original recorder', async () => {
+  const db = database({ 'staff/staff1': { fullName: 'Original Staff', email: 'teacher@example.com' } });
+  const auth = { currentUser: { uid: 't1', email: 'teacher@example.com' } };
+  db.mocks['@/firebase/config'].auth = auth;
+  const service = loadModule('src/features/attendance/services/attendance.service.ts', db.mocks);
+  const id = await service.createAttendance({ ...attendanceRow(), sessionDate: '2083-06-25', notes: 'First note', recordedByName: 'Forged' });
+  auth.currentUser = { uid: 'admin', email: 'admin@gmail.com', displayName: 'Wrong name' };
+  await service.updateAttendance(id, { status: 'Absent', notes: 'Corrected', recordedByName: 'Forged again' });
+  await service.updateAttendance(id, { notes: 'Another correction' });
+  await service.updateAttendance(id, { notes: 'Another correction' });
+  const record = await service.getAttendanceById(id);
+  assert.equal(record.recordedByName, 'Original Staff');
+  assert.equal(record.updatedByName, 'admin@gmail.com');
+  const history = [...db.data.entries()].filter(([key]) => key.startsWith(`attendances/${id}/auditLogs/`)).map(([, value]) => value);
+  assert.equal(history.length, 4);
+  assert.equal(history[0].action, 'created');
+  assert.equal(history[1].actor.email, 'admin@gmail.com');
+  assert.equal(history[1].changes.find((item) => item.field === 'status').before, 'Present');
+  assert.equal(history[1].changes.find((item) => item.field === 'status').after, 'Absent');
+  assert.equal(history[2].changes.find((item) => item.field === 'notes').before, 'Corrected');
+  assert.equal(history[2].changes.find((item) => item.field === 'notes').after, 'Another correction');
+  assert.equal(history[3].action, 'saved');
+  assert.equal(history[3].changes.length, 0);
+  assert.ok(history.every((entry) => entry.createdAt === 'server-time'));
+});
+
+test('attendance and history roll back together if the audit write fails', async () => {
+  const db = database();
+  db.mocks['@/firebase/config'].auth = { currentUser: { uid: 't1', email: 'teacher@example.com' } };
+  const original = db.mocks['firebase/firestore'].runTransaction;
+  db.mocks['firebase/firestore'].runTransaction = (store, callback) => original(store, (transaction) => callback({
+    ...transaction,
+    set: (ref, value) => { if (ref.path.includes('/auditLogs/')) throw new Error('Audit failed'); transaction.set(ref, value); },
+  }));
+  const service = loadModule('src/features/attendance/services/attendance.service.ts', db.mocks);
+  await assert.rejects(service.createAttendance({ ...attendanceRow(), sessionDate: '2083-06-25' }), /Audit failed/);
+  assert.equal([...db.data.keys()].filter((key) => key.startsWith('attendances/')).length, 0);
+});
+
+test('Teacher display preserves the original staff member and offers every saved interaction', () => {
+  const React = require('react');
+  const { renderToStaticMarkup } = require('react-dom/server');
+  const Details = loadModule('src/features/attendance/components/AttendanceRecorderDetails.tsx').default;
+  const html = renderToStaticMarkup(React.createElement(Details, { records: [attendanceRow({
+    recordedByUserId: 't1', recordedByName: 'Original Staff', recordedByRole: 'staff',
+    updatedByUserId: 'a1', updatedByName: 'Admin display name', updatedByEmail: 'admin@example.com', updatedByRole: 'admin',
+  })] }));
+  assert.match(html, />Original Staff<\/p>/);
+  assert.match(html, /Last saved by admin@example.com/);
+  assert.match(html, /Change history/);
+  assert.doesNotMatch(html, /Admin display name/);
 });

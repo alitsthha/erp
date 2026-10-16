@@ -31,8 +31,14 @@ export interface Attendance {
 
   recordedByUserId?: string;
   recordedByName?: string;
+  recordedByEmail?: string;
+  recordedByRole?: string;
+  recordedByStaffId?: string;
   updatedByUserId?: string;
   updatedByName?: string;
+  updatedByEmail?: string;
+  updatedByRole?: string;
+  updatedByStaffId?: string;
 
   sessionFee?: number;
 
@@ -79,4 +85,13 @@ export interface DailyAttendanceRecord {
   activities: ActivityAttendanceSummary[];
   createdAt?: unknown;
   updatedAt?: unknown;
+}
+
+
+export interface AttendanceHistoryEntry {
+  id: string;
+  action: "created" | "updated" | "saved";
+  actor: { uid: string; name: string; email: string; role: string; staffId: string };
+  changes: { field: string; before: string | number; after: string | number }[];
+  createdAt?: unknown;
 }

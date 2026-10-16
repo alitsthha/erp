@@ -1,8 +1,7 @@
+import { writeAttendanceWithHistory } from "./attendance-history.service";
 import { withoutActivityLabels } from "@/features/activities/utils/activity-reference";
 import { hydrateActivityReferences } from "@/features/activities/services/activity-reference.service";
 import {
-  addDoc,
-  deleteField,
   collection,
   runTransaction,
   doc,
@@ -12,7 +11,6 @@ import {
   query,
   setDoc,
   Timestamp,
-  updateDoc,
   where,
 } from "firebase/firestore";
 
@@ -32,7 +30,7 @@ import {
 
 import { convertBSToAD } from "@/utils/nepali-date";
 import { getAttendanceActor } from "./attendance-recorder.service";
-import { attendanceAudit, type AttendanceActor } from "../utils/attendance-recorder";
+import { type AttendanceActor } from "../utils/attendance-recorder";
 
 const COLLECTION_NAME =
   "attendances";
@@ -116,6 +114,12 @@ function mapAttendanceDoc(
     recordedByName: toString(data.recordedByName),
     updatedByUserId: toString(data.updatedByUserId),
     updatedByName: toString(data.updatedByName),
+    recordedByEmail: toString(data.recordedByEmail),
+    recordedByRole: toString(data.recordedByRole),
+    recordedByStaffId: toString(data.recordedByStaffId),
+    updatedByEmail: toString(data.updatedByEmail),
+    updatedByRole: toString(data.updatedByRole),
+    updatedByStaffId: toString(data.updatedByStaffId),
 
     attendanceCode:
       toString(
@@ -252,24 +256,9 @@ async function insertAttendance(
 ): Promise<string> {
   const attendanceCode = existingCode || await generateAttendanceCode();
 
-  const payload = sanitizeForFirestore({
-    ...withoutActivityLabels(data),
-    ...attendanceAudit(actor),
-    attendanceCode,
-    createdAt: Timestamp.now(),
-    updatedAt: Timestamp.now(),
-  });
-
-  const docRef =
-    await addDoc(
-      collection(
-        db,
-        COLLECTION_NAME
-      ),
-      payload
-    );
-
-  return docRef.id;
+  const recordRef = doc(collection(db, COLLECTION_NAME));
+  await writeAttendanceWithHistory(recordRef.id, { ...data, attendanceCode }, actor);
+  return recordRef.id;
 }
 
 /* =========================================================
@@ -457,68 +446,16 @@ export async function saveBatchAttendance(
     const existingRecord = existingByKey.get(getAttendanceKey(record)) || (record.id ? await getAttendanceById(record.id) : undefined);
     let savedId = record.id || existingRecord?.id;
     let attendanceCode = record.attendanceCode || existingRecord?.attendanceCode;
-    const audit = attendanceAudit(actor, existingRecord || (savedId ? { id: savedId } : undefined));
-
-    if (savedId) {
-      const docRef = doc(db, COLLECTION_NAME, savedId);
-      const payload = sanitizeForFirestore({
-        enrollmentId: record.enrollmentId,
-        enrollmentCode: record.enrollmentCode ?? "",
-        studentId: record.studentId,
-        studentName: record.studentName ?? "",
-        studentCode: record.studentCode ?? "",
-        activityId: record.activityId,
-        activityName: deleteField(),
-        activityCode: deleteField(),
-        sessionDate: record.sessionDate,
-        sessionDateBS: record.sessionDateBS ?? record.sessionDate,
-        status: record.status,
-        sessionFee: record.sessionFee ?? 0,
-        chargeAmount: record.chargeAmount ?? 0,
-        dueAmount: record.dueAmount ?? 0,
-        billingStatus: record.billingStatus ?? "No Charge",
-        notes: record.notes ?? "",
-        ...audit,
-        updatedAt: Timestamp.now(),
-      });
-
-      await updateDoc(docRef, payload);
-    } else {
-      if (!attendanceCode) {
-        attendanceCode = await generateAttendanceCode();
-      }
-
-      const payload = sanitizeForFirestore({
-        ...record,
-        attendanceCode,
-        id: undefined,
-      });
-
-      savedId = await insertAttendance(
-        payload as Omit<
-          Attendance,
-          | "id"
-          | "attendanceCode"
-          | "createdAt"
-          | "updatedAt"
-        >,
-        actor,
-        attendanceCode,
-      );
-    }
-
-    savedAttendances.push({
-      ...audit,
-      id: savedId,
-      attendanceCode: attendanceCode || "",
+    if (!attendanceCode) attendanceCode = await generateAttendanceCode();
+    if (!savedId) savedId = doc(collection(db, COLLECTION_NAME)).id;
+    const savedRecord = await writeAttendanceWithHistory(savedId, {
       enrollmentId: record.enrollmentId,
       enrollmentCode: record.enrollmentCode ?? "",
       studentId: record.studentId,
       studentName: record.studentName ?? "",
       studentCode: record.studentCode ?? "",
       activityId: record.activityId,
-      activityName: record.activityName ?? "",
-      activityCode: record.activityCode ?? "",
+      attendanceCode,
       sessionDate: record.sessionDate,
       sessionDateBS: record.sessionDateBS ?? record.sessionDate,
       status: record.status,
@@ -527,8 +464,8 @@ export async function saveBatchAttendance(
       dueAmount: record.dueAmount ?? 0,
       billingStatus: record.billingStatus ?? "No Charge",
       notes: record.notes ?? "",
-      updatedAt: new Date(),
-    });
+    }, actor, existingRecord || undefined);
+    savedAttendances.push({ ...savedRecord, activityName: record.activityName ?? "", activityCode: record.activityCode ?? "" });
   }
 
   /*
@@ -722,21 +659,8 @@ export async function updateAttendance(
 
   const [actor, existing] = await Promise.all([getAttendanceActor(), getAttendanceById(id)]);
   if (!existing) throw new Error("Attendance record no longer exists.");
-  const payload = sanitizeForFirestore({
-    ...withoutActivityLabels(data),
-    ...(existing.activityId || data.activityId ? { activityName: deleteField(), activityCode: deleteField() } : {}),
-    ...attendanceAudit(actor, existing),
-    updatedAt: Timestamp.now(),
-  });
+  await writeAttendanceWithHistory(id, data, actor);
 
-  await updateDoc(
-    doc(
-      db,
-      COLLECTION_NAME,
-      id
-    ),
-    payload
-  );
 }
 
 /* =========================================================

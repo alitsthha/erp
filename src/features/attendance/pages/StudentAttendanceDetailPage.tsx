@@ -1,3 +1,4 @@
+import AttendanceRecorderDetails from "../components/AttendanceRecorderDetails";
 import PaginatedList from "@/components/common/PaginatedList";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, CalendarDays, ClipboardCheck, Loader2, Pencil, UserCheck, UserX } from "lucide-react";
@@ -162,6 +163,7 @@ export default function StudentAttendanceDetailPage() {
               <th className="px-4 py-3 font-semibold">Activity</th>
               <th className="px-4 py-3 font-semibold">Date</th>
               <th className="px-4 py-3 font-semibold">Status</th>
+              <th className="px-4 py-3 font-semibold">Teacher / history</th>
               {isAdmin && <th className="px-4 py-3 font-semibold">Fee</th>}
               <th className="px-4 py-3 font-semibold">Notes</th>
               <th className="px-4 py-3 font-semibold text-right">Action</th>
@@ -170,7 +172,7 @@ export default function StudentAttendanceDetailPage() {
           <tbody className="divide-y divide-slate-100">
             {records.length === 0 && (
               <tr>
-                <td colSpan={isAdmin ? 6 : 5} className="px-4 py-8 text-center text-sm text-slate-500">
+                <td colSpan={isAdmin ? 7 : 6} className="px-4 py-8 text-center text-sm text-slate-500">
                   No attendance recorded on this date. Select an attended date above to view its records.
                 </td>
               </tr>
@@ -199,6 +201,8 @@ export default function StudentAttendanceDetailPage() {
                     {record.status}
                   </span>
                 </td>
+
+                <td className="px-4 py-3 align-top"><AttendanceRecorderDetails records={[record]} /></td>
 
                 {isAdmin && (
                   <td className="px-4 py-3 align-top text-sm text-slate-700">

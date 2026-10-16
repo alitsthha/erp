@@ -1,3 +1,4 @@
+import AttendanceRecorderDetails from "../components/AttendanceRecorderDetails";
 import { useEffect, useState } from "react";
 import {
   ArrowLeft,
@@ -119,6 +120,8 @@ export default function EditAttendancePage() {
           </div>
         </div>
       </div>
+
+      <section className="ui-surface p-5"><h2 className="ui-section-title mb-3">Recorder and change history</h2><AttendanceRecorderDetails records={[attendance]} /></section>
 
       {/* Form */}
       <div className="p-1">

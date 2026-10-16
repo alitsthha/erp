@@ -159,7 +159,8 @@ service cloud.firestore {
     }
 
     match /staff/{document=**} {
-      allow read: if isAdmin();
+      allow read: if isAdmin() || (isSignedIn() && request.auth.token.email != null
+        && resource.data.email == request.auth.token.email);
       allow create, update, delete: if databaseWritable() && isAdmin();
     }
 

@@ -1,3 +1,4 @@
+import AttendanceRecorderDetails from "./AttendanceRecorderDetails";
 import { attendanceSelectionRecords } from "../utils/attendance-selection";
 import PaginatedList from "@/components/common/PaginatedList";
 import type { Attendance, AttendanceListRow } from "@/features/attendance/types/attendance.types";
@@ -5,7 +6,7 @@ import AttendanceActions from "@/features/attendance/components/AttendanceAction
 import { formatBSDate, getBSWeekday } from "@/utils/nepali-date";
 import { UserCheck, UserX } from "lucide-react";
 import type { ActivityColors } from "@/features/activities/utils/activity-color";
-import { getActivityClassCounts, getAttendanceTeachers } from "../utils/attendance-recorder";
+import { getActivityClassCounts } from "../utils/attendance-recorder";
 
 interface AttendanceTableProps {
   data: AttendanceListRow[];
@@ -71,7 +72,6 @@ export default function AttendanceTable({
             const dateBS = record.sessionDateBS || record.sessionDate;
             const attendedClasses = classHistory[record.studentId] ?? [];
             const classCounts = getActivityClassCounts(record, attendedClasses);
-            const teachers = getAttendanceTeachers(record.groupedRecords || [record]);
 
             return (
               <tr
@@ -145,11 +145,9 @@ export default function AttendanceTable({
                   </div>
                 </td>
 
-                {/* The user who last saved each activity's attendance. */}
+                {/* Preserve the original recorder and show each subsequent save. */}
                 <td className="px-4 py-3 align-middle">
-                  <div className="min-w-28 space-y-1">
-                    {teachers.map((teacher) => <p key={teacher.id} title={`${teacher.activities.join(", ")} · ${teacher.id === "unknown" ? "Recorder unavailable for this older record" : "Last saved by " + teacher.name}`} className={`text-xs ${teacher.id === "unknown" ? "text-slate-400" : "font-medium text-slate-700"}`}>{teacher.name}</p>)}
-                  </div>
+                  <AttendanceRecorderDetails records={record.groupedRecords || [record]} />
                 </td>
 
                 {/* Notes */}
