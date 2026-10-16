@@ -1086,7 +1086,7 @@ test('attendance and history roll back together if the audit write fails', async
   assert.equal([...db.data.keys()].filter((key) => key.startsWith('attendances/')).length, 0);
 });
 
-test('Teacher display preserves the original staff member and offers every saved interaction', () => {
+test('Teacher display shows the recorder and last saver without change history', () => {
   const React = require('react');
   const { renderToStaticMarkup } = require('react-dom/server');
   const Details = loadModule('src/features/attendance/components/AttendanceRecorderDetails.tsx').default;
@@ -1096,6 +1096,6 @@ test('Teacher display preserves the original staff member and offers every saved
   })] }));
   assert.match(html, />Original Staff<\/p>/);
   assert.match(html, /Last saved by admin@example.com/);
-  assert.match(html, /Change history/);
+  assert.doesNotMatch(html, /Change history|<details/);
   assert.doesNotMatch(html, /Admin display name/);
 });

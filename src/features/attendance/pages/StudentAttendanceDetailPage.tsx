@@ -163,7 +163,7 @@ export default function StudentAttendanceDetailPage() {
               <th className="px-4 py-3 font-semibold">Activity</th>
               <th className="px-4 py-3 font-semibold">Date</th>
               <th className="px-4 py-3 font-semibold">Status</th>
-              <th className="px-4 py-3 font-semibold">Teacher / history</th>
+              <th className="px-4 py-3 font-semibold">Teacher</th>
               {isAdmin && <th className="px-4 py-3 font-semibold">Fee</th>}
               <th className="px-4 py-3 font-semibold">Notes</th>
               <th className="px-4 py-3 font-semibold text-right">Action</th>

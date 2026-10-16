@@ -145,7 +145,7 @@ export default function AttendanceTable({
                   </div>
                 </td>
 
-                {/* Preserve the original recorder and show each subsequent save. */}
+                {/* Show the original attendance recorder. */}
                 <td className="px-4 py-3 align-middle">
                   <AttendanceRecorderDetails records={record.groupedRecords || [record]} />
                 </td>
