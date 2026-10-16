@@ -93,78 +93,6 @@ function formatCurrency(value?: number) {
   return `Rs. ${value.toLocaleString("en-IN")}`;
 }
 
-const DEMO_DASHBOARD_DATA = {
-  students: [
-    {
-      id: "demo-student-1",
-      fullName: "Aarav Shrestha",
-      studentCode: "STU-1001",
-      status: "Active",
-      createdAt: new Date("2026-08-11T09:00:00Z"),
-    },
-    {
-      id: "demo-student-2",
-      fullName: "Sarina Rai",
-      studentCode: "STU-1002",
-      status: "Active",
-      createdAt: new Date("2026-08-15T09:00:00Z"),
-    },
-    {
-      id: "demo-student-3",
-      fullName: "Nischal Karki",
-      studentCode: "STU-1003",
-      status: "Inactive",
-      createdAt: new Date("2026-08-18T09:00:00Z"),
-    },
-  ] as DashboardStudent[],
-  activities: [
-    {
-      id: "demo-activity-1",
-      activityCode: "ACT-201",
-      activityName: "Music Fundamentals",
-      status: "Active",
-    },
-    {
-      id: "demo-activity-2",
-      activityCode: "ACT-202",
-      activityName: "Dance Basics",
-      status: "Active",
-    },
-    {
-      id: "demo-activity-3",
-      activityCode: "ACT-203",
-      activityName: "Art Studio",
-      status: "Inactive",
-    },
-  ] as DashboardActivity[],
-  enrollments: [
-    {
-      id: "demo-enrollment-1",
-      enrollmentCode: "ENR-5001",
-      studentName: "Aarav Shrestha",
-      studentCode: "STU-1001",
-      activityName: "Music Fundamentals",
-      activityCode: "ACT-201",
-      enrollmentDate: "2026-08-20",
-      sessionFee: 2500,
-      status: "Active",
-      createdAt: new Date("2026-08-20T09:00:00Z"),
-    },
-    {
-      id: "demo-enrollment-2",
-      enrollmentCode: "ENR-5002",
-      studentName: "Sarina Rai",
-      studentCode: "STU-1002",
-      activityName: "Dance Basics",
-      activityCode: "ACT-202",
-      enrollmentDate: "2026-08-24",
-      sessionFee: 3200,
-      status: "Active",
-      createdAt: new Date("2026-08-24T09:00:00Z"),
-    },
-  ] as DashboardEnrollment[],
-};
-
 async function getDashboardCollection<T>(
   collectionName: string,
   mapper?: (doc: { id: string; data: () => Record<string, unknown> }) => T
@@ -236,23 +164,12 @@ export default function DashboardPage() {
         })
       );
 
-      const hasNoFirestoreData =
-        studentData.length === 0 &&
-        activityData.length === 0 &&
-        enrollmentData.length === 0;
-
-      if (hasNoFirestoreData) {
-        setStudents(DEMO_DASHBOARD_DATA.students);
-        setActivities(DEMO_DASHBOARD_DATA.activities);
-        setEnrollments(DEMO_DASHBOARD_DATA.enrollments);
-        return;
-      }
     } catch (err) {
       console.error("Dashboard loading error:", err);
 
-      setStudents(DEMO_DASHBOARD_DATA.students);
-      setActivities(DEMO_DASHBOARD_DATA.activities);
-      setEnrollments(DEMO_DASHBOARD_DATA.enrollments);
+      setStudents([]);
+      setActivities([]);
+      setEnrollments([]);
     } finally {
       setLoading(false);
     }
