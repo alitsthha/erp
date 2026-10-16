@@ -1,3 +1,4 @@
+import { resolveActivityReferences } from "@/features/activities/utils/activity-reference";
 import {
   collection,
   getDocs,
@@ -42,10 +43,10 @@ export async function getReportData(): Promise<ReportData> {
     ...doc.data(),
   })) as Activity[];
 
-  const enrollments = enrollmentsSnapshot.docs.map((doc) => ({
+  const enrollments = resolveActivityReferences(enrollmentsSnapshot.docs.map((doc) => ({
     id: doc.id,
     ...doc.data(),
-  })) as Enrollment[];
+  })) as Enrollment[], new Map(activities.map((activity) => [activity.id!, activity])));
 
   const summary: ReportSummary = {
     totalStudents: students.length,

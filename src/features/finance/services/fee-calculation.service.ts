@@ -1,3 +1,4 @@
+import { hydrateActivityReferences } from "@/features/activities/services/activity-reference.service";
 import {
   collection,
   getDocs,
@@ -527,10 +528,10 @@ export async function getStudentEnrollments(studentId: string): Promise<Enrollme
   const q = query(collection(db, "enrollments"), where("studentId", "==", studentId));
   const snapshot = await getDocs(q);
 
-  return snapshot.docs.filter((enrollmentDoc) => !enrollmentDoc.data().deletedAt).map((enrollmentDoc) => ({
+  return hydrateActivityReferences(snapshot.docs.filter((enrollmentDoc) => !enrollmentDoc.data().deletedAt).map((enrollmentDoc) => ({
     id: enrollmentDoc.id,
     ...enrollmentDoc.data(),
-  })) as Enrollment[];
+  })) as Enrollment[]);
 }
 
 function mapAttendance(id: string, data: Record<string, unknown>): Attendance {
@@ -585,14 +586,14 @@ export async function getEnrollmentAttendance(
   const q = query(collection(db, "attendances"), where("enrollmentId", "==", enrollmentId));
   const snapshot = await getDocs(q);
 
-  return snapshot.docs
+  return hydrateActivityReferences(snapshot.docs
     .map((attendanceDoc) =>
       mapAttendance(attendanceDoc.id, attendanceDoc.data() as Record<string, unknown>)
     )
     .filter((attendance) => {
       const date = attendance.sessionDateBS || attendance.sessionDate || "";
       return getMonthKey(date) === monthKey && attendance.status === "Present";
-    });
+    }));
 }
 
 export async function getStudentAttendanceForMonth(
@@ -608,14 +609,14 @@ export async function getStudentAttendanceForMonth(
   const q = query(collection(db, "attendances"), where("studentId", "==", studentId));
   const snapshot = await getDocs(q);
 
-  return snapshot.docs
+  return hydrateActivityReferences(snapshot.docs
     .map((attendanceDoc) =>
       mapAttendance(attendanceDoc.id, attendanceDoc.data() as Record<string, unknown>)
     )
     .filter((attendance) => {
       const date = attendance.sessionDateBS || attendance.sessionDate || "";
       return getMonthKey(date) === monthKey && attendance.status === "Present";
-    });
+    }));
 }
 
 export async function calculateStudentMonthlyFee(

@@ -1,3 +1,4 @@
+import { resolveActivityReferences } from "@/features/activities/utils/activity-reference";
 import PaginatedList from "@/components/common/PaginatedList";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -228,7 +229,7 @@ export default function DashboardPage() {
         })
       );
       setEnrollments(
-        [...enrollmentData].sort((a, b) => {
+        resolveActivityReferences(enrollmentData, new Map(activityData.map((activity) => [activity.id!, activity]))).sort((a, b) => {
           const dateA = getDateFromTimestamp(a.createdAt)?.getTime() ?? 0;
           const dateB = getDateFromTimestamp(b.createdAt)?.getTime() ?? 0;
           return dateB - dateA;

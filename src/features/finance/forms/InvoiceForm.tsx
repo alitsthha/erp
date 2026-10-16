@@ -282,6 +282,7 @@ export default function InvoiceForm({
                     <td className="px-4 py-2">
                       <input
                         value={line.activityName}
+                        readOnly={Boolean(line.activityId)}
                         onChange={(e) => updateLine(i, "activityName", e.target.value)}
                         className="ui-field w-full px-2.5 py-1.5 outline-none focus:border-brand-400"
                         placeholder="Activity name"

@@ -20,6 +20,7 @@ export interface Attendance {
   studentCode: string;
 
   activityId: string;
+  /** Resolved from activityId when read; not stored on new attendance records. */
   activityName: string;
   activityCode: string;
 

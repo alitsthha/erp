@@ -1,3 +1,4 @@
+import { hydrateActivityReferences } from "@/features/activities/services/activity-reference.service";
 import { collection, getDocsFromServer, query, where } from "firebase/firestore";
 import { db } from "@/firebase/config";
 import type { Enrollment } from "@/features/enrollments/types/enrollment.types";
@@ -16,7 +17,7 @@ export async function getStudentDeletionReview(studentId: string): Promise<Stude
   ]);
   const unpaidInvoices = getUnpaidInvoices(invoices.docs.map((invoice) => ({ id: invoice.id, data: invoice.data() })));
   return {
-    enrollments: enrollments.docs.map((enrollment) => ({ ...enrollment.data(), id: enrollment.id } as Enrollment))
+    enrollments: (await hydrateActivityReferences(enrollments.docs.map((enrollment) => ({ ...enrollment.data(), id: enrollment.id } as Enrollment))))
       .sort((left, right) => (left.activityName || "").localeCompare(right.activityName || "")),
     unpaidInvoices,
     outstandingAmount: Math.round(unpaidInvoices.reduce((sum, invoice) => sum + invoice.dueAmount, 0) * 100) / 100,

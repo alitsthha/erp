@@ -62,6 +62,8 @@ function database(initial = {}, callableError = null) {
   const data = new Map(Object.entries(initial));
   let sequence = 0;
   let writes = 0;
+  const deletedField = Symbol('deleteField');
+  const merge = (existing, patch) => Object.fromEntries(Object.entries({ ...existing, ...patch }).filter(([, value]) => value !== deletedField));
   const ref = (value) => ({ path: value, id: value.split('/').at(-1) });
   const snapshot = (reference) => ({ ...reference, ref: reference, exists: () => data.has(reference.path), data: () => data.get(reference.path) });
   const firestore = {
@@ -77,14 +79,15 @@ function database(initial = {}, callableError = null) {
     getDoc: async (reference) => snapshot(reference),
     getDocFromServer: async (reference) => snapshot(reference),
     serverTimestamp: () => 'server-time',
+    deleteField: () => deletedField,
     Timestamp: { now: () => 'client-time' },
     addDoc: async (parent, value) => {
       const reference = ref(`${parent.path}/generated-${++sequence}`);
       data.set(reference.path, value); writes++;
       return reference;
     },
-    updateDoc: async (reference, value) => { data.set(reference.path, { ...data.get(reference.path), ...value }); writes++; },
-    setDoc: async (reference, value, options) => { data.set(reference.path, options?.merge ? { ...data.get(reference.path), ...value } : value); writes++; },
+    updateDoc: async (reference, value) => { data.set(reference.path, merge(data.get(reference.path), value)); writes++; },
+    setDoc: async (reference, value, options) => { data.set(reference.path, options?.merge ? merge(data.get(reference.path), value) : value); writes++; },
     writeBatch: () => {
       const removals = [];
       return { delete: (reference) => removals.push(reference.path), commit: async () => { removals.forEach((key) => data.delete(key)); writes += removals.length; } };
@@ -94,7 +97,7 @@ function database(initial = {}, callableError = null) {
       const result = await callback({
         get: async (reference) => snapshot(reference),
         set: (reference, value) => mutations.push(() => data.set(reference.path, value)),
-        update: (reference, value) => mutations.push(() => data.set(reference.path, { ...data.get(reference.path), ...value })),
+        update: (reference, value) => mutations.push(() => data.set(reference.path, merge(data.get(reference.path), value))),
         delete: (reference) => mutations.push(() => data.delete(reference.path)),
       });
       mutations.forEach((mutation) => mutation()); writes += mutations.length;
@@ -282,6 +285,7 @@ test('cloud deletion rejects outstanding balances before constructing a write ba
   }
   let batchCalls = 0;
   const db = {
+    doc: () => ({ get: async () => ({ exists: false }) }),
     collection: (name) => ({
       doc: () => ({ get: async () => ({ exists: true }) }),
       where: () => ({ get: async () => ({ docs: name === 'invoices' ? [{ id: 'i1', data: () => ({ totalAmount: 100, paidAmount: 25, dueAmount: 75 }) }] : [] }) }),
@@ -290,7 +294,7 @@ test('cloud deletion rejects outstanding balances before constructing a write ba
   };
   const server = loadModule('functions/src/index.ts', {
     'firebase-admin': { initializeApp: () => {}, firestore: () => db },
-    'firebase-functions/v2/https': { onCall: (callback) => callback, HttpsError },
+    'firebase-functions/v2/https': { onCall: (...args) => args.at(-1), HttpsError },
   });
   await assert.rejects(server.deleteStudentCascade({ data: { studentId: 's1' }, auth: { token: { admin: true } } }), (error) => {
     assert.equal(error.code, 'failed-precondition');
@@ -505,19 +509,21 @@ test('calendar subscriptions use month-bounded queries, retain attendance on eve
   const service = loadModule('src/features/calendar/calendar.service.ts', db.mocks);
   const stop = service.subscribeCalendarMonth('2083-06-01', '2083-06-30', (data) => { latest = data; });
   for (const { reference } of listeners.values()) {
+    if (reference.path === "activities") continue;
     assert.equal(reference.filters[0].op, '>=');
     assert.equal(reference.filters[0].value, '2083-06-01');
     assert.equal(reference.filters[1].op, '<=');
   }
   listeners.get('attendances').next({ docs: [{ id: 'r1', data: () => attendanceRow() }] });
   listeners.get('daily_attendances').next({ docs: [] });
+  listeners.get('activities').next({ docs: [] });
   listeners.get('calendar_entries').error(new Error('permission-denied (expected test)'));
   assert.equal(latest.loading, false);
   assert.equal(latest.entriesError, true);
   assert.equal(latest.attendanceError, false);
   assert.equal(latest.records.length, 1);
   stop();
-  assert.equal(stopped, 3);
+  assert.equal(stopped, 4);
 });
 
 test('calendar date dialog renders an AfterSchool attendance link and separates recorded from unmarked counts', () => {
@@ -866,4 +872,152 @@ test('attendance selectors select every filtered record across pages and expand 
   assert.match(html, /Select all 13 filtered attendance records across pages/);
   assert.match(html, /Select Student 0 on 2083-06-25: 2 activity records/);
   assert.match(html, /type="checkbox"[^>]*checked=""/);
+});
+
+test('activity renames resolve existing enrollment, attendance, invoice and report labels by ID without changing fees', async () => {
+  const legacy = { activityId: 'a1', activityName: 'Typo', activityCode: 'OLD' };
+  const row = attendanceRow({ ...legacy, enrollmentId: 'e1', studentId: 's1', sessionFee: 125, chargeAmount: 125 });
+  const db = database({
+    'activities/a1': { activityName: 'Correct Name', activityCode: 'AC1', status: 'Inactive' },
+    'enrollments/e1': { ...legacy, studentId: 's1', sessionFee: 125, status: 'Active', enrollmentDate: '2083-06-01' },
+    'attendances/r1': row,
+    'invoices/i1': { studentId: 's1', billingMonth: '2083-06', invoiceDate: '2083-06-25', lines: [{ ...legacy, amount: 125 }, { activityName: 'Manual charge', amount: 25 }], totalAmount: 150, dueAmount: 150 },
+  });
+  const enrollments = loadModule('src/features/enrollments/services/enrollment.service.ts', db.mocks);
+  const attendance = loadModule('src/features/attendance/services/attendance.service.ts', db.mocks);
+  const invoices = loadModule('src/features/finance/services/invoice.service.ts', db.mocks);
+  const fees = loadModule('src/features/finance/services/fee-calculation.service.ts', db.mocks);
+  const reports = loadModule('src/features/reports/services/reports.service.ts', db.mocks);
+  for (const name of ['Correct Name', 'Renamed Again']) {
+    db.data.set('activities/a1', { activityName: name, activityCode: 'AC1', status: 'Inactive' });
+    for (const records of await Promise.all([
+      enrollments.getEnrollments(), fees.getStudentEnrollments('s1'), attendance.getAllAttendances(),
+      attendance.getAttendanceByDate(row.sessionDateBS), attendance.getAttendanceByStudentId('s1'),
+      attendance.getAttendanceByEnrollmentId('e1'), attendance.getAttendanceByActivityId('a1'),
+      fees.getEnrollmentAttendance('e1', '2083-06'), fees.getStudentAttendanceForMonth('s1', '2083-06'),
+    ])) {
+      assert.equal(records.length, 1);
+      assert.equal(records[0].activityName, name);
+      assert.equal(records[0].activityCode, 'AC1');
+      assert.equal(records[0].sessionFee, 125);
+    }
+    assert.equal((await enrollments.getEnrollmentById('e1')).activityName, name);
+    assert.equal((await attendance.getAttendanceById('r1')).activityName, name);
+    const daily = await attendance.getDailyAttendanceByDate(row.sessionDateBS);
+    assert.equal(daily.activities[0].activityName, name);
+    assert.equal(daily.activities[0].records[0].activityName, name);
+    for (const list of await Promise.all([invoices.getInvoices(), invoices.getInvoicesByStudentId('s1'), invoices.getInvoicesByMonth('2083-06')])) {
+      assert.equal(list[0].lines[0].activityName, name);
+      assert.equal(list[0].lines[1].activityName, 'Manual charge');
+      assert.equal(list[0].totalAmount, 150);
+    }
+    assert.equal((await invoices.getInvoiceById('i1')).lines[0].activityName, name);
+    assert.equal((await invoices.getInvoiceByStudentAndMonth('s1', '2083-06')).lines[0].activityName, name);
+    assert.equal((await reports.getReportData()).recentEnrollments[0].activityName, name);
+  }
+  assert.equal(db.writes, 0);
+  assert.equal(db.data.get('enrollments/e1').activityName, 'Typo');
+});
+
+test('legacy daily-only attendance resolves names before grouping and preserves amounts', async () => {
+  const row = attendanceRow({ activityId: 'a1', activityName: 'Typo', sessionFee: 90 });
+  const db = database({
+    'activities/a1': { activityName: 'Renamed', activityCode: 'AC1' },
+    [`daily_attendances/${row.sessionDateBS}`]: { attendances: [row], activities: [{ activityName: 'Typo' }] },
+  });
+  const service = loadModule('src/features/attendance/services/attendance.service.ts', db.mocks);
+  const daily = await service.getDailyAttendanceByDate(row.sessionDateBS);
+  assert.equal(daily.attendances[0].activityName, 'Renamed');
+  assert.equal(daily.activities[0].activityName, 'Renamed');
+  assert.equal(daily.totalSessionFees, 90);
+});
+
+test('activity lookup uses only IDs, retains orphan/manual labels, and never reuses a cached name', async () => {
+  const db = database({ 'activities/a1': { activityName: 'Current', activityCode: 'NEW' } });
+  const service = loadModule('src/features/activities/services/activity-reference.service.ts', db.mocks);
+  const records = [
+    { activityId: 'a1', activityName: 'Old', sessionFee: 75 },
+    { activityId: 'deleted', activityName: 'Archived label' },
+    { activityId: 'missing' },
+    { activityName: 'Manual label' },
+    { activityId: 'another', activityName: 'Current' },
+  ];
+  const result = await service.hydrateActivityReferences(records);
+  assert.equal(result[0].activityName, 'Current');
+  assert.equal(result[0].sessionFee, 75);
+  assert.equal(result[1].activityName, 'Archived label');
+  assert.equal(result[2].activityName, 'Unavailable activity (missing)');
+  assert.equal(result[3].activityName, 'Manual label');
+  assert.equal(result[4].activityId, 'another');
+  assert.equal(result[4].activityCode, '');
+  assert.equal(records[0].activityName, 'Old');
+});
+
+test('restricted staff resolve names through the projection; other read errors are not hidden', async () => {
+  const db = database({ 'activity_colors/a1': { activityName: 'Renamed', activityCode: 'AC1' } });
+  const firestore = db.mocks['firebase/firestore'];
+  const getDocs = firestore.getDocs;
+  let code = 'permission-denied';
+  firestore.getDocs = async (ref) => {
+    if (ref.path === 'activities') throw Object.assign(new Error(code), { code });
+    return getDocs(ref);
+  };
+  const service = loadModule('src/features/activities/services/activity-reference.service.ts', db.mocks);
+  assert.equal((await service.hydrateActivityReferences([{ activityId: 'a1', activityName: 'Typo' }]))[0].activityName, 'Renamed');
+  code = 'unavailable';
+  await assert.rejects(service.hydrateActivityReferences([{ activityId: 'a1' }]), /unavailable/);
+});
+
+test('new enrollments and attendance store activity IDs and load the current name after renaming', async () => {
+  const db = database({
+    'activities/a1': { activityName: 'Original', activityCode: 'AC1', feePerSession: 125 },
+    'students/s1': { fullName: 'Student' },
+  });
+  db.mocks['@/features/attendance/services/attendance-recorder.service'] = { getAttendanceActor: async () => ({ userId: 'admin', name: 'Admin' }) };
+  db.mocks['./attendance-recorder.service'] = db.mocks['@/features/attendance/services/attendance-recorder.service'];
+  const enrollmentService = loadModule('src/features/enrollments/services/enrollment.service.ts', db.mocks);
+  const attendanceService = loadModule('src/features/attendance/services/attendance.service.ts', db.mocks);
+  const input = { studentId: 's1', activityId: 'a1', enrollmentDate: '2083-06-01', status: 'Active' };
+  const id = await enrollmentService.addEnrollment(input);
+  assert.equal(db.data.get(`enrollments/${id}`).activityName, undefined);
+  await attendanceService.saveBatchAttendance([attendanceRow({ id: undefined, enrollmentId: id, studentId: 's1', activityId: 'a1', activityName: 'Stale client name', sessionDate: '2026-10-11' })]);
+  const stored = [...db.data.entries()].find(([key]) => key.startsWith('attendances/'))[1];
+  assert.equal(stored.activityId, 'a1');
+  assert.equal(stored.activityName, undefined);
+  const daily = [...db.data.entries()].find(([key]) => key.startsWith('daily_attendances/'))[1];
+  assert.equal(daily.attendances[0].activityName, undefined);
+  assert.equal(daily.activities[0].activityName, undefined);
+  db.data.set('activities/a1', { activityName: 'Corrected', activityCode: 'AC1', feePerSession: 125 });
+  assert.equal((await enrollmentService.getEnrollmentById(id)).activityName, 'Corrected');
+  assert.equal((await attendanceService.getAllAttendances())[0].activityName, 'Corrected');
+  db.data.set(`enrollments/${id}`, { ...db.data.get(`enrollments/${id}`), activityName: 'Legacy' });
+  await enrollmentService.updateEnrollment(id, input);
+  assert.equal(db.data.get(`enrollments/${id}`).activityName, undefined);
+});
+
+test('calendar updates attendance and scheduled class labels when the activity subscription changes', async () => {
+  const callbacks = new Map();
+  const stopped = [];
+  const db = database();
+  db.mocks['firebase/firestore'].onSnapshot = (ref, next) => {
+    callbacks.set(ref.path, next);
+    return () => stopped.push(ref.path);
+  };
+  const service = loadModule('src/features/calendar/calendar.service.ts', db.mocks);
+  let latest;
+  const stop = service.subscribeCalendarMonth('2083-06-01', '2083-06-30', (value) => { latest = value; });
+  const emit = (name, records) => callbacks.get(name)({ docs: records.map(([id, data]) => ({ id, data: () => data })) });
+  emit('attendances', [['r1', attendanceRow({ activityId: 'a1', activityName: 'Typo' })]]);
+  emit('daily_attendances', []);
+  emit('calendar_entries', [['c1', { type: 'class', activityId: 'a1', activityName: 'Typo', title: 'Typo' }]]);
+  assert.equal(latest.loading, true);
+  for (const activityName of ['Corrected', 'Renamed Again']) {
+    emit('activities', [['a1', { activityName, activityCode: 'AC1' }]]);
+    assert.equal(latest.loading, false);
+    assert.equal(latest.records[0].activityName, activityName);
+    assert.equal(latest.entries[0].activityName, activityName);
+    assert.equal(latest.entries[0].title, activityName);
+  }
+  stop();
+  assert.equal(stopped.length, 4);
 });

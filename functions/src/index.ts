@@ -1,6 +1,7 @@
 import * as admin from "firebase-admin";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { requireClearedPayments } from "./shared/student-deletion";
+import { assertDatabaseAvailable, clearFirestoreDatabase } from "./database-reset";
 
 admin.initializeApp();
 
@@ -40,7 +41,7 @@ async function isAdminRequest(request: { auth?: { token?: Record<string, unknown
   const email = typeof request.auth?.token?.email === "string"
     ? request.auth.token.email.trim().toLowerCase()
     : "";
-  const tokenAdmin = request.auth?.token?.admin === true;
+  const tokenAdmin = request.auth?.token?.admin === true || request.auth?.token?.role === "admin";
   const fallbackAdmin = adminEmails.has(email);
 
   if (tokenAdmin || fallbackAdmin) return true;
@@ -51,6 +52,7 @@ async function isAdminRequest(request: { auth?: { token?: Record<string, unknown
 }
 
 export const assignUserAccess = onCall(async (request) => {
+  await assertDatabaseAvailable(db);
   if (!(await isAdminRequest(request))) {
     throw new HttpsError("permission-denied", "Only administrators can assign user access.");
   }
@@ -227,6 +229,7 @@ async function reverseJournalEntry(reference: string): Promise<string | null> {
 }
 
 export const deleteStudentCascade = onCall(async (request) => {
+  await assertDatabaseAvailable(db);
   const { studentId } = request.data ?? {};
 
   if (!(await isAdminRequest(request))) {
@@ -349,6 +352,7 @@ export const deleteStudentCascade = onCall(async (request) => {
 });
 
 export const setUserPassword = onCall(async (request) => {
+  await assertDatabaseAvailable(db);
   if (!(await isAdminRequest(request))) {
     throw new HttpsError("permission-denied", "Only administrators can change user passwords.");
   }
@@ -375,4 +379,9 @@ export const setUserPassword = onCall(async (request) => {
     }
     throw new HttpsError("internal", "Unable to update the user password.");
   }
+});
+
+export const clearDatabase = onCall({ timeoutSeconds: 540, memory: "512MiB" }, async (request) => {
+  const projectId = admin.app().options.projectId || process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || "";
+  return clearFirestoreDatabase(db, projectId, request, () => isAdminRequest(request));
 });

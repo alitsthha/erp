@@ -1,5 +1,8 @@
+import { withoutActivityLabels } from "@/features/activities/utils/activity-reference";
+import { hydrateActivityReferences } from "@/features/activities/services/activity-reference.service";
 import {
   addDoc,
+  deleteField,
   collection,
   runTransaction,
   doc,
@@ -250,7 +253,7 @@ async function insertAttendance(
   const attendanceCode = existingCode || await generateAttendanceCode();
 
   const payload = sanitizeForFirestore({
-    ...data,
+    ...withoutActivityLabels(data),
     ...attendanceAudit(actor),
     attendanceCode,
     createdAt: Timestamp.now(),
@@ -294,13 +297,13 @@ export async function getAttendanceById(
     return null;
   }
 
-  return mapAttendanceDoc(
+  return (await hydrateActivityReferences([mapAttendanceDoc(
     snapshot.id,
     snapshot.data() as Record<
       string,
       unknown
     >
-  );
+  )]))[0];
 }
 
 /* =========================================================
@@ -330,7 +333,7 @@ export async function getAttendanceByDate(
   const snapshot =
     await getDocs(q);
 
-  return deduplicateAttendances(
+  return hydrateActivityReferences(deduplicateAttendances(
     snapshot.docs.map(
       (docSnap) =>
         mapAttendanceDoc(
@@ -341,7 +344,7 @@ export async function getAttendanceByDate(
           >
         )
     )
-  );
+  ));
 }
 
 /* =========================================================
@@ -465,8 +468,8 @@ export async function saveBatchAttendance(
         studentName: record.studentName ?? "",
         studentCode: record.studentCode ?? "",
         activityId: record.activityId,
-        activityName: record.activityName ?? "",
-        activityCode: record.activityCode ?? "",
+        activityName: deleteField(),
+        activityCode: deleteField(),
         sessionDate: record.sessionDate,
         sessionDateBS: record.sessionDateBS ?? record.sessionDate,
         status: record.status,
@@ -581,16 +584,14 @@ export async function saveBatchAttendance(
       absentCount,
       totalSessionFees,
       activitiesCount: activityGroups.length,
-      attendances: allDateAttendances.map((item) => sanitizeForFirestore({ ...item })),
+      attendances: allDateAttendances.map((item) => sanitizeForFirestore({ ...withoutActivityLabels(item) })),
       activities: activityGroups.map((group) => ({
         activityId: group.activityId,
-        activityName: group.activityName,
-        activityCode: group.activityCode,
         totalStudents: group.totalStudents,
         presentCount: group.presentCount,
         absentCount: group.absentCount,
         sessionFeeTotal: group.sessionFeeTotal,
-        records: group.records.map((r) => sanitizeForFirestore({ ...r })),
+        records: group.records.map((r) => sanitizeForFirestore({ ...withoutActivityLabels(r) })),
       })),
       updatedAt: Timestamp.now(),
     });
@@ -642,7 +643,7 @@ export async function getDailyAttendanceByDate(
     return null;
   }
 
-  allRecords = deduplicateAttendances(allRecords);
+  allRecords = await hydrateActivityReferences(deduplicateAttendances(allRecords));
 
   const activities = groupAttendancesByActivity(allRecords);
   const presentCount = allRecords.filter((r) => r.status === "Present").length;
@@ -722,7 +723,8 @@ export async function updateAttendance(
   const [actor, existing] = await Promise.all([getAttendanceActor(), getAttendanceById(id)]);
   if (!existing) throw new Error("Attendance record no longer exists.");
   const payload = sanitizeForFirestore({
-    ...data,
+    ...withoutActivityLabels(data),
+    ...(existing.activityId || data.activityId ? { activityName: deleteField(), activityCode: deleteField() } : {}),
     ...attendanceAudit(actor, existing),
     updatedAt: Timestamp.now(),
   });
@@ -791,12 +793,15 @@ export async function deleteAttendanceRecords(records: Attendance[]): Promise<{ 
           }
           const activities = groupAttendancesByActivity(remaining);
           transaction.update(dailyRefs[index], {
-            attendances: remaining,
+            attendances: remaining.map(withoutActivityLabels),
             totalRecords: remaining.length,
             presentCount: remaining.filter((record) => record.status === "Present").length,
             absentCount: remaining.filter((record) => record.status === "Absent").length,
             totalSessionFees: remaining.filter((record) => record.status === "Present").reduce((sum, record) => sum + (record.sessionFee || 0), 0),
-            activities,
+            activities: activities.map((group) => ({
+              ...withoutActivityLabels(group),
+              records: group.records.map(withoutActivityLabels),
+            })),
             activitiesCount: activities.length,
             updatedAt: Timestamp.now(),
           });
@@ -834,7 +839,7 @@ export async function getAllAttendances(): Promise<
   const snapshot =
     await getDocs(q);
 
-  return snapshot.docs.map(
+  return hydrateActivityReferences(snapshot.docs.map(
     (docSnap) =>
       mapAttendanceDoc(
         docSnap.id,
@@ -843,7 +848,7 @@ export async function getAllAttendances(): Promise<
           unknown
         >
       )
-  );
+  ));
 }
 
 /* =========================================================
@@ -873,7 +878,7 @@ export async function getAttendanceByEnrollmentId(
   const snapshot =
     await getDocs(q);
 
-  return snapshot.docs
+  return hydrateActivityReferences(snapshot.docs
     .map(
       (docSnap) =>
         mapAttendanceDoc(
@@ -893,7 +898,7 @@ export async function getAttendanceByEnrollmentId(
             a.sessionDateBS
           )
         )
-    );
+    ));
 }
 
 /* =========================================================
@@ -923,7 +928,7 @@ export async function getAttendanceByStudentId(
   const snapshot =
     await getDocs(q);
 
-  return snapshot.docs
+  return hydrateActivityReferences(snapshot.docs
     .map(
       (docSnap) =>
         mapAttendanceDoc(
@@ -943,7 +948,7 @@ export async function getAttendanceByStudentId(
             a.sessionDateBS
           )
         )
-    );
+    ));
 }
 
 /* =========================================================
@@ -973,7 +978,7 @@ export async function getAttendanceByActivityId(
   const snapshot =
     await getDocs(q);
 
-  return snapshot.docs
+  return hydrateActivityReferences(snapshot.docs
     .map(
       (docSnap) =>
         mapAttendanceDoc(
@@ -993,5 +998,5 @@ export async function getAttendanceByActivityId(
             a.sessionDateBS
           )
         )
-    );
+    ));
 }

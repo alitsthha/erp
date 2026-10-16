@@ -5,6 +5,8 @@ import { isValidBSDate } from "@/utils/calendar-date";
 import { convertBSToAD } from "@/utils/nepali-date";
 import type { CalendarEntry } from "./calendar.types";
 import { mergeCalendarAttendance } from "./calendar.utils";
+import { subscribeActivityDirectory } from "@/features/activities/services/activity-reference.service";
+import { resolveActivityReferences, withoutActivityLabels, type ActivityDirectory } from "@/features/activities/utils/activity-reference";
 
 export interface CalendarMonthData {
   records: Attendance[];
@@ -18,13 +20,16 @@ export function subscribeCalendarMonth(first: string, last: string, onChange: (d
   let individual: Attendance[] = [];
   let daily: Attendance[] = [];
   let entries: CalendarEntry[] = [];
+  let activities: ActivityDirectory = new Map();
   const ready = new Set<string>();
   const errors = new Set<string>();
   const emit = () => onChange({
-    records: mergeCalendarAttendance(individual, daily), entries,
-    loading: ready.size < 3,
-    attendanceError: errors.has("attendances") || errors.has("daily_attendances"),
-    entriesError: errors.has("calendar_entries"),
+    records: resolveActivityReferences(mergeCalendarAttendance(individual, daily), activities),
+    entries: resolveActivityReferences(entries, activities).map((entry) => entry.type === "class"
+      ? { ...entry, title: entry.activityName || entry.title } : entry),
+    loading: ready.size < 4,
+    attendanceError: errors.has("attendances") || errors.has("daily_attendances") || errors.has("activities"),
+    entriesError: errors.has("calendar_entries") || errors.has("activities"),
   });
   emit();
   const unsubscribe = ["attendances", "daily_attendances", "calendar_entries"].map((name) => {
@@ -52,6 +57,17 @@ export function subscribeCalendarMonth(first: string, last: string, onChange: (d
       emit();
     });
   });
+  unsubscribe.push(subscribeActivityDirectory((directory) => {
+    activities = directory;
+    ready.add("activities");
+    errors.delete("activities");
+    emit();
+  }, (error) => {
+    console.error("Calendar could not load activity names:", error);
+    ready.add("activities");
+    errors.add("activities");
+    emit();
+  }));
   return () => unsubscribe.forEach((stop) => stop());
 }
 
@@ -62,7 +78,7 @@ export async function createCalendarEntry(entry: Omit<CalendarEntry, "id" | "dat
   if (entry.type === "class" && !entry.activityId) throw new Error("Choose an activity for this class.");
   if (entry.time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(entry.time)) throw new Error("Choose a valid time.");
   if (entry.notes.length > 2000) throw new Error("Notes must be 2,000 characters or fewer.");
-  const data = { ...entry, title: entry.title.trim(), dateAD: convertBSToAD(entry.dateBS), createdAt: serverTimestamp() };
+  const data = { ...withoutActivityLabels(entry), title: entry.type === "class" ? "Class" : entry.title.trim(), dateAD: convertBSToAD(entry.dateBS), createdAt: serverTimestamp() };
   if (entry.type === "class") {
     const reference = doc(db, "calendar_entries", `class_${entry.dateBS}_${encodeURIComponent(entry.activityId)}`);
     await runTransaction(db, async (transaction) => {

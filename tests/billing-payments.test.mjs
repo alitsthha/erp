@@ -504,3 +504,25 @@ test('charge editor controls change the chosen months, session quantity and incl
   assert.match(html, /Choose session dates/);
   assert.match(html, /Kartik/);
 });
+
+test('generated invoices store activity references and keep charges fixed across renames', async () => {
+  const db = database({
+    'activities/a1': { activityName: 'Correct Name', activityCode: 'AC1', feePerSession: 999 },
+    'enrollments/e1': { ...enrollment, activityName: 'Typo' },
+    'attendances/r1': attendance('2083-06-02'),
+  });
+  const summary = await calculate(db);
+  assert.equal(summary.lines[0].activityName, 'Correct Name');
+  assert.equal(summary.totalAmount, 100);
+  const id = await generate(db);
+  const stored = db.records.get(`invoices/${id}`);
+  assert.equal(stored.lines[0].activityId, 'a1');
+  assert.equal(stored.lines[0].activityName, undefined);
+  assert.equal(stored.lines[0].activityCode, undefined);
+  db.records.set('activities/a1', { activityName: 'Renamed Again', activityCode: 'AC1', feePerSession: 5000 });
+  const invoice = await db.invoices.getInvoiceById(id);
+  assert.equal(invoice.lines[0].activityName, 'Renamed Again');
+  assert.equal(invoice.lines[0].sessionFee, 100);
+  assert.equal(invoice.totalAmount, 100);
+  assert.equal((await calculate(db)).totalAmount, 0);
+});

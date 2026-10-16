@@ -1,7 +1,9 @@
+import { hydrateActivityReferences } from "@/features/activities/services/activity-reference.service";
 import {
   addDoc,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -36,12 +38,12 @@ export async function getEnrollments(): Promise<Enrollment[]> {
 
   const snapshot = await getDocs(enrollmentQuery);
 
-  return snapshot.docs.map(
+  return hydrateActivityReferences(snapshot.docs.map(
     (enrollmentDoc) => ({
       id: enrollmentDoc.id,
       ...enrollmentDoc.data(),
     })
-  ) as Enrollment[];
+  ) as Enrollment[]);
 }
 
 export async function getAllEnrollments(): Promise<Enrollment[]> {
@@ -67,10 +69,10 @@ export async function getEnrollmentById(
     return null;
   }
 
-  return {
+  return (await hydrateActivityReferences([{
     id: snapshot.id,
     ...snapshot.data(),
-  } as Enrollment;
+  } as Enrollment]))[0];
 }
 
 /* =========================================================
@@ -135,7 +137,8 @@ async function ensureEnrollmentIsUnique(
   );
 
   if (duplicate) {
-    throw new DuplicateEnrollmentError({ ...duplicate.data(), id: duplicate.id } as Enrollment);
+    const [enrollment] = await hydrateActivityReferences([{ ...duplicate.data(), id: duplicate.id } as Enrollment]);
+    throw new DuplicateEnrollmentError(enrollment);
   }
 }
 
@@ -191,8 +194,6 @@ export async function addEnrollment(
       studentCode: student.studentCode ?? "",
 
       activityId: data.activityId,
-      activityName: activity.activityName ?? "",
-      activityCode: activity.activityCode ?? "",
 
       enrollmentDate: data.enrollmentDate,
       sessionFee: numSessionFee,
@@ -267,8 +268,8 @@ export async function updateEnrollment(
       studentCode: student.studentCode ?? "",
 
       activityId: data.activityId,
-      activityName: activity.activityName ?? "",
-      activityCode: activity.activityCode ?? "",
+      activityName: deleteField(),
+      activityCode: deleteField(),
 
       enrollmentDate: data.enrollmentDate,
       sessionFee: numSessionFee,

@@ -60,7 +60,9 @@ export async function ensureActivityColors(): Promise<ActivityColors> {
   const used = new Set([...Object.values(colors).map((item) => item.color), ...activities.docs.map((item) => normalizeActivityColor(item.data().color)).filter((color): color is string => Boolean(color))]);
   for (const activity of activities.docs.sort((a, b) => a.id.localeCompare(b.id))) {
     const data = activity.data();
-    if (normalizeActivityColor(data.color) && colors[activity.id]?.color === normalizeActivityColor(data.color)) continue;
+    if (normalizeActivityColor(data.color) && colors[activity.id]?.color === normalizeActivityColor(data.color)
+      && colors[activity.id]?.activityName === data.activityName
+      && colors[activity.id]?.activityCode === data.activityCode) continue;
     const color = await writeColoredActivity(activity.id, {}, normalizeActivityColor(data.color) || nextActivityColor(used), { migrate: true, used: [...used] });
     if (color) {
       used.add(color);

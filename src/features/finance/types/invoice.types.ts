@@ -19,6 +19,7 @@ export interface InvoiceLine {
 
   activityId?: string;
 
+  /** Current activity name for linked lines; stored text only for manual lines. */
   activityName: string;
 
   activityCode?: string;

@@ -1,3 +1,4 @@
+import { hydrateActivityReferences } from "@/features/activities/services/activity-reference.service";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/firebase/config";
 import type { Attendance } from "@/features/attendance/types/attendance.types";
@@ -27,6 +28,6 @@ export async function getBillingCalendarAttendance(first: string, last: string):
   });
   // Keep tombstones through the merge so an older daily summary cannot
   // resurrect a deleted individual attendance record.
-  return mergeCalendarAttendance(records, fallback)
-    .filter((record) => !(record as Attendance & { deletedAt?: unknown }).deletedAt);
+  return hydrateActivityReferences(mergeCalendarAttendance(records, fallback)
+    .filter((record) => !(record as Attendance & { deletedAt?: unknown }).deletedAt));
 }

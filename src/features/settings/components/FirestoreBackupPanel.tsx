@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { Download, FileSpreadsheet, RefreshCw, Upload } from "lucide-react";
+import ClearDatabasePanel from "./ClearDatabasePanel";
 
 import {
   BACKUP_COLLECTIONS,
@@ -117,7 +118,7 @@ export default function FirestoreBackupPanel() {
                 Data Management
               </span>
               <h2 className="ui-section-title mt-1">
-                Database Backup & Restore
+                Database Management
               </h2>
             </div>
           </div>
@@ -209,6 +210,7 @@ export default function FirestoreBackupPanel() {
           <p className="text-xs text-amber-700">
             Restore adds only missing document IDs. Keep downloaded backups in secure storage.
           </p>
+          <ClearDatabasePanel disabled={busy} onBusyChange={setBusy} />
         </div>
       </section>
     </div>

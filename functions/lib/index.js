@@ -33,10 +33,11 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.setUserPassword = exports.deleteStudentCascade = exports.assignUserAccess = void 0;
+exports.clearDatabase = exports.setUserPassword = exports.deleteStudentCascade = exports.assignUserAccess = void 0;
 const admin = __importStar(require("firebase-admin"));
 const https_1 = require("firebase-functions/v2/https");
 const student_deletion_1 = require("./shared/student-deletion");
+const database_reset_1 = require("./database-reset");
 admin.initializeApp();
 const db = admin.firestore();
 const allowedRoles = new Set([
@@ -72,7 +73,7 @@ async function isAdminRequest(request) {
     const email = typeof request.auth?.token?.email === "string"
         ? request.auth.token.email.trim().toLowerCase()
         : "";
-    const tokenAdmin = request.auth?.token?.admin === true;
+    const tokenAdmin = request.auth?.token?.admin === true || request.auth?.token?.role === "admin";
     const fallbackAdmin = adminEmails.has(email);
     if (tokenAdmin || fallbackAdmin)
         return true;
@@ -82,6 +83,7 @@ async function isAdminRequest(request) {
     return roleSnapshot.data()?.role === "admin";
 }
 exports.assignUserAccess = (0, https_1.onCall)(async (request) => {
+    await (0, database_reset_1.assertDatabaseAvailable)(db);
     if (!(await isAdminRequest(request))) {
         throw new https_1.HttpsError("permission-denied", "Only administrators can assign user access.");
     }
@@ -250,6 +252,7 @@ async function reverseJournalEntry(reference) {
     return reversalRef.id;
 }
 exports.deleteStudentCascade = (0, https_1.onCall)(async (request) => {
+    await (0, database_reset_1.assertDatabaseAvailable)(db);
     const { studentId } = request.data ?? {};
     if (!(await isAdminRequest(request))) {
         throw new https_1.HttpsError("permission-denied", "Only administrators can delete students.");
@@ -355,6 +358,7 @@ exports.deleteStudentCascade = (0, https_1.onCall)(async (request) => {
     return { success: true };
 });
 exports.setUserPassword = (0, https_1.onCall)(async (request) => {
+    await (0, database_reset_1.assertDatabaseAvailable)(db);
     if (!(await isAdminRequest(request))) {
         throw new https_1.HttpsError("permission-denied", "Only administrators can change user passwords.");
     }
@@ -379,4 +383,8 @@ exports.setUserPassword = (0, https_1.onCall)(async (request) => {
         }
         throw new https_1.HttpsError("internal", "Unable to update the user password.");
     }
+});
+exports.clearDatabase = (0, https_1.onCall)({ timeoutSeconds: 540, memory: "512MiB" }, async (request) => {
+    const projectId = admin.app().options.projectId || process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || "";
+    return (0, database_reset_1.clearFirestoreDatabase)(db, projectId, request, () => isAdminRequest(request));
 });

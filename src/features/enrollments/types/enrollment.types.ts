@@ -12,6 +12,7 @@ export interface Enrollment {
   studentCode: string;
 
   activityId: string;
+  /** Resolved from activityId when read; legacy documents may contain a snapshot. */
   activityName: string;
   activityCode: string;
 

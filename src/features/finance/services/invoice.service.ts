@@ -1,3 +1,5 @@
+import { getActivityDirectory } from "@/features/activities/services/activity-reference.service";
+import { resolveActivityReferences, withoutActivityLabels } from "@/features/activities/utils/activity-reference";
 import {
   collection,
   doc,
@@ -645,7 +647,7 @@ export async function createInvoiceFromStudentFee(
       dueDate:
         options?.dueDate ?? "",
 
-      lines,
+      lines: lines.map(withoutActivityLabels),
 
       subtotal,
 
@@ -733,13 +735,13 @@ export async function getInvoiceById(
     return null;
   }
 
-  return mapInvoice(
+  return (await hydrateInvoices([mapInvoice(
     snapshot.id,
     snapshot.data() as Record<
       string,
       unknown
     >
-  );
+  )]))[0];
 }
 
 /* =========================================================
@@ -764,7 +766,7 @@ export async function getInvoices(): Promise<
   const snapshot =
     await getDocs(q);
 
-  return snapshot.docs.filter((invoiceDoc) => !invoiceDoc.data().deletedAt).map(
+  return hydrateInvoices(snapshot.docs.filter((invoiceDoc) => !invoiceDoc.data().deletedAt).map(
     (invoiceDoc) =>
       mapInvoice(
         invoiceDoc.id,
@@ -773,7 +775,7 @@ export async function getInvoices(): Promise<
           unknown
         >
       )
-  );
+  ));
 }
 
 /* =========================================================
@@ -803,7 +805,7 @@ export async function getInvoicesByStudentId(
   const snapshot =
     await getDocs(q);
 
-  return snapshot.docs
+  return hydrateInvoices(snapshot.docs
     .filter((invoiceDoc) => !invoiceDoc.data().deletedAt)
     .map(
       (invoiceDoc) =>
@@ -820,7 +822,7 @@ export async function getInvoicesByStudentId(
         b.invoiceDate.localeCompare(
           a.invoiceDate
         )
-    );
+    ));
 }
 
 /* =========================================================
@@ -850,7 +852,7 @@ export async function getInvoicesByMonth(
   const snapshot =
     await getDocs(q);
 
-  return snapshot.docs.filter((invoiceDoc) => !invoiceDoc.data().deletedAt).map(
+  return hydrateInvoices(snapshot.docs.filter((invoiceDoc) => !invoiceDoc.data().deletedAt).map(
     (invoiceDoc) =>
       mapInvoice(
         invoiceDoc.id,
@@ -859,7 +861,7 @@ export async function getInvoicesByMonth(
           unknown
         >
       )
-  );
+  ));
 }
 
 /* =========================================================
@@ -905,13 +907,13 @@ export async function getInvoiceByStudentAndMonth(
   const invoiceDoc =
     snapshot.docs[0];
 
-  return mapInvoice(
+  return (await hydrateInvoices([mapInvoice(
     invoiceDoc.id,
     invoiceDoc.data() as Record<
       string,
       unknown
     >
-  );
+  )]))[0];
 }
 
 /* =========================================================
@@ -938,7 +940,7 @@ export async function updateInvoice(
   await updateFinancialRecord(
     COLLECTION_NAME,
     invoiceId,
-    data as Record<string, unknown>
+    { ...data, ...(data.lines ? { lines: data.lines.map(withoutActivityLabels) } : {}) } as Record<string, unknown>
   );
 }
 
@@ -1004,4 +1006,10 @@ export async function updateInvoicePaymentState(
       status,
     }
   );
+}
+
+async function hydrateInvoices(invoices: Invoice[]): Promise<Invoice[]> {
+  if (!invoices.some((invoice) => invoice.lines.some((line) => line.activityId))) return invoices;
+  const activities = await getActivityDirectory();
+  return invoices.map((invoice) => ({ ...invoice, lines: resolveActivityReferences(invoice.lines, activities) }));
 }
