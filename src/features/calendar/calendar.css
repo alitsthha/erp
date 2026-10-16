@@ -182,7 +182,7 @@ button.calendar-date:hover { background: var(--calendar-brand-soft); }
   font-size: 12px;
   line-height: 1.4;
 }
-.calendar-legend-chip:hover, .calendar-legend-chip[aria-expanded="true"] { border-color: #b8d9ef; background: var(--calendar-brand-soft); color: var(--calendar-brand-hover); }
+.calendar-legend-chip:hover, .calendar-legend-chip[aria-expanded="true"], .calendar-legend-chip[aria-pressed="true"] { border-color: #b8d9ef; background: var(--calendar-brand-soft); color: var(--calendar-brand-hover); }
 .calendar-legend-dot { width: 8px; height: 8px; flex-shrink: 0; border: 1px solid #00000020; border-radius: 50%; }
 .calendar-legend-name { max-width: 14rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .calendar-legend-tooltip {

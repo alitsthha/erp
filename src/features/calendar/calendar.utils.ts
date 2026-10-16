@@ -52,3 +52,15 @@ export function mergeCalendarAttendance(individual: Attendance[], daily: Attenda
   const dates = new Set(individual.map((record) => record.sessionDateBS));
   return [...individual, ...daily.filter((record) => !dates.has(record.sessionDateBS))];
 }
+
+/** Count one class date per activity, regardless of student count or duplicate
+ * scheduled/attendance entries. Adjacent calendar-grid months are excluded. */
+export function getMonthlyActivityCounts(items: CalendarItem[], month: string) {
+  const dates = new Map<string, Set<string>>();
+  for (const item of items) {
+    if (item.type !== "class" || !item.activityId || item.dateBS.slice(0, 7) !== month) continue;
+    if (!dates.has(item.activityId)) dates.set(item.activityId, new Set());
+    dates.get(item.activityId)!.add(item.dateBS);
+  }
+  return new Map([...dates].map(([id, classDates]) => [id, classDates.size]));
+}

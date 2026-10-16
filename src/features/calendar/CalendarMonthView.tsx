@@ -17,6 +17,9 @@ interface Props {
   byDate: Map<string, CalendarItem[]>;
   colors: ActivityColors;
   activities?: { id: string; name: string }[];
+  legendItems?: CalendarItem[];
+  selectedActivity?: string;
+  onActivityChange?: (activityId: string) => void;
   loading: boolean;
   onMonthChange: (month: string) => void;
   onSelectDate: (date: string) => void;
@@ -24,7 +27,7 @@ interface Props {
 
 const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-export default function CalendarMonthView({ month, calendar, today, selectedDate, byDate, colors, activities = [], loading, onMonthChange, onSelectDate }: Props) {
+export default function CalendarMonthView({ month, calendar, today, selectedDate, byDate, colors, activities = [], legendItems, selectedActivity = "all", onActivityChange, loading, onMonthChange, onSelectDate }: Props) {
   const picker = useRef<HTMLDetailsElement>(null);
   const name = BS_MONTHS[Number(month.slice(-2)) - 1].name;
   const chooseMonth = (value: string) => {
@@ -71,6 +74,6 @@ export default function CalendarMonthView({ month, calendar, today, selectedDate
         <CalendarActivityDots items={dayItems} colors={colors} />
       </button>;
     })}</div>
-    <CalendarActivityLegend activities={activities} colors={colors} byDate={byDate} />
+    <CalendarActivityLegend activities={activities} colors={colors} month={month} items={legendItems ?? [...byDate.values()].flat()} selectedActivity={selectedActivity} onActivityChange={onActivityChange} loading={loading} />
   </section>;
 }

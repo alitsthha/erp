@@ -1099,3 +1099,46 @@ test('Teacher display shows the recorder and last saver without change history',
   assert.doesNotMatch(html, /Change history|<details/);
   assert.doesNotMatch(html, /Admin display name/);
 });
+
+test('calendar activity counts use distinct class dates inside the displayed month', () => {
+  const { getMonthlyActivityCounts } = loadModule('src/features/calendar/calendar.utils.ts');
+  const item = (dateBS, activityId, type = 'class') => ({ dateBS, activityId, type });
+  const counts = getMonthlyActivityCounts([
+    item('2083-06-02', 'music'), item('2083-06-02', 'music'),
+    item('2083-06-15', 'music'), item('2083-07-01', 'music'),
+    item('2083-05-30', 'music'), item('2083-06-02', 'art'),
+    item('2083-06-03', 'art', 'event'), item('2083-06-04', '', 'holiday'),
+  ], '2083-06');
+  assert.equal(counts.get('music'), 2);
+  assert.equal(counts.get('art'), 1);
+  assert.equal(counts.has(''), false);
+});
+
+test('calendar activity legend shows monthly counts and toggles the matching activity filter', () => {
+  const React = require('react');
+  const changes = [];
+  const Legend = loadModule('src/features/calendar/CalendarActivityLegend.tsx', {
+    react: { ...React, useId: () => 'legend', useState: () => [null, () => {}] },
+  }).default;
+  const props = {
+    activities: [{ id: 'music', name: 'Music' }, { id: 'art', name: 'Art' }], colors: {},
+    items: [{ dateBS: '2083-06-02', activityId: 'music', type: 'class' }],
+    month: '2083-06', selectedActivity: 'all', onActivityChange: (id) => changes.push(id),
+  };
+  const entries = (view) => view.props.children[1].props.children;
+  const musicButton = (view) => entries(view).find((entry) => entry.key === 'music').props.children[0];
+  const unfiltered = Legend(props);
+  musicButton(unfiltered).props.onClick();
+  assert.deepEqual(changes, ['music']);
+  const filtered = Legend({ ...props, selectedActivity: 'music' });
+  assert.equal(musicButton(filtered).props['aria-pressed'], true);
+  musicButton(filtered).props.onClick();
+  assert.deepEqual(changes, ['music', 'all']);
+  filtered.props.children[0].props.children[1].props.onClick();
+  assert.equal(changes.at(-1), 'all');
+  const { renderToStaticMarkup } = require('react-dom/server');
+  const ActualLegend = loadModule('src/features/calendar/CalendarActivityLegend.tsx').default;
+  const html = renderToStaticMarkup(React.createElement(ActualLegend, { ...props, selectedActivity: 'music' }));
+  assert.match(html, /Music \(1\)/);
+  assert.match(html, /Art \(0\)/);
+});
