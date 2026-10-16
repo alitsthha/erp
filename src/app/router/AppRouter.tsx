@@ -1,7 +1,8 @@
 import BulkEnrollmentPage from "@/features/enrollments/pages/BulkEnrollmentPage";
 import {
-  BrowserRouter,
-  Routes,
+  createBrowserRouter,
+  createRoutesFromElements,
+  RouterProvider,
   Route,
   Navigate,
 } from "react-router-dom";
@@ -84,10 +85,7 @@ function RootRedirect() {
   return <Navigate to={getLandingRouteForRole(role)} replace />;
 }
 
-export default function AppRouter() {
-  return (
-    <BrowserRouter>
-      <Routes>
+const router = createBrowserRouter(createRoutesFromElements(<>
 
         {/* =====================================================
             PUBLIC ROUTES
@@ -329,7 +327,8 @@ export default function AppRouter() {
           element={<RootRedirect />}
         />
 
-      </Routes>
-    </BrowserRouter>
-  );
+</>));
+
+export default function AppRouter() {
+  return <RouterProvider router={router} />;
 }

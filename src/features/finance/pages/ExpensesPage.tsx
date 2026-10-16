@@ -1,3 +1,5 @@
+import { useSessionState } from "@/hooks/useSessionState";
+import SafeForm from "@/components/forms/SafeForm";
 import SearchableSelect from "@/components/forms/SearchableSelect";
 import PaginatedList from "@/components/common/PaginatedList";
 import { useEffect, useMemo, useState } from "react";
@@ -32,7 +34,7 @@ const expenseCategories: ExpenseCategory[] = [
   "Other",
 ];
 
-const initialForm = {
+const initialForm = () => ({
   category: "Other" as ExpenseCategory,
   description: "",
   amount: "",
@@ -41,7 +43,7 @@ const initialForm = {
   paymentMethod: "Cash",
   referenceNumber: "",
   notes: "",
-};
+});
 
 function formatCurrency(value: number) {
   return `Rs. ${value.toLocaleString("en-IN")}`;
@@ -52,8 +54,8 @@ export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [search, setSearch] = useSessionState("finance:ExpensesPage:search", "");
+  const [categoryFilter, setCategoryFilter] = useSessionState("finance:ExpensesPage:categoryFilter", "all");
   const [form, setForm] = useState(initialForm);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -123,7 +125,7 @@ export default function ExpensesPage() {
         notes: form.notes.trim() || undefined,
       });
 
-      setForm(initialForm);
+      setForm(initialForm());
       setSuccess("Expense recorded successfully.");
       await loadExpenses();
     } catch (err) {
@@ -193,7 +195,7 @@ export default function ExpensesPage() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[420px_minmax(0,1fr)]">
-          <form onSubmit={handleSubmit} className="ui-surface p-5">
+          <SafeForm saved={success} onSubmit={handleSubmit} className="ui-surface p-5">
             <div className="mb-4 flex items-center gap-3">
               <div className="rounded-xl bg-brand-600 p-2.5 text-white">
                 <Plus size={18} />
@@ -302,7 +304,7 @@ export default function ExpensesPage() {
                 {submitting ? "Saving..." : "Save Expense"}
               </button>
             </div>
-          </form>
+          </SafeForm>
 
           <div className="ui-surface p-5">
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

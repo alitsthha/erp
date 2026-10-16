@@ -1,3 +1,4 @@
+import SafeForm from "@/components/forms/SafeForm";
 import SearchableSelect from "@/components/forms/SearchableSelect";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
@@ -9,7 +10,6 @@ import type {
   IncomeFormData,
 } from "../types/income.types";
 
-const TODAY = getCurrentBSDate();
 
 const CATEGORIES = ["Student Fee", "Student Fee (Advance)"] as const;
 
@@ -31,7 +31,7 @@ export default function IncomeForm({
   );
   const [description, setDescription] = useState(initialData?.description ?? "");
   const [amount, setAmount] = useState(initialData?.amount ?? 0);
-  const [incomeDate, setIncomeDate] = useState(initialData?.incomeDate ?? TODAY);
+  const [incomeDate, setIncomeDate] = useState(initialData?.incomeDate ?? getCurrentBSDate());
   const [source, setSource] = useState(initialData?.source ?? "");
   const [paymentMethod, setPaymentMethod] = useState(initialData?.paymentMethod ?? "Cash");
   const [referenceNumber, setReferenceNumber] = useState(initialData?.referenceNumber ?? "");
@@ -54,7 +54,7 @@ export default function IncomeForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <SafeForm onSubmit={handleSubmit} className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className="mb-1.5 block text-sm font-medium text-slate-700">
@@ -179,6 +179,6 @@ export default function IncomeForm({
           {isSubmitting ? "Saving..." : initialData ? "Update Income" : "Add Income"}
         </button>
       </div>
-    </form>
+    </SafeForm>
   );
 }

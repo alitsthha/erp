@@ -1,3 +1,4 @@
+import SafeForm from "@/components/forms/SafeForm";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { User, Briefcase, CheckCircle2 } from "lucide-react";
@@ -30,7 +31,7 @@ export default function StaffForm({
     handleSubmit,
     setValue,
     watch,
-    formState: {
+    formState: { isDirty,
       errors,
       isSubmitting,
     },
@@ -48,7 +49,7 @@ export default function StaffForm({
   const joiningDateValue = watch("joiningDate") || getCurrentBSDate();
 
   return (
-    <form
+    <SafeForm dirty={isDirty}
       onSubmit={handleSubmit(onSave)}
       className="ui-page mx-auto w-full space-y-6"
     >
@@ -165,6 +166,6 @@ export default function StaffForm({
           {isSubmitting ? "Saving..." : submitLabel}
         </button>
       </div>
-    </form>
+    </SafeForm>
   );
 }

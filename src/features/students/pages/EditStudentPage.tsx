@@ -1,3 +1,4 @@
+import toast from "react-hot-toast";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -55,10 +56,11 @@ export default function EditStudentPage() {
   async function handleSubmit(data: StudentFormData) {
     try {
       await updateStudent(studentIdValue, data);
+      toast.success("Student updated successfully.");
       navigate("/students");
     } catch (error) {
       console.error("Failed to update student:", error);
-      alert("Failed to update student. Please try again.");
+      throw new Error(error instanceof Error ? error.message : "Failed to update student. Please try again.", { cause: error });
     }
   }
 

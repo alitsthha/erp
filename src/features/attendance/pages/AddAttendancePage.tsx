@@ -15,6 +15,7 @@ import { attendanceLink } from "../utils/attendance-navigation";
 export default function AddAttendancePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const queryStudent = searchParams.get("studentId") || "";
   const queryDate = searchParams.get("date") || "";
   const queryActivity = searchParams.get("activityId") || searchParams.get("activity") || "";
 
@@ -122,15 +123,11 @@ export default function AddAttendancePage() {
    * will only load attendance for these students.
    */
   const filteredEnrollments = useMemo(() => {
-    if (!activityId) {
-      return enrollments;
-    }
-
-    return enrollments.filter(
-      (enrollment) =>
-        enrollment.activityId === activityId
+    return enrollments.filter((enrollment) =>
+      (!activityId || enrollment.activityId === activityId) &&
+      (!queryStudent || enrollment.studentId === queryStudent)
     );
-  }, [enrollments, activityId]);
+  }, [enrollments, activityId, queryStudent]);
 
   return (
     <div className="ui-page mx-auto w-full space-y-6">

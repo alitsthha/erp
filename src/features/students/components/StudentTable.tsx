@@ -1,3 +1,4 @@
+import StudentQuickActions from "@/components/common/StudentQuickActions";
 import PaginatedList from "@/components/common/PaginatedList";
 import type { Student } from "../types/student.types";
 import StudentActions from "./StudentActions";
@@ -63,7 +64,7 @@ export default function StudentTable({
           </thead>
 
           <tbody className="divide-y divide-slate-100">
-            {<PaginatedList showSort={false} items={students} table>{(student) => (
+            {<PaginatedList label="Students" showSort={false} items={students} table>{(student) => (
               <tr
                 key={student.id}
                 className="transition hover:bg-slate-50"
@@ -114,7 +115,8 @@ export default function StudentTable({
                 {/* Actions */}
                 <td className="px-4 py-3">
                   <div className="flex justify-end">
-                    <StudentActions
+                    <StudentQuickActions studentId={student.id} />
+                      <StudentActions
                       onView={() => onViewStudent(student)}
                       onEdit={() => onEditStudent(student)}
                       onDelete={() => onDeleteStudent(student)}

@@ -1,3 +1,4 @@
+import { useSessionState } from "@/hooks/useSessionState";
 import ListSortControl from "@/components/common/ListSortControl";
 import PaginatedList from "@/components/common/PaginatedList";
 import { useEffect, useMemo, useState } from "react";
@@ -20,7 +21,7 @@ import type { Department } from "../types/department.types";
 export default function DepartmentsPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useSessionState("staff:DepartmentsPage:search", "");
 
   useEffect(() => {
     loadDepartments();

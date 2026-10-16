@@ -1,3 +1,4 @@
+import SafeForm from "@/components/forms/SafeForm";
 import SearchableSelect from "@/components/forms/SearchableSelect";
 import ListSortControl from "@/components/common/ListSortControl";
 import PaginatedList from "@/components/common/PaginatedList";
@@ -99,6 +100,8 @@ export default function AttendanceForm({
   );
 
   const [roster, setRoster] = useState<RosterItem[]>([]);
+  const [savedRoster, setSavedRoster] = useState("[]");
+  const rosterHasChanges = JSON.stringify(roster) !== savedRoster;
 
   const [isFetchingAttendance, setIsFetchingAttendance] =
     useState(false);
@@ -287,6 +290,7 @@ export default function AttendanceForm({
           });
 
         setRoster(newRoster);
+        setSavedRoster(JSON.stringify(newRoster));
       } catch (error) {
         console.error(
           "Error loading attendance:",
@@ -452,6 +456,9 @@ export default function AttendanceForm({
       return;
     }
 
+    const review = `Review attendance for ${sessionDate} (${activityName})\n${roster.length} enrollments: ${presentCount} present, ${absentCount} absent.\nSession charges: Rs. ${roster.reduce((sum, item) => sum + (item.status === "Present" ? Number(item.sessionFee) || 0 : 0), 0).toLocaleString()}.\nSave this attendance?`;
+    if (!window.confirm(review)) return;
+
     setIsSaving(true);
     setSaveSuccess(null);
 
@@ -532,6 +539,7 @@ export default function AttendanceForm({
         recordsToSave
       );
 
+      setSavedRoster(JSON.stringify(roster));
       setSaveSuccess(
         `Attendance for ${sessionDate} saved successfully.`
       );
@@ -565,7 +573,9 @@ export default function AttendanceForm({
    */
 
   return (
-    <form
+    <SafeForm
+      dirty={rosterHasChanges}
+      saved={saveSuccess}
       onSubmit={handleSave}
       className="w-full space-y-6"
     >
@@ -587,7 +597,9 @@ export default function AttendanceForm({
             <NepaliDatePickerInput
               label="Session Date"
               value={sessionDate}
-              onChange={setSessionDate}
+              onChange={(value) => {
+                if (!rosterHasChanges || window.confirm("Discard your attendance changes and switch dates?")) setSessionDate(value);
+              }}
               helperText="Attendance date in BS format"
             />
           </div>
@@ -602,7 +614,9 @@ export default function AttendanceForm({
               <SearchableSelect
                 id="attendance-activity"
                 value={activityId}
-                onChange={(event) => onActivityChange?.(event.target.value)}
+                onChange={(event) => {
+                  if (!rosterHasChanges || window.confirm("Discard your attendance changes and switch activities?")) onActivityChange?.(event.target.value);
+                }}
                 disabled={isLoading || activities.length === 0}
                 className="ui-field w-full px-3 text-slate-900 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-slate-200 disabled:cursor-not-allowed disabled:bg-slate-100"
               >
@@ -801,6 +815,6 @@ export default function AttendanceForm({
           )}
         </button>
       </div>
-    </form>
+    </SafeForm>
   );
 }

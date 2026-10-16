@@ -1,3 +1,4 @@
+import SafeForm from "@/components/forms/SafeForm";
 import { useEffect, useState, type FormEvent } from "react";
 import {
   User,
@@ -121,7 +122,7 @@ export default function StaffSelfProfileEdit() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="ui-page mx-auto w-full space-y-6">
+    <SafeForm saved={success} onSubmit={handleSubmit} className="ui-page mx-auto w-full space-y-6">
       
       {/* Alerts */}
       {success && (
@@ -298,6 +299,6 @@ export default function StaffSelfProfileEdit() {
         </div>
       </div>
 
-    </form>
+    </SafeForm>
   );
 }

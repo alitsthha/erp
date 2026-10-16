@@ -1,3 +1,4 @@
+import toast from "react-hot-toast";
 import { useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "@/app/providers/AuthProvider";
 
@@ -23,12 +24,12 @@ export default function AddStudentPage() {
 
   async function handleSubmit(data: StudentFormData) {
     try {
-      console.log("Submitting student:", data);
       await addStudent(data);
+      toast.success("Student created successfully.");
       navigate("/students");
     } catch (error) {
       console.error("Failed to add student:", error);
-      alert("Failed to add student. Please try again.");
+      throw new Error(error instanceof Error ? error.message : "Failed to add student. Please try again.", { cause: error });
     }
   }
 

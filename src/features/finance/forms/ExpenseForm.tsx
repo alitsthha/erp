@@ -1,3 +1,4 @@
+import SafeForm from "@/components/forms/SafeForm";
 import SearchableSelect from "@/components/forms/SearchableSelect";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
@@ -5,7 +6,6 @@ import { getCurrentBSDate } from "@/utils/nepali-date";
 import NepaliDatePickerInput from "@/components/forms/NepaliDatePickerInput";
 import type { Expense, ExpenseCategory, ExpenseFormData } from "../types/expense.types";
 
-const TODAY = getCurrentBSDate();
 
 const CATEGORIES: ExpenseCategory[] = [
   "Rent",
@@ -38,7 +38,7 @@ export default function ExpenseForm({
   );
   const [description, setDescription] = useState(initialData?.description ?? "");
   const [amount, setAmount] = useState(initialData?.amount ?? 0);
-  const [expenseDate, setExpenseDate] = useState(initialData?.expenseDate ?? TODAY);
+  const [expenseDate, setExpenseDate] = useState(initialData?.expenseDate ?? getCurrentBSDate());
   const [vendor, setVendor] = useState(initialData?.vendor ?? "");
   const [paymentMethod, setPaymentMethod] = useState(initialData?.paymentMethod ?? "");
   const [referenceNumber, setReferenceNumber] = useState(
@@ -62,7 +62,7 @@ export default function ExpenseForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <SafeForm onSubmit={handleSubmit} className="space-y-6">
 
       {/* Category + Date */}
       <div className="grid gap-4 sm:grid-cols-2">
@@ -196,6 +196,6 @@ export default function ExpenseForm({
           {isSubmitting ? "Saving..." : initialData ? "Update Expense" : "Add Expense"}
         </button>
       </div>
-    </form>
+    </SafeForm>
   );
 }

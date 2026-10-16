@@ -56,7 +56,7 @@ export default function RoleTable({
                 </td>
               </tr>
             ) : (
-              <PaginatedList showSort={false} items={roles} table>{(role) => (
+              <PaginatedList label="Staff" showSort={false} items={roles} table>{(role) => (
                 <tr
                   key={role.id}
                   className="hover:bg-slate-50"

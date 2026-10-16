@@ -1,3 +1,5 @@
+import { useRememberedSearchParams } from "@/hooks/useRememberedSearchParams";
+import { useSessionState } from "@/hooks/useSessionState";
 import { attendanceSelectionRecords } from "../utils/attendance-selection";
 import "../attendance.css";
 import ListSortControl from "@/components/common/ListSortControl";
@@ -16,7 +18,7 @@ import {
   Send,
   Trash2,
 } from "lucide-react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { filterActivityRecords, readAttendanceFilters } from "../utils/attendance-navigation";
 import { getKathmanduToday } from "@/utils/calendar-date";
 
@@ -61,7 +63,7 @@ export default function AttendanceListPage() {
 
   // Current BS Date by default
   const [todayBS, setTodayBS] = useState(() => getKathmanduToday().bs);
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useRememberedSearchParams("attendance");
   const { date: selectedDateBS, activityId: selectedActivityId, view: viewMode } = readAttendanceFilters(searchParams, todayBS);
   const updateRouteFilter = (key: string, value: string) => setSearchParams((previous) => {
     const next = new URLSearchParams(previous);
@@ -79,8 +81,8 @@ export default function AttendanceListPage() {
   const [recordedDates, setRecordedDates] = useState<string[]>([]);
 
   // Filters & State
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState<FilterStatus>("All");
+  const [searchTerm, setSearchTerm] = useSessionState("attendance:searchTerm", "");
+  const [filterStatus, setFilterStatus] = useSessionState<FilterStatus>("attendance:status", "All");
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [sendingAlerts, setSendingAlerts] = useState(false);

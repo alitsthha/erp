@@ -1,7 +1,9 @@
+import toast from "react-hot-toast";
+import SafeForm from "@/components/forms/SafeForm";
 import SearchableSelect from "@/components/forms/SearchableSelect";
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import {
@@ -51,6 +53,8 @@ const normalizeToBs = (value?: string | null) => {
 
 export default function EnrollmentForm({ enrollmentId }: Props) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialStudentId = searchParams.get("studentId") ?? "";
 
   const [students, setStudents] = useState<Student[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -64,12 +68,12 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
     reset,
     setValue,
     watch,
-    formState: { errors, isSubmitting },
+    formState: { isDirty, errors, isSubmitting },
   } = useForm<EnrollmentFormData>({
     resolver: zodResolver(enrollmentSchema) as any,
 
     defaultValues: {
-      studentId: "",
+      studentId: initialStudentId,
       activityId: "",
       enrollmentDate: getCurrentBSDate(),
       sessionFee: "",
@@ -170,7 +174,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
   useEffect(() => {
     if (!enrollmentId) {
       reset({
-        studentId: "",
+        studentId: initialStudentId,
         activityId: "",
         enrollmentDate: getCurrentBSDate(),
         sessionFee: "",
@@ -213,7 +217,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
     };
 
     void loadEnrollment();
-  }, [enrollmentId, reset, navigate]);
+  }, [enrollmentId, reset, navigate, initialStudentId]);
 
   /*
   ============================================================
@@ -225,14 +229,14 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
     try {
       if (enrollmentId) {
         await updateEnrollment(enrollmentId, data);
-        alert("Enrollment updated successfully!");
+        toast.success("Enrollment updated successfully.");
       } else {
         await addEnrollment(data);
-        alert("Enrollment created successfully!");
+        toast.success("Enrollment created successfully.");
       }
 
       reset({
-        studentId: "",
+        studentId: initialStudentId,
         activityId: "",
         enrollmentDate: getCurrentBSDate(),
         sessionFee: "",
@@ -279,7 +283,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
   }
 
   return (
-    <form
+    <SafeForm dirty={isDirty}
       onSubmit={handleSubmit(onSubmit)}
       className="space-y-6"
     >
@@ -685,6 +689,6 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
           if (existingId) navigate(`/enrollments/edit/${existingId}`);
         }}
       />
-    </form>
+    </SafeForm>
   );
 }

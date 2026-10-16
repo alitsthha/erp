@@ -89,7 +89,7 @@ export default function EnrollmentTable({
           </thead>
 
           <tbody className="divide-y divide-slate-100">
-            {<PaginatedList showSort={false} items={enrollments} table>{(enrollment) => (
+            {<PaginatedList label="Enrollments" showSort={false} items={enrollments} table>{(enrollment) => (
               <tr
                 key={enrollment.id}
                 className="transition hover:bg-slate-50/80"
@@ -188,7 +188,7 @@ export default function EnrollmentTable({
 
       {/* Mobile Cards */}
       <div className="divide-y divide-slate-100 md:hidden">
-        {<PaginatedList showSort={false} items={enrollments}>{(enrollment) => (
+        {<PaginatedList label="Enrollments" showSort={false} items={enrollments}>{(enrollment) => (
           <div
             key={enrollment.id}
             className="p-4"

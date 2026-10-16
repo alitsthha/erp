@@ -1,3 +1,4 @@
+import SafeForm from "@/components/forms/SafeForm";
 import SearchableSelect from "@/components/forms/SearchableSelect";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
@@ -7,7 +8,6 @@ import { formatCurrency } from "@/utils/currency";
 import { getCurrentBSDate } from "@/utils/nepali-date";
 import NepaliDatePickerInput from "@/components/forms/NepaliDatePickerInput";
 
-const TODAY = getCurrentBSDate();
 
 interface PaymentFormProps {
   invoice: Invoice;
@@ -28,13 +28,16 @@ export default function PaymentForm({
       : `${Date.now()}-${Math.random().toString(36).slice(2)}`
   );
   const [amount, setAmount] = useState(invoice.dueAmount ?? invoice.totalAmount ?? 0);
-  const [paymentDate, setPaymentDate] = useState(TODAY);
+  const [paymentDate, setPaymentDate] = useState(getCurrentBSDate);
   const [paymentMethod, setPaymentMethod] = useState<Payment["paymentMethod"]>("Cash");
   const [referenceNumber, setReferenceNumber] = useState("");
   const [notes, setNotes] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!Number.isFinite(amount) || amount <= 0 || amount > (invoice.dueAmount ?? invoice.totalAmount ?? 0)) {
+      throw new Error("Enter a payment greater than zero and no more than the outstanding balance.");
+    }
 
     await onSubmit({
       invoiceId: invoice.id ?? "",
@@ -54,7 +57,7 @@ export default function PaymentForm({
   const maxAmount = invoice.dueAmount ?? invoice.totalAmount ?? 0;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <SafeForm onSubmit={handleSubmit} className="space-y-6">
 
       {/* Invoice Summary */}
       <div className="rounded-xl bg-slate-50 p-4">
@@ -85,7 +88,7 @@ export default function PaymentForm({
         </label>
         <input
           type="number"
-          min="1"
+          min="0.01"
           max={maxAmount}
           step="0.01"
           value={amount}
@@ -96,6 +99,11 @@ export default function PaymentForm({
         <p className="mt-1 text-xs text-slate-400">
           Maximum: {formatCurrency(maxAmount)}
         </p>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-emerald-50 p-3 text-sm">
+        <button type="button" disabled={isSubmitting || maxAmount <= 0} onClick={() => setAmount(maxAmount)} className="font-medium text-emerald-800">Pay full outstanding balance</button>
+        <p aria-live="polite">Remaining after payment: <strong>{formatCurrency(Math.max(0, maxAmount - (Number(amount) || 0)))}</strong></p>
       </div>
 
       {/* Date + Method */}
@@ -168,6 +176,6 @@ export default function PaymentForm({
           {isSubmitting ? "Recording..." : "Record Payment"}
         </button>
       </div>
-    </form>
+    </SafeForm>
   );
 }

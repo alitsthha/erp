@@ -97,6 +97,7 @@ type AuthContextValue = {
   activityIds: string[];
   loading: boolean;
   sessionExpired: boolean;
+  sessionExpiresAt: number | null;
   isAdmin: boolean;
   isTeacher: boolean;
   login: (
@@ -117,6 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [activityIds, setActivityIds] = useState<string[]>([]);
   const [sessionExpired, setSessionExpired] = useState(false);
+  const [sessionExpiresAt, setSessionExpiresAt] = useState<number | null>(null);
 
   useEffect(() => {
     let revision = 0;
@@ -125,6 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const currentRevision = ++revision;
       stopSessionWatch?.();
       if (!currentUser) {
+        setSessionExpiresAt(null);
         setUser(null);
         setRole(null);
         setPermissions(createDefaultPermissions("teacher"));
@@ -137,9 +140,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const tokenResult = await currentUser.getIdTokenResult();
       if (currentRevision !== revision) return;
       const expiresAt = getSessionExpiresAt(tokenResult.authTime);
+      setSessionExpiresAt(expiresAt);
       stopSessionWatch = watchSessionExpiry(expiresAt, () => {
         ++revision;
         setSessionExpired(true);
+        setSessionExpiresAt(null);
         setUser(null);
         setRole(null);
         setPermissions(createDefaultPermissions("teacher"));
@@ -333,13 +338,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       activityIds,
       loading,
       sessionExpired,
+      sessionExpiresAt,
       isAdmin: role === "admin",
       isTeacher:
         isTeacherRole(role),
       login,
       logout,
     }),
-    [user, role, permissions, activityIds, loading, sessionExpired]
+    [user, role, permissions, activityIds, loading, sessionExpired, sessionExpiresAt]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

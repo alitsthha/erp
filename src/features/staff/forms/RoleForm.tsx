@@ -1,3 +1,4 @@
+import SafeForm from "@/components/forms/SafeForm";
 import SearchableSelect from "@/components/forms/SearchableSelect";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -57,7 +58,7 @@ export default function RoleForm({
     register,
     watch,
     handleSubmit,
-    formState: {
+    formState: { isDirty,
       errors,
       isSubmitting,
     },
@@ -82,7 +83,7 @@ export default function RoleForm({
   });
 
   return (
-    <form
+    <SafeForm dirty={isDirty}
       onSubmit={handleSubmit(onSubmit)}
       className="space-y-6"
     >
@@ -276,6 +277,6 @@ export default function RoleForm({
           {isSubmitting ? "Saving..." : submitLabel}
         </button>
       </div>
-    </form>
+    </SafeForm>
   );
 }

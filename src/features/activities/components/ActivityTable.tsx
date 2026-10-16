@@ -77,7 +77,7 @@ export default function ActivityTable({
           </thead>
 
           <tbody className="divide-y divide-slate-100">
-            {<PaginatedList showSort={false} items={activities} table>{(activity) => {
+            {<PaginatedList label="Activities" showSort={false} items={activities} table>{(activity) => {
               const feeVal = activity.countedMonthly
                 ? activity.feePerMonth
                 : activity.feePerSession ??
@@ -149,7 +149,7 @@ export default function ActivityTable({
       {/* Mobile Cards */}
 
       <div className="divide-y divide-slate-100 md:hidden">
-        {<PaginatedList showSort={false} items={activities}>{(activity) => {
+        {<PaginatedList label="Activities" showSort={false} items={activities}>{(activity) => {
           const feeVal = activity.countedMonthly
             ? activity.feePerMonth
             : activity.feePerSession ??

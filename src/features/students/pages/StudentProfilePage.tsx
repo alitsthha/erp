@@ -1,3 +1,4 @@
+import StudentQuickActions from "@/components/common/StudentQuickActions";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -43,6 +44,7 @@ export default function StudentProfilePage() {
         description={student.studentCode}
       />
 
+      <StudentQuickActions studentId={student.id} />
       <div className="sm:p-5 p-4 ui-surface">
         <div className="grid gap-4 md:grid-cols-2">
           <p><strong>Guardian:</strong> {student.guardianName ?? student.parentName ?? "-"}</p>

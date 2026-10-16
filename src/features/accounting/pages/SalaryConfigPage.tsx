@@ -1,3 +1,4 @@
+import { useSessionState } from "@/hooks/useSessionState";
 import SearchableSelect from "@/components/forms/SearchableSelect";
 import PaginatedList from "@/components/common/PaginatedList";
 import { useEffect, useMemo, useState } from "react";
@@ -29,8 +30,8 @@ export default function SalaryConfigPage() {
   const [configs, setConfigs] = useState<SalaryConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [search, setSearch] = useSessionState("accounting:SalaryConfigPage:search", "");
+  const [statusFilter, setStatusFilter] = useSessionState("accounting:SalaryConfigPage:statusFilter", "all");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<SalaryConfig | "bulk" | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);

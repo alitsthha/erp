@@ -1,3 +1,4 @@
+import SafeForm from "@/components/forms/SafeForm";
 import SearchableSelect from "@/components/forms/SearchableSelect";
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -39,7 +40,7 @@ export default function StudentForm({
     handleSubmit,
     reset,
     setValue,
-    formState: {
+    formState: { isDirty,
       errors,
       isSubmitting,
     },
@@ -88,7 +89,7 @@ export default function StudentForm({
   }, [initialData, reset]);
 
   return (
-    <form
+    <SafeForm dirty={isDirty}
       onSubmit={handleSubmit(onSubmit)}
       className="ui-page mx-auto w-full space-y-6"
     >
@@ -544,6 +545,6 @@ export default function StudentForm({
           {isSubmitting ? "Saving..." : submitLabel}
         </button>
       </div>
-    </form>
+    </SafeForm>
   );
 }

@@ -1,3 +1,4 @@
+import SafeForm from "@/components/forms/SafeForm";
 import SearchableSelect from "@/components/forms/SearchableSelect";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -25,7 +26,7 @@ export default function AddSalaryConfigPage() {
     handleSubmit,
     setValue,
     watch,
-    formState: { errors, isSubmitting },
+    formState: { isDirty, errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(salaryConfigSchema),
     defaultValues: {
@@ -68,7 +69,7 @@ export default function AddSalaryConfigPage() {
         description="Assign a salary structure to a specific staff member."
       />
 
-      <form
+      <SafeForm dirty={isDirty}
         onSubmit={handleSubmit(onSubmit)}
         className="ui-surface space-y-5 p-5 sm:p-7"
       >
@@ -314,7 +315,7 @@ export default function AddSalaryConfigPage() {
             {isSubmitting ? "Saving..." : "Save Configuration"}
           </button>
         </div>
-      </form>
+      </SafeForm>
     </div>
   );
 }

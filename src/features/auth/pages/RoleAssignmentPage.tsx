@@ -1,3 +1,4 @@
+import SafeForm from "@/components/forms/SafeForm";
 import SearchableSelect from "@/components/forms/SearchableSelect";
 import ListSortControl from "@/components/common/ListSortControl";
 import PaginatedList from "@/components/common/PaginatedList";
@@ -574,7 +575,7 @@ export default function RoleAssignmentPage() {
         </div>
 
         {/* Right Column: Role Template & Module Permissions Form */}
-        <form
+        <SafeForm saved={message}
           onSubmit={handleOpenPasswordModal}
           className="sm:p-5 p-4 ui-surface space-y-5"
         >
@@ -729,7 +730,7 @@ export default function RoleAssignmentPage() {
             <KeyRound size={17} />
             {existingUserRole ? "Update Role & Modules" : "Assign Role & Set Password"}
           </button>
-        </form>
+        </SafeForm>
 
       </div>
 

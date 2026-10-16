@@ -1,3 +1,5 @@
+import toast from "react-hot-toast";
+import SafeForm from "@/components/forms/SafeForm";
 import SearchableSelect from "@/components/forms/SearchableSelect";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -64,7 +66,7 @@ export default function ActivityForm({ activityId }: Props) {
     setValue,
     setError,
     control,
-    formState: {
+    formState: { isDirty,
       errors,
       isSubmitting,
     },
@@ -170,11 +172,11 @@ export default function ActivityForm({ activityId }: Props) {
       if (activityId) {
         await updateActivity(activityId, data);
 
-        alert("Activity updated successfully.");
+        toast.success("Activity updated successfully.");
       } else {
         await addActivity(data);
 
-        alert("Activity created successfully.");
+        toast.success("Activity created successfully.");
       }
 
       navigate("/activities");
@@ -222,7 +224,7 @@ export default function ActivityForm({ activityId }: Props) {
   */
 
   return (
-      <form
+      <SafeForm dirty={isDirty}
           onSubmit={handleSubmit(onSubmit)}
           className="ui-page mx-auto w-full space-y-6"
       >
@@ -692,6 +694,6 @@ export default function ActivityForm({ activityId }: Props) {
             </button>
           </div>
         </div>
-      </form>
+      </SafeForm>
   );
 }

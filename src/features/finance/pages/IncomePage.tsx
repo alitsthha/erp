@@ -1,3 +1,5 @@
+import { useSessionState } from "@/hooks/useSessionState";
+import SafeForm from "@/components/forms/SafeForm";
 import SearchableSelect from "@/components/forms/SearchableSelect";
 import PaginatedList from "@/components/common/PaginatedList";
 import { useEffect, useMemo, useState } from "react";
@@ -25,8 +27,8 @@ export default function IncomePage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [search, setSearch] = useSessionState("finance:IncomePage:search", "");
+  const [categoryFilter, setCategoryFilter] = useSessionState("finance:IncomePage:categoryFilter", "all");
   const [incomeCategory, setIncomeCategory] = useState<IncomeCategory>("Student Fee (Advance)");
   const [selectedStudentId, setSelectedStudentId] = useState("");
   const [amount, setAmount] = useState("");
@@ -193,7 +195,7 @@ export default function IncomePage() {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[420px_minmax(0,1fr)]">
-          <form onSubmit={handleAddIncome} className="ui-surface p-5">
+          <SafeForm saved={success} onSubmit={handleAddIncome} className="ui-surface p-5">
             <div className="mb-4 flex items-center gap-3">
               <div className="rounded-xl bg-brand-600 p-2.5 text-white">
                 <Plus size={18} />
@@ -298,7 +300,7 @@ export default function IncomePage() {
                 </button>
               </div>
             </div>
-          </form>
+          </SafeForm>
 
           <div className="ui-surface p-4 sm:p-6">
             <ListToolbar

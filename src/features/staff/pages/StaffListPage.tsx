@@ -1,7 +1,8 @@
+import { useSessionState } from "@/hooks/useSessionState";
 import SearchableSelect from "@/components/forms/SearchableSelect";
 import ListSortControl from "@/components/common/ListSortControl";
 import PaginatedList from "@/components/common/PaginatedList";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, RotateCw, Search, Users, Briefcase, Mail, Phone } from "lucide-react";
 
@@ -24,8 +25,8 @@ function normalizeToBsDate(value?: string): string {
 export default function StaffListPage() {
   const navigate = useNavigate();
   const { staffs, loading, removeStaff } = useStaff();
-  const [search, setSearch] = useState("");
-  const [employmentFilter, setEmploymentFilter] = useState("all");
+  const [search, setSearch] = useSessionState("staff:search", "");
+  const [employmentFilter, setEmploymentFilter] = useSessionState("staff:employmentFilter", "all");
 
   // Filter staff based on search and employment type
   const filteredStaffs = useMemo(() => {

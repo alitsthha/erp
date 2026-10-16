@@ -1,3 +1,4 @@
+import { useSessionState } from "@/hooks/useSessionState";
 import { useAuth } from "@/app/providers/AuthProvider";
 import ListSortControl from "@/components/common/ListSortControl";
 import {
@@ -6,7 +7,7 @@ import {
   useState,
 } from "react";
 
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import {
   Activity as ActivityIcon,
@@ -28,6 +29,8 @@ import type { Enrollment } from "../types/enrollment.types";
 
 export default function EnrollmentListPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const studentId = searchParams.get("studentId");
   const { isAdmin } = useAuth();
 
   const [enrollments, setEnrollments] =
@@ -40,10 +43,10 @@ export default function EnrollmentListPage() {
     useState<string | null>(null);
 
   const [search, setSearch] =
-    useState("");
+    useSessionState("enrollments:search", "");
 
   const [statusFilter, setStatusFilter] =
-    useState("all");
+    useSessionState("enrollments:statusFilter", "all");
 
   const loadEnrollments = async () => {
     try {
@@ -78,6 +81,7 @@ export default function EnrollmentListPage() {
 
     return enrollments.filter(
       (enrollment) => {
+        if (studentId && enrollment.studentId !== studentId) return false;
         const matchesSearch =
           !term ||
           enrollment.enrollmentCode
@@ -109,6 +113,7 @@ export default function EnrollmentListPage() {
     );
   }, [
     enrollments,
+    studentId,
     search,
     statusFilter,
   ]);
@@ -213,6 +218,11 @@ export default function EnrollmentListPage() {
         </button>
         </div>
       </div>
+
+      {studentId && <div className="ui-surface flex flex-wrap items-center justify-between gap-3 p-4 text-sm">
+        <p>Showing enrollments for the selected student.</p>
+        <Link to="/enrollments" className="text-brand-700">Show all students</Link>
+      </div>}
 
       {/* SUMMARY CARDS */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

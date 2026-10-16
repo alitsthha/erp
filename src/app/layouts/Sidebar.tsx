@@ -215,7 +215,7 @@ export default function Sidebar({
       <aside
         className={`
           fixed inset-y-0 left-0 z-50
-          flex h-full w-64 shrink-0 flex-col
+          flex h-dvh max-h-dvh min-h-0 w-64 shrink-0 flex-col overflow-hidden
           border-r border-slate-200
           bg-white
           shadow-sm
@@ -251,7 +251,7 @@ export default function Sidebar({
         {/* =================================================
             NAVIGATION
         ================================================== */}
-        <nav className="flex-1 overflow-y-auto px-3 py-5">
+        <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-5">
           <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
             {isAdmin ? "Admin Panel" : "My Modules"}
           </p>

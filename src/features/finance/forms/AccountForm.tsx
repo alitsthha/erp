@@ -1,3 +1,4 @@
+import SafeForm from "@/components/forms/SafeForm";
 import SearchableSelect from "@/components/forms/SearchableSelect";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
@@ -40,7 +41,7 @@ export default function AccountForm({
     handleSubmit,
     reset,
     watch,
-    formState: {
+    formState: { isDirty,
       errors,
       isSubmitting,
     },
@@ -97,7 +98,7 @@ export default function AccountForm({
   const submitting = isSubmitting || isLoading;
 
   return (
-    <form
+    <SafeForm dirty={isDirty}
       onSubmit={handleSubmit(onSubmit)}
       className="space-y-6"
     >
@@ -467,6 +468,6 @@ export default function AccountForm({
             : submitLabel}
         </button>
       </div>
-    </form>
+    </SafeForm>
   );
 }

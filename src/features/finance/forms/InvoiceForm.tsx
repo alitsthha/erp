@@ -1,3 +1,4 @@
+import SafeForm from "@/components/forms/SafeForm";
 import SearchableSelect from "@/components/forms/SearchableSelect";
 import { useState } from "react";
 import { Loader2, Sparkles, Plus, Trash2 } from "lucide-react";
@@ -20,7 +21,6 @@ interface InvoiceFormProps {
   isSubmitting?: boolean;
 }
 
-const TODAY = getCurrentBSDate();
 
 export default function InvoiceForm({
   students,
@@ -31,8 +31,8 @@ export default function InvoiceForm({
   const [studentId, setStudentId] = useState("");
   const [studentName, setStudentName] = useState("");
   const [studentCode, setStudentCode] = useState("");
-  const [billingMonth, setBillingMonth] = useState(TODAY.slice(0, 7));
-  const [invoiceDate, setInvoiceDate] = useState(TODAY);
+  const [billingMonth, setBillingMonth] = useState(() => getCurrentBSDate().slice(0, 7));
+  const [invoiceDate, setInvoiceDate] = useState(getCurrentBSDate);
   const [dueDate, setDueDate] = useState("");
   const [discount, setDiscount] = useState(0);
   const [notes, setNotes] = useState("");
@@ -156,7 +156,7 @@ export default function InvoiceForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <SafeForm onSubmit={handleSubmit} className="space-y-6">
 
       {/* Student + Month */}
       <div className="grid gap-4 sm:grid-cols-2">
@@ -401,6 +401,6 @@ export default function InvoiceForm({
           {isSubmitting ? "Saving..." : "Create Invoice"}
         </button>
       </div>
-    </form>
+    </SafeForm>
   );
 }

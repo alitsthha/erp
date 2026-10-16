@@ -1,3 +1,5 @@
+import { useSessionState } from "@/hooks/useSessionState";
+import { UNSAFE_LocationContext } from "react-router-dom";
 import { useContext, useId, useMemo, useState, type ReactNode } from "react";
 import { getPage } from "@/utils/pagination";
 import { getSortDate, sortList, type ListSortOrder } from "@/utils/list-sort";
@@ -15,6 +17,7 @@ interface Props<T> {
 }
 
 export default function PaginatedList<T>({ items: sourceItems, children, table = false, list = false, label = "Records", showSort = true, sortable = true }: Props<T>) {
+  const pathname = useContext(UNSAFE_LocationContext)?.location.pathname ?? "standalone";
   const sortContext = useContext(ListSortContext);
   const [localOrder, setLocalOrder] = useState<ListSortOrder>("default");
   const order = sortable ? sortContext?.order ?? localOrder : "default";
@@ -29,10 +32,9 @@ export default function PaginatedList<T>({ items: sourceItems, children, table =
     }
     return item;
   }));
-  const [selection, setSelection] = useState({ identity, page: 1 });
+  const [selection, setSelection] = useSessionState(`${pathname}:${label}:${table ? "table" : "list"}:page`, { identity, page: 1 });
   const pageId = useId();
   const current = getPage(items, selection.identity === identity ? selection.page : 1);
-  if (selection.identity !== identity) setSelection({ identity, page: 1 });
 
   const changePage = (page: number) => setSelection({ identity, page });
   const pageNumbers = Array.from({ length: Math.min(5, current.totalPages) }, (_, index) =>

@@ -1,3 +1,4 @@
+import { useSessionState } from "@/hooks/useSessionState";
 import SearchableSelect from "@/components/forms/SearchableSelect";
 import PaginatedList from "@/components/common/PaginatedList";
 import { useEffect, useMemo, useState } from "react";
@@ -21,8 +22,8 @@ export default function AccountsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [search, setSearch] = useState("");
-  const [typeFilter, setTypeFilter] = useState("all");
+  const [search, setSearch] = useSessionState("finance:AccountsPage:search", "");
+  const [typeFilter, setTypeFilter] = useSessionState("finance:AccountsPage:typeFilter", "all");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<Account | "bulk" | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);

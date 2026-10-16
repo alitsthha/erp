@@ -1,3 +1,4 @@
+import SafeForm from "@/components/forms/SafeForm";
 import SearchableSelect from "@/components/forms/SearchableSelect";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -26,7 +27,7 @@ export default function SalaryConfigForm({
     setValue,
     handleSubmit,
     watch,
-    formState: {
+    formState: { isDirty,
       errors,
       isSubmitting,
     },
@@ -68,7 +69,7 @@ export default function SalaryConfigForm({
   const total = basic + allowance + bonus - deduction;
 
   return (
-    <form
+    <SafeForm dirty={isDirty}
       onSubmit={handleSubmit(onSubmit)}
       className="space-y-8"
     >
@@ -272,6 +273,6 @@ export default function SalaryConfigForm({
 
       </div>
 
-    </form>
+    </SafeForm>
   );
 }

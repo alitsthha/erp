@@ -1,3 +1,4 @@
+import SafeForm from "@/components/forms/SafeForm";
 import SearchableSelect from "@/components/forms/SearchableSelect";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -128,7 +129,7 @@ export default function SettingsForm() {
   }
 
   return (
-    <form
+    <SafeForm dirty={isDirty} saved={saveSuccess}
       onSubmit={handleSubmit(onSubmit)}
       className="ui-page mx-auto w-full space-y-6"
     >
@@ -801,6 +802,6 @@ export default function SettingsForm() {
           </div>
         </div>
       </div>
-    </form>
+    </SafeForm>
   );
 }

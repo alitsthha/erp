@@ -1,3 +1,4 @@
+import { useSessionState } from "@/hooks/useSessionState";
 import ListSortControl from "@/components/common/ListSortControl";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -16,8 +17,8 @@ export default function ActivityListPage() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [search, setSearch] = useSessionState("activities:search", "");
+  const [statusFilter, setStatusFilter] = useSessionState("activities:statusFilter", "all");
 
   const fetchActivities = useCallback(async () => {
     if (isAdmin) await ensureActivityColors();

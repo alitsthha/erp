@@ -1,4 +1,6 @@
-import { Link } from "react-router-dom";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { useUnsavedWork } from "@/hooks/useUnsavedWork";
+import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/app/providers/AuthProvider";
 import SearchableSelect from "@/components/forms/SearchableSelect";
 import BillingChargeEditor from "../components/BillingChargeEditor";
@@ -90,12 +92,25 @@ const ORGANIZATION_DETAILS = {
 };
 
 export default function BillingPage() {
+  const [params] = useSearchParams();
+  return <BillingWorkspace key={`${params.get("studentId") ?? ""}:${params.get("action") ?? ""}`} />;
+}
+
+function BillingWorkspace() {
   const { isAdmin } = useAuth();
+  const [searchParams] = useSearchParams();
+  const paymentMode = searchParams.get("action") === "payment";
+  const [showOutstandingOnly, setShowOutstandingOnly] = useState(paymentMode);
+  const invoicesRef = useRef<HTMLElement>(null);
+  const [invoiceReviewOpen, setInvoiceReviewOpen] = useState(false);
+  const invoiceCreationInProgress = useRef(false);
+  const [editingInvoiceSaving, setEditingInvoiceSaving] = useState(false);
+  const invoiceEditInProgress = useRef(false);
   const [students, setStudents] =
     useState<Student[]>([]);
 
   const [selectedStudentId, setSelectedStudentId] =
-    useState("");
+    useState(searchParams.get("studentId") ?? "");
 
   const [billingDate, setBillingDate] =
     useState(getCurrentBSDate());
@@ -167,6 +182,17 @@ export default function BillingPage() {
 
   const [success, setSuccess] =
     useState("");
+
+  const invoiceHasChanges = Boolean(editingInvoice && (editInvoiceDate !== editingInvoice.invoiceDate || editInvoiceTotal !== editingInvoice.totalAmount));
+  useUnsavedWork(Boolean(calculatedSummary || invoiceHasChanges));
+  useEffect(() => {
+    if (paymentMode) invoicesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [paymentMode]);
+
+  const displayedInvoices = invoices.filter((invoice) =>
+    (!selectedStudentId || invoice.studentId === selectedStudentId) &&
+    (!showOutstandingOnly || invoice.dueAmount > 0)
+  );
 
   /* =====================================================
      LOAD STUDENTS
@@ -389,6 +415,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
   }
 
   async function handleCreateInvoice() {
+    if (invoiceCreationInProgress.current) return;
     if (!selectedStudentId) {
       setError("Please select a student first.");
       return;
@@ -400,6 +427,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
     }
 
     try {
+      invoiceCreationInProgress.current = true;
       setCreatingInvoice(true);
       calculationRequest.current++;
       setError("");
@@ -428,11 +456,14 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
           : "Unable to generate invoice."
       );
     } finally {
+      invoiceCreationInProgress.current = false;
+      setInvoiceReviewOpen(false);
       setCreatingInvoice(false);
     }
   }
 
   async function handleEditInvoiceSave() {
+    if (invoiceEditInProgress.current) return;
     if (!editingInvoice || !editingInvoice.id) {
       return;
     }
@@ -465,6 +496,8 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                 ? "Partially Paid"
                 : "Unpaid";
 
+      invoiceEditInProgress.current = true;
+      setEditingInvoiceSaving(true);
       await updateInvoice(editingInvoice.id, {
         invoiceDate: validDate,
         totalAmount: nextTotal,
@@ -480,6 +513,9 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
     } catch (err) {
       console.error("Failed to update invoice:", err);
       setError(err instanceof Error ? err.message : "Unable to update invoice.");
+    } finally {
+      invoiceEditInProgress.current = false;
+      setEditingInvoiceSaving(false);
     }
   }
 
@@ -506,6 +542,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
           ? err.message
           : "Unable to record payment."
       );
+      throw err;
     } finally {
       setIsSubmittingPayment(false);
     }
@@ -797,7 +834,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                 {summary && summary.totalAmount > 0 && (
                   <button
                     type="button"
-                    onClick={handleCreateInvoice}
+                    onClick={() => setInvoiceReviewOpen(true)}
                     disabled={creatingInvoice}
                     className="ui-button flex w-full items-center justify-center gap-2 bg-emerald-600 py-3 text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
@@ -809,7 +846,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                     ) : (
                       <>
                         <FileText size={17} />
-                        Generate Invoice
+                        Review Invoice
                       </>
                     )}
                   </button>
@@ -1140,7 +1177,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
             EMPTY STATE
         ================================================= */}
 
-        <section className="ui-surface p-5 sm:p-6">
+        <section ref={invoicesRef} id="invoices" className="ui-surface scroll-mt-4 p-5 sm:p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="ui-section-title">
@@ -1153,12 +1190,15 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
             </div>
           </div>
 
+          <label className="mt-4 flex items-center gap-2 text-sm"><input type="checkbox" checked={showOutstandingOnly} onChange={(event) => setShowOutstandingOnly(event.target.checked)} />Show outstanding invoices only</label>
+          {paymentMode && <p className="mt-2 text-sm text-brand-700">Choose an invoice below to record a payment for the selected student.</p>}
           <div className="mt-5">
             <InvoiceTable
-              invoices={invoices}
+              invoices={displayedInvoices}
               isLoading={loadingInvoices}
               onView={(invoice) => setSelectedInvoiceForPreview(invoice)}
               onEdit={(invoice) => {
+                setError("");
                 setEditingInvoice(invoice);
                 setEditInvoiceDate(invoice.invoiceDate);
                 setEditInvoiceTotal(invoice.totalAmount);
@@ -1193,6 +1233,22 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
           )}
 
       </div>
+
+      <ConfirmDialog open={invoiceReviewOpen} title="Review invoice before saving" isDestructive={false} confirmLabel="Generate Invoice" isLoading={creatingInvoice}
+        onCancel={() => { if (!creatingInvoice) setInvoiceReviewOpen(false); }} onConfirm={() => void handleCreateInvoice()}
+        description={<div className="space-y-3">
+          <p><strong>{selectedStudent?.studentCode} · {selectedStudent?.fullName}</strong></p>
+          <p>Invoice date: {formatBSDate(invoiceDate)}</p>
+          <dl className="space-y-2">
+            <div className="flex justify-between gap-3"><dt>Selected new charges</dt><dd>Rs. {formatCurrency(summary?.totalAmount ?? 0)}</dd></div>
+            <div className="flex justify-between gap-3"><dt>Discount</dt><dd>− Rs. {formatCurrency(appliedDiscount)}</dd></div>
+            <div className="flex justify-between gap-3"><dt>Advance applied</dt><dd>− Rs. {formatCurrency(advanceToApply)}</dd></div>
+            <div className="flex justify-between gap-3 border-t pt-2 font-semibold"><dt>New invoice due</dt><dd>Rs. {formatCurrency(newInvoiceDue)}</dd></div>
+            <div className="flex justify-between gap-3"><dt>Previous outstanding balance</dt><dd>Rs. {formatCurrency(summary?.previousBalance ?? 0)}</dd></div>
+          </dl>
+          <p>Previous dues remain on their original invoices.</p>
+          {error && <p role="alert" className="text-red-700">{error}</p>}
+        </div>} />
 
       {selectedInvoiceForPreview && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
@@ -1293,7 +1349,9 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
               </div>
               <button
                 type="button"
+                disabled={editingInvoiceSaving}
                 onClick={() => {
+                  if (invoiceHasChanges && !window.confirm("Discard your invoice changes?")) return;
                   setEditingInvoice(null);
                   setEditInvoiceDate("");
                   setEditInvoiceTotal(0);
@@ -1304,11 +1362,13 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
               </button>
             </div>
 
+            {error && <p role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
             <div className="space-y-4">
               <label className="block text-sm font-medium text-slate-700">
                 Invoice Date
                 <input
                   type="date"
+                  disabled={editingInvoiceSaving}
                   value={editInvoiceDate}
                   onChange={(event) => setEditInvoiceDate(event.target.value)}
                   className="ui-field mt-1.5 w-full px-3 text-slate-900 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-slate-200"
@@ -1321,6 +1381,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                   type="number"
                   min="0"
                   step="0.01"
+                  disabled={editingInvoiceSaving}
                   value={editInvoiceTotal}
                   onChange={(event) => setEditInvoiceTotal(Number(event.target.value) || 0)}
                   className="ui-field mt-1.5 w-full px-3 text-slate-900 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-slate-200"
@@ -1331,7 +1392,9 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
             <div className="mt-6 flex justify-end gap-3">
               <button
                 type="button"
+                disabled={editingInvoiceSaving}
                 onClick={() => {
+                  if (invoiceHasChanges && !window.confirm("Discard your invoice changes?")) return;
                   setEditingInvoice(null);
                   setEditInvoiceDate("");
                   setEditInvoiceTotal(0);
@@ -1342,10 +1405,11 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
               </button>
               <button
                 type="button"
+                disabled={editingInvoiceSaving}
                 onClick={() => void handleEditInvoiceSave()}
                 className="ui-button bg-brand-600 py-2.5 text-white hover:bg-brand-700"
               >
-                Save Changes
+                {editingInvoiceSaving ? "Saving…" : "Save Changes"}
               </button>
             </div>
           </div>

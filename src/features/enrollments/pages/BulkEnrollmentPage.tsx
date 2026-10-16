@@ -1,3 +1,4 @@
+import { useUnsavedWork } from "@/hooks/useUnsavedWork";
 import { useEffect, useRef, useState } from "react";
 import NepaliDatePickerInput from "@/components/forms/NepaliDatePickerInput";
 import { getCurrentBSDate } from "@/utils/nepali-date";
@@ -32,6 +33,8 @@ export default function BulkEnrollmentPage() {
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);
+
+  useUnsavedWork(saving || (results.length === 0 && (selectedStudents.length > 0 || selectedActivities.length > 0)));
 
   const term = search.trim().toLowerCase();
   const visibleStudents = students.filter((student) =>

@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from "react";
+import { FormSafetyContext } from "@/components/forms/form-safety-context";
+import GlobalSearch from "@/components/common/GlobalSearch";
+import { useContext, useState, useRef, useEffect } from "react";
 import {
   Menu,
-  Search,
   Bell,
   LogOut,
   Settings,
@@ -18,6 +19,7 @@ type HeaderProps = {
 
 export default function Header({ onMenuClick }: HeaderProps) {
   const navigate = useNavigate();
+  const formEntries = useContext(FormSafetyContext);
   const { user, role, isAdmin, logout } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -51,6 +53,8 @@ export default function Header({ onMenuClick }: HeaderProps) {
   }, [dropdownOpen]);
 
   const handleLogout = async () => {
+    if ([...(formEntries?.values() ?? [])].some((entry) => entry.dirty || entry.saving) &&
+      !window.confirm("You have unsaved changes or a save in progress. Log out and leave this work?")) return;
     try {
       setIsLoggingOut(true);
       setDropdownOpen(false);
@@ -103,17 +107,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
           </p>
         </div>
 
-        {/* Search Input */}
-        <div className="hidden w-64 md:block lg:w-72">
-          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-            <Search size={18} className="text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search..."
-              className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
-            />
-          </div>
-        </div>
+        <GlobalSearch />
 
         {/* Notification Bell */}
         <button

@@ -1,3 +1,4 @@
+import { useSessionState } from "@/hooks/useSessionState";
 import ListSortControl from "@/components/common/ListSortControl";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -10,7 +11,7 @@ import type { Role } from "../types/role.types";
 
 export default function RolesPage() {
   const [roles, setRoles] = useState<Role[]>([]);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useSessionState("staff:RolesPage:search", "");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

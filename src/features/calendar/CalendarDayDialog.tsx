@@ -1,3 +1,4 @@
+import SafeForm from "@/components/forms/SafeForm";
 import SearchableSelect from "@/components/forms/SearchableSelect";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
@@ -106,7 +107,7 @@ export default function CalendarDayDialog({ date, today, items, colors = {}, act
     </div>}
     {isAdmin && !entriesUnavailable && !loading && <div className="mt-5 border-t border-slate-200 pt-4">
       {!adding ? <button type="button" onClick={() => setAdding(true)} className="min-h-11 inline-flex items-center gap-2 rounded-lg calendar-cta px-4 py-2 text-sm font-medium"><Plus size={16} /> Add class or event</button>
-        : <form onSubmit={(event) => void save(event)} className="space-y-3">
+        : <SafeForm onSubmit={save} className="space-y-3">
           <h3 className="font-semibold">Add to {formatBSDate(date)} BS</h3>
           <fieldset disabled={busy} className="space-y-3">
             <label className="block text-sm">Type<SearchableSelect value={type} onChange={(event) => setType(event.target.value as CalendarEntryType)} className={inputClass}><option value="class">Planned class</option><option value="event">Event</option><option value="holiday">Holiday</option></SearchableSelect></label>
@@ -116,7 +117,7 @@ export default function CalendarDayDialog({ date, today, items, colors = {}, act
             <label className="block text-sm">Notes (optional)<textarea maxLength={2000} value={notes} onChange={(event) => setNotes(event.target.value)} className={inputClass} /></label>
             <div className="flex gap-3"><button type="submit" className="min-h-11 rounded-lg calendar-cta px-4 py-2 text-sm font-medium">{busy ? "Saving…" : "Save entry"}</button><button type="button" onClick={() => setAdding(false)} className="ui-button border border-slate-300 py-2">Cancel</button></div>
           </fieldset>
-        </form>}
+        </SafeForm>}
     </div>}
   </dialog>;
 }

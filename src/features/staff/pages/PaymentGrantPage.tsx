@@ -1,3 +1,4 @@
+import SafeForm from "@/components/forms/SafeForm";
 import SearchableSelect from "@/components/forms/SearchableSelect";
 import PaginatedList from "@/components/common/PaginatedList";
 import { useEffect, useState } from "react";
@@ -161,7 +162,7 @@ export default function PaymentGrantPage() {
               Add Payment
             </h2>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <SafeForm onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-700">Staff</label>
                 <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
@@ -239,7 +240,7 @@ export default function PaymentGrantPage() {
               >
                 {isSubmitting || submitting ? "Adding..." : "Add Payment"}
               </button>
-            </form>
+            </SafeForm>
           </div>
 
           <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">

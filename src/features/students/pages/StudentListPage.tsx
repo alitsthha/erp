@@ -1,3 +1,4 @@
+import { useSessionState } from "@/hooks/useSessionState";
 import ListSortControl from "@/components/common/ListSortControl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -43,8 +44,8 @@ export default function StudentListPage() {
   const [reviewLoading, setReviewLoading] = useState(false);
   const reviewRequest = useRef(0);
 
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [search, setSearch] = useSessionState("students:search", "");
+  const [statusFilter, setStatusFilter] = useSessionState("students:statusFilter", "all");
 
   // --------------------------------------------------
   // LOAD STUDENTS & ENROLLMENTS
@@ -114,7 +115,8 @@ export default function StudentListPage() {
         keyword === "" ||
         name.toLowerCase().includes(keyword) ||
         code.toLowerCase().includes(keyword) ||
-        guardian.toLowerCase().includes(keyword);
+        guardian.toLowerCase().includes(keyword) ||
+        (student.guardianPhone ?? student.parentPhone ?? "").includes(keyword);
 
       const matchesStatus =
         statusFilter === "all" ||
