@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+import { useAuth } from "@/app/providers/AuthProvider";
 import SearchableSelect from "@/components/forms/SearchableSelect";
 import BillingChargeEditor from "../components/BillingChargeEditor";
 import { applyBillingSelection, defaultBillingSelection, type BillingSelection } from "../services/billing-selection.service";
@@ -88,6 +90,7 @@ const ORGANIZATION_DETAILS = {
 };
 
 export default function BillingPage() {
+  const { isAdmin } = useAuth();
   const [students, setStudents] =
     useState<Student[]>([]);
 
@@ -603,6 +606,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
               </div>
             </div>
           </div>
+          {isAdmin && <Link to="/enrollments/bulk" className="ui-button border border-slate-200 bg-white text-slate-700">Bulk Enrollment</Link>}
         </div>
 
         {/* =================================================

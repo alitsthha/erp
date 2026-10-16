@@ -37,3 +37,38 @@ export function watchSessionExpiry(expiresAt: number, onExpire: () => void): () 
   check();
   return stop;
 }
+
+// Clear only data accessible to this application's origin. HttpOnly cookies
+// must be expired by the server that set them.
+export function clearBrowserSessionData(): void {
+  for (const storageName of ["localStorage", "sessionStorage"] as const) {
+    try {
+      window[storageName].clear();
+    } catch {
+      // Storage may be disabled by browser privacy settings.
+    }
+  }
+
+  const paths = new Set(["/"]);
+  const segments = window.location.pathname.split("/").filter(Boolean);
+  while (segments.length) {
+    paths.add(`/${segments.join("/")}`);
+    paths.add(`/${segments.join("/")}/`);
+    segments.pop();
+  }
+  const domains = [""];
+  const hostnameParts = window.location.hostname.split(".");
+  while (hostnameParts.length > 1) {
+    domains.push(hostnameParts.join("."));
+    hostnameParts.shift();
+  }
+  for (const cookie of document.cookie.split(";")) {
+    const name = cookie.split("=")[0].trim();
+    if (!name) continue;
+    for (const path of paths) {
+      for (const domain of domains) {
+        document.cookie = `${name}=; Max-Age=0; Path=${path}${domain ? `; Domain=${domain}` : ""}`;
+      }
+    }
+  }
+}

@@ -1,3 +1,4 @@
+import { useAuth } from "@/app/providers/AuthProvider";
 import ListSortControl from "@/components/common/ListSortControl";
 import {
   useEffect,
@@ -27,6 +28,7 @@ import type { Enrollment } from "../types/enrollment.types";
 
 export default function EnrollmentListPage() {
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
 
   const [enrollments, setEnrollments] =
     useState<Enrollment[]>([]);
@@ -196,6 +198,8 @@ export default function EnrollmentListPage() {
           </p>
         </div>
 
+        <div className="flex flex-wrap gap-3">
+          {isAdmin && <button type="button" onClick={() => navigate("/enrollments/bulk")} className="ui-button border border-slate-200 bg-white text-slate-700">Bulk Enrollment</button>}
         <button
           type="button"
           onClick={() =>
@@ -207,6 +211,7 @@ export default function EnrollmentListPage() {
 
           Add Enrollment
         </button>
+        </div>
       </div>
 
       {/* SUMMARY CARDS */}

@@ -1,3 +1,4 @@
+import BulkEnrollmentPage from "@/features/enrollments/pages/BulkEnrollmentPage";
 import {
   BrowserRouter,
   Routes,
@@ -184,6 +185,8 @@ export default function AppRouter() {
               path="/enrollments"
               element={<EnrollmentListPage />}
             />
+
+            <Route path="/enrollments/bulk" element={<AdminRoute><BulkEnrollmentPage /></AdminRoute>} />
 
             <Route
               path="/enrollments/add"

@@ -14,6 +14,8 @@ function sessionHarness() {
     addEventListener: (name, callback) => listeners.set(name, callback),
     removeEventListener: (name) => listeners.delete(name),
   });
+  const cleared = [];
+  const cookieWrites = [];
   const module = { exports: {} };
   const code = ts.transpileModule(readFileSync(new URL('../src/lib/auth-session.ts', import.meta.url), 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
@@ -23,6 +25,9 @@ function sessionHarness() {
     Date: { now: () => now, parse: Date.parse },
     window: {
       ...eventTarget(windowEvents),
+      location: { pathname: "/finance/billing", hostname: "erp.example.com" },
+      localStorage: { clear: () => cleared.push("localStorage") },
+      sessionStorage: { clear: () => cleared.push("sessionStorage") },
       setTimeout: (callback, delay) => {
         const id = ++nextId;
         timers.set(id, { callback, at: now + delay });
@@ -30,10 +35,14 @@ function sessionHarness() {
       },
       clearTimeout: (id) => timers.delete(id),
     },
-    document: eventTarget(documentEvents),
+    document: {
+      ...eventTarget(documentEvents),
+      get cookie() { return "session=secret; preference=value"; },
+      set cookie(value) { cookieWrites.push(value); },
+    },
   });
   return {
-    ...module.exports, timers, windowEvents, documentEvents,
+    ...module.exports, timers, windowEvents, documentEvents, cleared, cookieWrites,
     advance: (milliseconds) => { now += milliseconds; },
     runTimers: () => {
       for (const [id, timer] of [...timers]) {
@@ -100,4 +109,15 @@ test('cleanup prevents an old session timer from logging out a new login', () =>
   h.runTimers();
   assert.equal(expired, false);
   assert.equal(h.timers.size + h.windowEvents.size + h.documentEvents.size, 0);
+});
+
+
+test('logout clears browser storage and expires accessible cookies across paths and domains', () => {
+  const h = sessionHarness();
+  h.clearBrowserSessionData();
+  assert.deepEqual(h.cleared, ['localStorage', 'sessionStorage']);
+  for (const name of ['session', 'preference']) {
+    assert.ok(h.cookieWrites.includes(`${name}=; Max-Age=0; Path=/`));
+    assert.ok(h.cookieWrites.includes(`${name}=; Max-Age=0; Path=/finance/billing; Domain=example.com`));
+  }
 });

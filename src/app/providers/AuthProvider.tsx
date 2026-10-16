@@ -14,7 +14,7 @@ import {
 } from "firebase/auth";
 
 import { auth } from "@/lib/firebase";
-import { getSessionExpiresAt, watchSessionExpiry } from "@/lib/auth-session";
+import { clearBrowserSessionData, getSessionExpiresAt, watchSessionExpiry } from "@/lib/auth-session";
 import {
   createDefaultPermissions,
   normalizePermissions,
@@ -145,6 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setPermissions(createDefaultPermissions("teacher"));
         setActivityIds([]);
         setLoading(false);
+        clearBrowserSessionData();
         void signOut(auth).catch((error) => console.warn("Session sign out error:", error));
       });
       if (currentRevision !== revision) return;
@@ -312,9 +313,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem("erp_demo_session");
-    }
+    clearBrowserSessionData();
     try {
       await signOut(auth);
     } catch (err) {
