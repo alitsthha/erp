@@ -5,8 +5,8 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Only the server can create/remove this marker. Keep reads available while
-    // blocking all client writes until a complete reset has been verified.
+    // A recently authenticated administrator owns a browser reset. Normal writes
+    // stay paused until that administrator verifies and releases the marker.
     function databaseWritable() {
       return !exists(/databases/$(database)/documents/_maintenance/databaseReset);
     }
@@ -25,6 +25,40 @@ service cloud.firestore {
         request.auth.token.email == 'admin@outlook.com' ||
         request.auth.token.email == 'alitshrestha74@gmail.com'
       );
+    }
+
+    function isResetOwner() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/_maintenance/databaseReset)
+        && get(/databases/$(database)/documents/_maintenance/databaseReset).data.mode == 'browser'
+        && get(/databases/$(database)/documents/_maintenance/databaseReset).data.requestedBy == request.auth.uid;
+    }
+
+    function recentAuthentication() {
+      return isSignedIn() && request.auth.token.auth_time is int
+        && request.time.toMillis() - request.auth.token.auth_time * 1000 < 300000;
+    }
+
+    function validResetRequest() {
+      return request.resource.data.keys().hasOnly(['mode', 'requestedBy', 'runId', 'status', 'updatedAt'])
+        && request.resource.data.mode == 'browser'
+        && request.resource.data.requestedBy == request.auth.uid
+        && request.resource.data.runId is string
+        && request.resource.data.runId.size() > 0
+        && request.resource.data.runId.size() <= 100
+        && request.resource.data.status in ['running', 'failed']
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    match /_maintenance/databaseReset {
+      allow get: if isAdmin() || isResetOwner();
+      allow create: if isAdmin() && recentAuthentication() && validResetRequest();
+      allow update: if validResetRequest() && (
+        (isResetOwner() && resource.data.runId == request.resource.data.runId)
+        || (recentAuthentication() && (isAdmin() || isResetOwner())
+          && (resource.data.status == 'failed' || resource.data.updatedAt < request.time - duration.value(5, 'm')))
+      );
+      allow delete: if isResetOwner();
     }
 
     function hasModuleAccess(moduleName) {
@@ -230,7 +264,9 @@ service cloud.firestore {
     }
 
     match /{document=**} {
-      allow read, write: if false;
+      // Collection-group queries include orphaned nested records. Only the reset
+      // owner gets this temporary read/delete access; never create/update access.
+      allow read, delete: if isResetOwner();
     }
   }
 }

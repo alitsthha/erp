@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.clearDatabase = exports.setUserPassword = exports.deleteStudentCascade = exports.assignUserAccess = void 0;
+exports.setUserPassword = exports.deleteStudentCascade = exports.assignUserAccess = void 0;
 const admin = __importStar(require("firebase-admin"));
 const https_1 = require("firebase-functions/v2/https");
 const student_deletion_1 = require("./shared/student-deletion");
@@ -383,8 +383,4 @@ exports.setUserPassword = (0, https_1.onCall)(async (request) => {
         }
         throw new https_1.HttpsError("internal", "Unable to update the user password.");
     }
-});
-exports.clearDatabase = (0, https_1.onCall)({ timeoutSeconds: 540, memory: "512MiB" }, async (request) => {
-    const projectId = admin.app().options.projectId || process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || "";
-    return (0, database_reset_1.clearFirestoreDatabase)(db, projectId, request, () => isAdminRequest(request));
 });

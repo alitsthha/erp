@@ -1,7 +1,7 @@
 import * as admin from "firebase-admin";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { requireClearedPayments } from "./shared/student-deletion";
-import { assertDatabaseAvailable, clearFirestoreDatabase } from "./database-reset";
+import { assertDatabaseAvailable } from "./database-reset";
 
 admin.initializeApp();
 
@@ -379,9 +379,4 @@ export const setUserPassword = onCall(async (request) => {
     }
     throw new HttpsError("internal", "Unable to update the user password.");
   }
-});
-
-export const clearDatabase = onCall({ timeoutSeconds: 540, memory: "512MiB" }, async (request) => {
-  const projectId = admin.app().options.projectId || process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || "";
-  return clearFirestoreDatabase(db, projectId, request, () => isAdminRequest(request));
 });

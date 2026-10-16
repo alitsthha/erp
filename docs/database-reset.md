@@ -1,53 +1,50 @@
-# Clearing Firestore from Settings
+# Browser-based ERP reset (no Cloud Functions)
 
-Administrators can use **Settings → Database Management → Clear database**.
-The dialog shows the Firebase project and environment currently connected to the
-app. It requires `DELETE <project-id>` and the administrator's password.
+Use **Settings → Database Management → Clear database**. The browser connects
+straight to Firestore using the signed-in administrator's Firebase identity.
+Cloud Functions, a local backend, and a Blaze upgrade are not required. Firestore
+read/delete quotas still apply; quota exhaustion is reported rather than skipped.
 
-The server verifies administrator access, recent authentication, and its own
-project ID before deleting anything. It discovers all root collections and
-recursively deletes their documents and subcollections, including descendants of
-missing parent documents. This includes settings and stored role assignments.
-Firebase Authentication accounts/custom claims, Storage objects, database indexes,
-security rules, and the Firebase project itself are not deleted.
+The dialog requires `DELETE <connected-project-id>` and the administrator's
+password. It refreshes authentication before acquiring `_maintenance/databaseReset`.
+Rules permit only a recently authenticated administrator to start a reset. The
+owner can read and delete data while ordinary writes remain blocked. No API keys
+with administrative privileges or service-account secrets are put in the browser.
 
-Deploy the updated Firestore rules and Functions together before releasing the
-frontend. Build the frontend with `npm run build` and Functions with
-`npm --prefix functions run build`. The callable is named `clearDatabase`; the
-existing callables also include reset guards and must be redeployed. No reset
-runs during a build, deployment, or test.
+`RESET_COLLECTIONS` in `database-reset.service.ts` lists every collection ID used
+by the ERP. Collection-group queries include nested payments and records whose
+parents no longer exist. The service preflights every group with server reads,
+then deletes at most 200 documents per batch. Each batch atomically renews the
+owner's lock. Saved roles are deleted last; lock ownership preserves the ability
+to finish after the administrator's role document is removed. Every listed group
+is verified empty before releasing the lock and showing success.
 
-For local development connected to the demo project, explicitly target that project:
+This clears all ERP-managed data, including settings, colors, payment idempotency
+keys, counters, and audit records. It does **not** discover collection names added
+outside the ERP: Firebase's browser SDK cannot list arbitrary collections. Keep
+`RESET_COLLECTIONS` updated when adding collections or subcollections. Authentication
+accounts/custom claims, Storage files, indexes, and rules are unchanged. The UI
+states this scope explicitly. The existing Backup & Restore covers only its own
+listed sections and is not a full recovery export.
+
+Keep the tab open. Failed resets retain the pause and can be retried immediately
+with confirmation/password. If the browser disconnects before recording failure,
+wait five minutes for the lease to expire, then retry. Reset deletes are idempotent;
+no success is shown for offline, denied, or failed reads. After success, reload the
+application to discard previously loaded records. Admin access based solely on a
+`user_roles` document is removed along with that document.
+
+Deploy the rules to the same project used by the app before trying this version:
 
 ```sh
-firebase deploy --project demoerp-b1895 --only firestore:rules,functions
+firebase deploy --project demoerp-b1895 --only firestore:rules
 ```
 
-The CLI builds Functions automatically before deployment. The Firebase project
-must have Cloud Functions enabled and meet Firebase's Functions billing requirements.
-The callable SDK already handles CORS for localhost. A missing endpoint returns a
-404 without CORS headers, which the browser can report as a CORS error and the SDK
-as `functions/internal`; changing browser CORS settings does not deploy the function.
+Local Vite development picks up the new client code. For a hosted app, build and
+deploy its frontend too. No Functions deployment is needed for this reset. Existing
+server callables, if used, retain the reset guard; external Admin SDK jobs bypass
+rules and should be stopped before clearing.
 
-During clearing, `_maintenance/databaseReset` blocks client writes through the
-Firestore rules and prevents new operations in the app's other callables. Reads
-remain subject to their existing permissions. External Admin SDK jobs bypass
-rules and should be stopped before resetting. The server checks for remaining
-records before reporting success, then removes the marker so the database is empty.
-
-A partial failure retains the marker and pauses writes. Reopen the same dialog
-and confirm again to finish. After a timeout or interrupted connection, allow ten
-minutes for the old execution to expire before retrying. The initiating account
-can retry server-side even if its Firestore role document has already been deleted.
-An administrator whose access exists only in `user_roles` may need a project
-administrator to restore access after clearing; Authentication custom claims are
-unchanged. Use **Reload application** after success to discard loaded records.
-
-The existing Backup & Restore feature exports only its listed sections, not every
-collection/subcollection. It is not a complete recovery mechanism for this reset.
-
-Validation: `node --test tests/database-reset.test.mjs` exercises authorization,
-project confirmation, recursive deletion, duplicate requests, write blocking,
-partial failure, retry, and client confirmation with an isolated Firestore double.
-It does not contact Firebase. Emulator rules tests are in
+`node --test tests/database-reset.test.mjs` tests the browser service with an
+isolated Firestore double. Rules integration tests use only a local emulator in
 `tests/activity-color-rules.integration.mjs`.

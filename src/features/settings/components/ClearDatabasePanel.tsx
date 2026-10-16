@@ -14,6 +14,7 @@ export default function ClearDatabasePanel({ disabled, onBusyChange }: {
   const [confirmation, setConfirmation] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [progress, setProgress] = useState("");
   const [cleared, setCleared] = useState(false);
   const projectId = firebaseConfig.projectId;
   const expected = `DELETE ${projectId}`;
@@ -40,7 +41,7 @@ export default function ClearDatabasePanel({ disabled, onBusyChange }: {
     setError("");
     let succeeded = false;
     try {
-      await clearCurrentDatabase(confirmation, password);
+      await clearCurrentDatabase(confirmation, password, setProgress);
       succeeded = true;
       setCleared(true);
       setOpen(false);
@@ -59,17 +60,17 @@ export default function ClearDatabasePanel({ disabled, onBusyChange }: {
     <div className="rounded-xl border border-red-200 bg-red-50/50 p-4 sm:p-5">
       <h3 className="flex items-center gap-2 font-semibold text-red-800"><AlertTriangle size={18} />Clear database</h3>
       <p className="mt-2 text-sm text-slate-700">
-        Permanently delete all records and nested collections in the current Firestore database,
+        Permanently delete all ERP-managed records in the current Firestore database,
         including students, attendance, finances, settings, and saved role assignments.
-        Firebase login accounts and uploaded files remain. This cannot be undone.
+        This includes nested payment records. Firebase login accounts and uploaded files remain. This cannot be undone.
       </p>
       <p className="mt-2 break-all text-sm text-slate-700">
         Connected project: <strong>{projectId}</strong> · <strong className="capitalize">{firebaseEnvironment}</strong>
       </p>
-      <p className="mt-2 text-xs text-slate-600">Backup &amp; Restore above covers only its listed sections, not a complete database export.</p>
+      <p className="mt-2 text-xs text-slate-600">Collections added outside this ERP are not included. Backup &amp; Restore above covers only its listed sections, not a complete database export.</p>
       {cleared ? (
         <div className="mt-4" role="status">
-          <p className="text-sm font-medium text-emerald-800">The Firestore database in {projectId} has been cleared.</p>
+          <p className="text-sm font-medium text-emerald-800">All ERP-managed data in {projectId} has been cleared.</p>
           <button type="button" onClick={() => window.location.reload()} className="ui-button mt-3 border border-slate-300 bg-white text-slate-700">Reload application</button>
         </div>
       ) : (
@@ -84,7 +85,7 @@ export default function ClearDatabasePanel({ disabled, onBusyChange }: {
         <form onSubmit={(event) => void submit(event)} className="space-y-4 p-6" aria-busy={busy}>
           <h3 id="clear-database-title" className="text-lg font-semibold text-red-800">Permanently clear database?</h3>
           <p id="clear-database-description" className="text-sm text-slate-600">
-            This deletes every Firestore record in <strong>{projectId}</strong> ({firebaseEnvironment}), including nested records.
+            This deletes every ERP-managed record in <strong>{projectId}</strong> ({firebaseEnvironment}), including nested records.
             All app writes will pause until clearing finishes. Keep this window open.
           </p>
           <label className="block text-sm text-slate-700">
@@ -98,7 +99,7 @@ export default function ClearDatabasePanel({ disabled, onBusyChange }: {
               disabled={busy} required className="ui-field mt-2 w-full px-3" />
           </label>
           {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
-          {busy && <p role="status" className="text-sm text-slate-600">Clearing the database. Large databases may take several minutes…</p>}
+          {busy && <p role="status" className="text-sm text-slate-600">{progress || "Clearing the database…"}</p>}
           <div className="flex flex-wrap justify-end gap-3">
             <button type="button" disabled={busy} onClick={close} className="ui-button border border-slate-300 text-slate-700 disabled:opacity-50">Cancel</button>
             <button type="submit" disabled={busy || confirmation !== expected || !password}

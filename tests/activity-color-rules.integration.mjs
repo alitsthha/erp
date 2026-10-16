@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { after, test } from 'node:test';
 import { initializeApp, deleteApp } from 'firebase/app';
-import { connectFirestoreEmulator, doc, getDoc, getDocs, collection, getFirestore, writeBatch } from 'firebase/firestore';
+import { connectFirestoreEmulator, doc, getDoc, getDocs, collection, collectionGroup, getFirestore, writeBatch, serverTimestamp } from 'firebase/firestore';
 
 const address = process.env.FIRESTORE_EMULATOR_HOST;
 if (!address) throw new Error('FIRESTORE_EMULATOR_HOST is required. Run with firebase emulators:exec and a demo project.');
@@ -16,7 +16,7 @@ function client(name, token) {
   connectFirestoreEmulator(db, host, Number(port), { mockUserToken: token });
   return db;
 }
-const admin = client('color-admin', { sub: 'admin', email: 'admin@academy.edu', admin: true });
+const admin = client('color-admin', { sub: 'admin', email: 'admin@academy.edu', admin: true, auth_time: Math.floor(Date.now() / 1000) });
 const teacher = client('color-teacher', { sub: 'teacher', email: 'teacher@example.com', permissions: { attendance: true } });
 const enrollmentStaff = client('enrollment-staff', { sub: 'enrollment-staff', email: 'enrollment@example.com', permissions: { enrollments: true } });
 const denied = (error) => error.code === 'permission-denied';
@@ -114,4 +114,45 @@ test('reset marker pauses administrator writes while preserving reads and cannot
   const resumed = writeBatch(admin);
   resumed.set(doc(admin, 'students', 'resumed'), { fullName: 'Resumed' });
   await resumed.commit();
+});
+
+test('browser reset requires recent admin auth and grants only its owner collection-group deletion access', async () => {
+  const readerOnly = client('reset-teacher', { sub: 'reset-teacher', email: 'teacher@example.com', admin: false, role: 'teacher', auth_time: Math.floor(Date.now() / 1000) });
+  const roleOnly = client('reset-role-admin', { sub: 'role-admin', email: 'role-admin@example.com', admin: false, role: 'teacher', auth_time: Math.floor(Date.now() / 1000) });
+  const expired = client('reset-expired-admin', { sub: 'expired-admin', admin: true, auth_time: 1 });
+  const reset = (uid, runId) => ({ mode: 'browser', requestedBy: uid, runId, status: 'running', updatedAt: serverTimestamp() });
+  const teacherAttempt = writeBatch(readerOnly);
+  teacherAttempt.set(doc(readerOnly, '_maintenance', 'databaseReset'), reset('reset-teacher', 'bad'));
+  await assert.rejects(teacherAttempt.commit(), denied);
+  const oldSession = writeBatch(expired);
+  oldSession.set(doc(expired, '_maintenance', 'databaseReset'), reset('expired-admin', 'bad'));
+  await assert.rejects(oldSession.commit(), denied);
+
+  const seed = writeBatch(admin);
+  seed.set(doc(admin, 'user_roles', 'role-admin@example.com'), { role: 'admin' });
+  seed.set(doc(admin, 'invoices', 'missing-parent', 'payments', 'orphan'), { amount: 1 });
+  await seed.commit();
+  const acquire = writeBatch(roleOnly);
+  acquire.set(doc(roleOnly, '_maintenance', 'databaseReset'), reset('role-admin', 'one'));
+  await acquire.commit();
+  assert.ok((await getDocs(collectionGroup(roleOnly, 'payments'))).docs.some((item) => item.id === 'orphan'));
+  // Even another administrator cannot issue a collection-group delete during a reset.
+  const otherDelete = writeBatch(admin);
+  otherDelete.delete(doc(admin, 'invoices', 'missing-parent', 'payments', 'orphan'));
+  await assert.rejects(otherDelete.commit(), denied);
+  const ownerCreate = writeBatch(roleOnly);
+  ownerCreate.set(doc(roleOnly, 'students', 'should-not-exist'), { fullName: 'Blocked' });
+  await assert.rejects(ownerCreate.commit(), denied);
+  const hijack = writeBatch(admin);
+  hijack.set(doc(admin, '_maintenance', 'databaseReset'), reset('admin', 'two'));
+  await assert.rejects(hijack.commit(), denied);
+  const remove = writeBatch(roleOnly);
+  remove.update(doc(roleOnly, '_maintenance', 'databaseReset'), { runId: 'one', updatedAt: serverTimestamp() });
+  remove.delete(doc(roleOnly, 'invoices', 'missing-parent', 'payments', 'orphan'));
+  await remove.commit();
+  const finish = writeBatch(roleOnly);
+  finish.delete(doc(roleOnly, 'user_roles', 'role-admin@example.com'));
+  finish.delete(doc(roleOnly, '_maintenance', 'databaseReset'));
+  await finish.commit();
+  await assert.rejects(getDocs(collectionGroup(roleOnly, 'payments')), denied);
 });
