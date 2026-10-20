@@ -24,12 +24,14 @@ function load(file, mocks, cache = new Map()) {
     }
     return require(specifier);
   };
-  vm.runInNewContext(code, { module, exports: module.exports, require: localRequire, console, Error, Date, Image: class { set src(_value) { this.onerror?.(); } } }, { filename });
+  vm.runInNewContext(code, { module, exports: module.exports, require: localRequire, console, Error, Date, queueMicrotask, Image: class { set src(_value) { this.onerror?.(); } } }, { filename });
   return module.exports;
 }
 
 function database(initial = {}, today = '2083-12-01') {
   const records = new Map(Object.entries(initial));
+  let readCount = 0;
+  const listeners = new Set();
   let sequence = 0;
   let lockRace = false;
   let raceAdvance = null;
@@ -42,7 +44,14 @@ function database(initial = {}, today = '2083-12-01') {
     query: (reference, ...filters) => ({ ...reference, filters }),
     orderBy: () => ({}),
     getDoc: async (reference) => snapshot(reference),
+    onSnapshot: (reference, onChange, onError) => {
+      const listener = { reference, onChange, onError };
+      listeners.add(listener);
+      void firestore.getDocs(reference).then(onChange, onError);
+      return () => listeners.delete(listener);
+    },
     getDocs: async (reference) => {
+      readCount++;
       const docs = [...records.keys()].filter((key) => key.startsWith(`${reference.path}/`))
         .filter((key) => (reference.filters ?? []).every(({ field, op, value }) => !field || (op === ">=" ? records.get(key)[field] >= value : op === "<=" ? records.get(key)[field] <= value : records.get(key)[field] === value)))
         .map((key) => snapshot(ref(key)));
@@ -75,6 +84,14 @@ function database(initial = {}, today = '2083-12-01') {
   const mocks = { 'firebase/firestore': firestore, '@/firebase/config': { db: {} }, '@/utils/calendar-date': { getKathmanduToday: () => ({ bs: today }) } };
   return {
     records,
+    get readCount() { return readCount; },
+    get listenerCount() { return listeners.size; },
+    notify: async (collection) => {
+      await Promise.all([...listeners].filter((listener) => !collection || listener.reference.path === collection)
+        .map(async (listener) => listener.onChange(await firestore.getDocs(listener.reference))));
+      await new Promise(setImmediate);
+    },
+    unbilled: load('src/features/finance/services/unbilled-bills.service.ts', mocks),
     fees: load('src/features/finance/services/fee-calculation.service.ts', mocks),
     invoices: load('src/features/finance/services/invoice.service.ts', mocks),
     history: load('src/features/finance/services/billing-history.service.ts', mocks),
@@ -525,4 +542,237 @@ test('generated invoices store activity references and keep charges fixed across
   assert.equal(invoice.lines[0].sessionFee, 100);
   assert.equal(invoice.totalAmount, 100);
   assert.equal((await calculate(db)).totalAmount, 0);
+});
+
+
+test('unbilled count excludes monthly enrollments that had not started by the cutoff', async () => {
+  const db = database({ 'enrollments/e1': { ...enrollment, countedMonthly: true, enrollmentDate: '2083-07-01' } });
+  const data = await db.fees.loadBillingPreviewData();
+  const bills = await db.fees.calculateAllStudentMonthlyFees('2083-06', options(), data);
+  assert.equal(bills.filter((bill) => bill.totalAmount > 0).length, 0);
+  assert.equal((await calculate(db)).totalAmount, 0, 'normal billing must agree with the preview');
+});
+
+test('monthly billing never includes months before the enrollment began', async () => {
+  const db = database({ 'enrollments/e1': { ...enrollment, countedMonthly: true, enrollmentDate: '2083-06-10' } });
+  const summary = await calculate(db, '12', { startMonth: '2083-04', months: 3 });
+  assert.equal(summary.totalAmount, 1000);
+  assert.deepEqual([...summary.lines[0].billedMonths], ['2083-06']);
+});
+
+
+test('unbilled preview counts unique current students and includes complete billing months', async () => {
+  const db = database({
+    'students/s1': { fullName: 'Latest Name', studentCode: 'LATEST', status: 'Active' },
+    'students/s6': { fullName: 'Other Student', studentCode: 'ST6', status: 'Active' },
+    'enrollments/e1': enrollment,
+    'enrollments/e2': { ...enrollment, activityId: 'a2', countedMonthly: true },
+    'enrollments/paid': { ...enrollment, studentId: 's2' },
+    'enrollments/notStarted': { ...enrollment, studentId: 's3', countedMonthly: true, enrollmentDate: '2083-07-01' },
+    'enrollments/deleted': { ...enrollment, studentId: 's4', countedMonthly: true, deletedAt: 'deleted' },
+    'enrollments/inactive': { ...enrollment, studentId: 's5', countedMonthly: true, status: 'Inactive' },
+    'enrollments/other': { ...enrollment, studentId: 's6', countedMonthly: true },
+    'attendances/before': attendance('2083-06-09'),
+    'attendances/from': attendance('2083-06-10'),
+    'attendances/to': attendance('2083-06-20'),
+    'attendances/after': attendance('2083-06-21'),
+    'attendances/absent': attendance('2083-06-15', { status: 'Absent' }),
+    'attendances/duplicate': attendance('2083-06-10'),
+    'attendances/billed': attendance('2083-06-10', { studentId: 's2', enrollmentId: 'paid' }),
+    'invoices/paid': { studentId: 's2', status: 'Unpaid', lines: [{ enrollmentId: 'paid', attendanceDates: ['2083-06-10'] }] },
+  });
+  const data = await db.fees.loadBillingPreviewData();
+  const reads = db.readCount;
+  const bills = await db.unbilled.calculateUnbilledBills(data, '2083-06-10', '2083-06-20');
+  assert.deepEqual(Array.from(bills, (bill) => bill.studentId).sort(), ['s1', 's6']);
+  assert.equal(bills.find((bill) => bill.studentId === 's1').studentName, 'Latest Name');
+  assert.equal(bills.find((bill) => bill.studentId === 's1').studentCode, 'LATEST');
+  assert.equal(new Set(bills.map((bill) => bill.studentId)).size, bills.length);
+  assert.equal(bills.reduce((total, bill) => total + bill.totalAmount, 0), 2400);
+  for (const bill of bills) assert.equal(bill.totalAmount, bill.lines.reduce((sum, line) => sum + line.calculatedAmount, 0));
+  const sessions = bills.find((bill) => bill.studentId === 's1').lines.find((line) => !line.countedMonthly);
+  assert.deepEqual([...sessions.attendanceDates], ['2083-06-09', '2083-06-10', '2083-06-20', '2083-06-21']);
+  const sameDay = await db.unbilled.calculateUnbilledBills(data, '2083-06-20', '2083-06-20');
+  assert.equal(sameDay.find((bill) => bill.studentId === 's1').totalAmount, 1400);
+  assert.equal(db.readCount, reads, 'changing dates must use the current snapshot without database queries');
+  await assert.rejects(db.unbilled.calculateUnbilledBills(data, '2083-06-20', '2083-06-10'), /valid from and to/);
+});
+
+test('unbilled preview updates when invoices, enrollments or attendance change and unsubscribes cleanly', async () => {
+  const db = database({ 'students/s1': { fullName: 'Latest Name', studentCode: 'ST1', status: 'Active' }, 'enrollments/e1': enrollment, 'attendances/a1': attendance('2083-06-12') });
+  let source;
+  const errors = [];
+  const stop = db.fees.subscribeBillingPreviewData((data) => { source = data; }, (error) => errors.push(error));
+  await new Promise(setImmediate);
+  assert(source);
+  assert.equal(db.listenerCount, 5);
+  const bills = () => db.unbilled.calculateUnbilledBills(source, '2083-06-10', '2083-06-20');
+  assert.equal((await bills()).length, 1);
+  db.records.set('invoices/new', { studentId: 's1', status: 'Unpaid', lines: [{ enrollmentId: 'e1', attendanceDates: ['2083-06-12'] }] });
+  await db.notify('invoices');
+  assert.equal((await bills()).length, 0, 'a newly generated unpaid invoice removes reserved charges');
+  db.records.set('invoices/new', { ...db.records.get('invoices/new'), status: 'Cancelled' });
+  await db.notify('invoices');
+  assert.equal((await bills()).length, 1, 'cancellation releases the reserved charge');
+  db.records.set('attendances/a1', { ...db.records.get('attendances/a1'), deletedAt: 'deleted' });
+  await db.notify('attendances');
+  assert.equal((await bills()).length, 0);
+  db.records.set('enrollments/e1', { ...enrollment, countedMonthly: true });
+  await db.notify('enrollments');
+  assert.equal((await bills()).length, 1);
+  db.records.set('students/s1', { fullName: 'Renamed Student', studentCode: 'ST1', status: 'Active' });
+  await db.notify('students');
+  assert.equal((await bills())[0].studentName, 'Renamed Student');
+  db.records.set('students/s1', { fullName: 'Renamed Student', status: 'Inactive' });
+  await db.notify('students');
+  assert.equal((await bills()).length, 0, 'the count follows the current active student list');
+  assert.equal(errors.length, 0);
+  stop();
+  assert.equal(db.listenerCount, 0);
+  const last = source;
+  await db.notify();
+  assert.equal(source, last);
+});
+
+
+test('month-end and days 1–4 of the next month resolve to the same complete billing month', () => {
+  const db = database();
+  const resolve = db.unbilled.resolveUnbilledBillingPeriod;
+  const lastDay = db.fees.getDaysInBsMonth(2083, 6);
+  for (const day of [28, 29, 30, 31, 32].filter((day) => day <= lastDay)) {
+    const period = resolve(`2083-06-${day}`, '2083-07-04');
+    assert.equal(period.startDate, '2083-06-01');
+    assert.equal(period.endDate, `2083-06-${lastDay}`);
+  }
+  for (const day of [1, 2, 3, 4]) {
+    const date = `2083-07-0${day}`;
+    assert.equal(resolve(date, date).endMonth, '2083-06');
+  }
+  assert.equal(resolve('2083-07-05', '2083-07-05').endMonth, '2083-07');
+  assert.equal(resolve('2083-01-01', '2083-01-04').startMonth, '2082-12');
+  assert.equal(resolve('2083-01-01', '2083-01-04').endDate, `2082-12-${db.fees.getDaysInBsMonth(2082, 12)}`);
+});
+
+test('closing billing runs include early-month attendance and exclude the next month', async () => {
+  const db = database({
+    'students/s1': { fullName: 'Current Student', studentCode: 'ST1', status: 'Active' },
+    'enrollments/e1': enrollment,
+    'attendances/early': attendance('2083-06-02'),
+    'attendances/late': attendance('2083-06-28'),
+    'attendances/next': attendance('2083-07-02'),
+  });
+  const data = await db.fees.loadBillingPreviewData();
+  for (const [from, to] of [['2083-06-28', '2083-07-04'], ['2083-07-01', '2083-07-04'], ['2083-06-28', '2083-06-29']]) {
+    const bills = await db.unbilled.calculateUnbilledBills(data, from, to);
+    assert.equal(bills.length, 1);
+    assert.equal(bills[0].totalAmount, 200);
+    assert.deepEqual([...bills[0].lines[0].attendanceDates], ['2083-06-02', '2083-06-28']);
+    assert.equal(bills[0].month, '2083-06');
+  }
+  const id = await db.invoices.createInvoiceFromStudentFee('s1', '2083-06', { invoiceDate: '2083-07-04', billingDate: `2083-06-${db.fees.getDaysInBsMonth(2083, 6)}` });
+  assert.equal(db.records.get(`invoices/${id}`).totalAmount, 200);
+  const refreshed = await db.fees.loadBillingPreviewData();
+  assert.equal((await db.unbilled.calculateUnbilledBills(refreshed, '2083-06-28', '2083-07-04')).length, 0);
+});
+
+test('monthly preview excludes deleted, inactive and missing students even with active enrollments', async () => {
+  const db = database({
+    'students/s1': { fullName: 'Active', studentCode: 'ST1', status: 'Active' },
+    'students/inactive': { fullName: 'Inactive', status: 'Inactive' },
+    'students/deleted': { fullName: 'Deleted', status: 'Active', deletedAt: 'deleted' },
+    'enrollments/e1': { ...enrollment, countedMonthly: true },
+    ...Object.fromEntries(['inactive', 'deleted', 'missing'].map((studentId) => [`enrollments/${studentId}`, { ...enrollment, studentId, countedMonthly: true }])),
+  });
+  const data = await db.fees.loadBillingPreviewData();
+  const bills = await db.unbilled.calculateUnbilledBills(data, '2083-06-28', '2083-07-04');
+  assert.deepEqual(Array.from(bills, (bill) => bill.studentId), ['s1']);
+});
+
+test('billing roster reconciles 69 students minus 2 billed as 67 missing, including 6 without calculated fees', async () => {
+  const records = {};
+  for (let index = 0; index < 69; index++) {
+    const studentId = `student-${index}`;
+    records[`students/${studentId}`] = { fullName: `Student ${index}`, studentCode: `ST${index}`, status: 'Active' };
+    if (index < 63) records[`enrollments/enrollment-${index}`] = { ...enrollment, studentId, countedMonthly: true };
+  }
+  for (let index = 0; index < 2; index++) {
+    records[`invoices/bill-${index}`] = {
+      studentId: `student-${index}`, status: 'Unpaid', invoiceDate: '2083-07-04', billingMonth: '2083-06',
+      lines: [{ enrollmentId: `enrollment-${index}`, countedMonthly: true, billedMonths: ['2083-06'] }],
+    };
+  }
+  const db = database(records);
+  const data = await db.fees.loadBillingPreviewData();
+  const report = await db.unbilled.calculateBillingRoster(data, '2083-06-28', '2083-07-04');
+  assert.equal(report.totalStudents, 69);
+  assert.equal(report.generatedStudents, 2);
+  assert.equal(report.pending.length, 67);
+  assert.equal(report.readyCount, 61);
+  assert.equal(report.reviewCount, 6);
+  assert.equal(report.totalAmount, 61000);
+  assert.equal(report.totalStudents, report.generatedStudents + report.pending.length);
+  assert.equal(report.pending.length, report.readyCount + report.reviewCount);
+  const review = report.pending.filter((entry) => !entry.summary);
+  assert(review.every((entry) => entry.reason === 'No active enrollment.'));
+  assert.equal(new Set(report.pending.map((entry) => entry.student.id)).size, 67);
+});
+
+test('roster counts billed students once using invoice dates rather than charge months', async () => {
+  const db = database({
+    ...Object.fromEntries(['s1', 's2', 's3', 's4'].map((id) => [`students/${id}`, { fullName: id, studentCode: id, status: 'Active' }])),
+    'invoices/first': { studentId: 's1', status: 'Paid', billingMonth: '2083-07', invoiceDate: '2083-07-04', lines: [{ billedMonths: ['2083-06'] }] },
+    'invoices/duplicate': { studentId: 's1', billingMonth: '2083-06', status: 'Unpaid' },
+    'invoices/cancelled': { studentId: 's2', billingMonth: '2083-06', status: 'Cancelled' },
+    'invoices/deleted': { studentId: 's3', billingMonth: '2083-06', status: 'Paid', deletedAt: 'deleted' },
+    'invoices/otherMonth': { studentId: 's4', billingMonth: '2083-07', status: 'Paid' },
+  });
+  const data = await db.fees.loadBillingPreviewData();
+  const report = await db.unbilled.calculateBillingRoster(data, '2083-06-28', '2083-07-04');
+  assert.equal(report.totalStudents, 4);
+  assert.equal(report.generatedStudents, 1);
+  assert.equal(report.pending.length, 3);
+  assert.deepEqual(Array.from(report.pending, (entry) => entry.student.id), ['s2', 's3', 's4']);
+  const multi = await db.unbilled.calculateBillingRoster(data, '2083-06-28', '2083-07-28');
+  assert.equal(multi.generatedStudents, 1);
+  const earlier = await db.unbilled.calculateBillingRoster(data, '2083-06-28', '2083-07-03');
+  assert.equal(earlier.generatedStudents, 0, 'an invoice after the selected to date must not count');
+});
+
+test('roster exposes inactive students and missing fee configuration rather than hiding them from the count', async () => {
+  const db = database({
+    'students/s1': { fullName: 'Inactive Student', studentCode: 'ST1', status: 'Inactive' },
+    'students/s2': { fullName: 'No Fees', studentCode: 'ST2', status: 'Active' },
+    'students/s3': { fullName: 'Deleted Student', status: 'Active', deletedAt: 'deleted' },
+    'enrollments/e2': { ...enrollment, studentId: 's2', monthlyFee: 0, sessionFee: 0 },
+  });
+  const data = await db.fees.loadBillingPreviewData();
+  const report = await db.unbilled.calculateBillingRoster(data, '2083-06-28', '2083-07-04');
+  assert.equal(report.totalStudents, 2);
+  assert.equal(report.pending.length, 2);
+  assert.equal(report.reviewCount, 2);
+  assert.equal(report.pending.find((entry) => entry.student.id === 's1').reason, 'Student is inactive.');
+  assert.equal(report.pending.find((entry) => entry.student.id === 's2').reason, 'No fee configured.');
+});
+
+
+test('roster uses inclusive selected invoice dates even for other billing months', async () => {
+  const records = Object.fromEntries(['from', 'to', 'before', 'after', 'cancelled', 'deleted', 'missingDate']
+    .map((id) => [`students/${id}`, { fullName: id, studentCode: id, status: 'Active' }]));
+  for (const [id, date] of [['from', '2083-06-28'], ['to', '2083-07-04'], ['before', '2083-06-27'], ['after', '2083-07-05'], ['cancelled', '2083-07-01'], ['deleted', '2083-07-01']]) {
+    records[`invoices/${id}`] = { studentId: id, invoiceDate: date, billingMonth: '2083-05', status: 'Unpaid' };
+  }
+  records['invoices/duplicate'] = { studentId: 'from', invoiceDate: '2083-07-02', billingMonth: '2083-06', status: 'Paid' };
+  records['invoices/cancelled'].status = 'Cancelled';
+  records['invoices/deleted'].deletedAt = 'deleted';
+  records['invoices/missingDate'] = { studentId: 'missingDate', billingMonth: '2083-06', status: 'Unpaid' };
+  const db = database(records);
+  const data = await db.fees.loadBillingPreviewData();
+  const report = await db.unbilled.calculateBillingRoster(data, '2083-06-28', '2083-07-04');
+  assert.equal(report.totalStudents, 7);
+  assert.equal(report.generatedStudents, 2);
+  assert.equal(report.pending.length, 5);
+  assert.deepEqual(Array.from(report.pending, (item) => item.student.id).sort(), ['after', 'before', 'cancelled', 'deleted', 'missingDate']);
+  const singleDay = await db.unbilled.calculateBillingRoster(data, '2083-07-04', '2083-07-04');
+  assert.equal(singleDay.generatedStudents, 1);
+  assert(!singleDay.pending.some((item) => item.student.id === 'to'));
 });

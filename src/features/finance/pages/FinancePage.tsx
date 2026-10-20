@@ -1,5 +1,9 @@
+import FinanceDateRange from "../components/FinanceDateRange";
+import { useSessionState } from "@/hooks/useSessionState";
+import { financeRecordDate, matchesFinanceDate } from "../services/finance-date";
+import type { FinanceDateFilter } from "../types/finance.types";
 import PaginatedList from "@/components/common/PaginatedList";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ArrowDownCircle,
   ArrowUpCircle,
@@ -30,15 +34,12 @@ import {
   YAxis,
 } from "recharts";
 
-import {
-  getFinanceSummary,
-  getFinanceInvoices,
-  getFinanceExpenses,
-  getFinanceIncome,
-  getFinancePayments,
-  subscribeToFinanceSummary,
-} from "../services/finance.service";
+import type { FinanceRecord } from "../services/finance-overview.service";
+import { useFinanceOverview } from "../hooks/useFinanceOverview";
 import type { FinanceSummary } from "../types/finance.types";
+
+const emptyRecords: FinanceRecord[] = [];
+type OverviewTransaction = { type: string; description: string; amount: number; status: string; positive: boolean; time: string };
 
 const initialSummary: FinanceSummary = {
   totalIncome: 0,
@@ -71,7 +72,8 @@ function formatCurrency(value: number) {
 function buildFinanceOverviewPDF(
   summary: FinanceSummary,
   period: string,
-  recentTransactions: any[]
+  recentTransactions: OverviewTransaction[],
+  expectedIncome: number,
 ): jsPDF {
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
@@ -178,6 +180,9 @@ function buildFinanceOverviewPDF(
   statBox(marginL + (boxW + 3) * 2, y, boxW, "Bank Balance", formatCurrency(summary.bankBalance), [245, 243, 255]);
   y += 24;
 
+  rowLine("Expected monthly income", formatCurrency(expectedIncome));
+  y += 4;
+
   // 2. Profit & Loss Statement
   sectionHeading("PROFIT & LOSS SUMMARY");
   rowLine("Gross Income", formatCurrency(summary.totalIncome));
@@ -263,115 +268,41 @@ function buildFinanceOverviewPDF(
 }
 
 export default function FinancePage() {
-  const [summary, setSummary] = useState<FinanceSummary>(initialSummary);
-  const [isLoading, setIsLoading] = useState(true);
+  const [dateRange, setDateRange] = useSessionState<FinanceDateFilter>("finance:FinancePage:dateRange", {});
+  const rangeLabel = dateRange.startDate || dateRange.endDate ? `${dateRange.startDate || "Beginning"} to ${dateRange.endDate || "Present"} (BS)` : "All dates";
+  const { data, loading: isLoading, error } = useFinanceOverview();
+  const summary = data?.summary ?? initialSummary;
   const [isExporting, setIsExporting] = useState(false);
   const [period, setPeriod] = useState<(typeof periodOptions)[number]["key"]>("monthly");
-  const [invoices, setInvoices] = useState<any[]>([]);
-  const [expenses, setExpenses] = useState<any[]>([]);
-  const [income, setIncome] = useState<any[]>([]);
-  const [payments, setPayments] = useState<any[]>([]);
-
-  useEffect(() => {
-    const loadFinance = async () => {
-      try {
-        setIsLoading(true);
-        const [
-          summaryData,
-          invoiceData,
-          expenseData,
-          incomeData,
-          paymentData,
-        ] = await Promise.all([
-          getFinanceSummary(),
-          getFinanceInvoices(),
-          getFinanceExpenses(),
-          getFinanceIncome(),
-          getFinancePayments(),
-        ]);
-
-        setSummary(summaryData);
-        setInvoices(invoiceData);
-        setExpenses(expenseData);
-        setIncome(incomeData);
-        setPayments(paymentData);
-      } catch (error) {
-        console.error("Error loading finance data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    void loadFinance();
-  }, []);
-
-  useEffect(
-    () => subscribeToFinanceSummary(
-      undefined,
-      setSummary,
-      (error) => console.error("Error subscribing to finance summary:", error),
-    ),
-    [],
-  );
+  const invoices = data?.invoices ?? emptyRecords;
+  const expenses = data?.expenses ?? emptyRecords;
+  const income = data?.income ?? emptyRecords;
+  const payments = data?.payments ?? emptyRecords;
 
   // Calculate trend data from real data
   const trendData: TrendPoint[] = useMemo(() => {
     const allTransactions = [
-      ...invoices.map((inv) => ({
-        date: inv.createdAt?.toDate?.() || new Date(inv.createdAt),
-        amount: Number(inv.totalAmount || 0),
-        type: "income",
-      })),
       ...expenses.map((exp) => ({
-        date: exp.createdAt?.toDate?.() || new Date(exp.createdAt),
+        date: financeRecordDate(exp),
         amount: Number(exp.amount || 0),
         type: "expense",
       })),
       ...income.map((inc) => ({
-        date: inc.createdAt?.toDate?.() || new Date(inc.createdAt),
+        date: financeRecordDate(inc),
         amount: Number(inc.amount || 0),
-        type: "income",
-      })),
-      ...payments.map((pay) => ({
-        date: pay.createdAt?.toDate?.() || new Date(pay.createdAt),
-        amount: Number(pay.amount || 0),
         type: "income",
       })),
     ];
 
     const grouped: Record<string, { income: number; expenses: number }> = {};
 
-    allTransactions.forEach((txn) => {
-      let key = "";
-
-      if (period === "daily") {
-        const date = new Date(txn.date);
-        const dayOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
-          date.getDay()
-        ];
-        key = dayOfWeek;
-      } else if (period === "weekly") {
-        const date = new Date(txn.date);
-        const weekNum = Math.ceil(date.getDate() / 7);
-        key = `W${weekNum}`;
-      } else {
-        const date = new Date(txn.date);
-        const months = [
-          "Jan",
-          "Feb",
-          "Mar",
-          "Apr",
-          "May",
-          "Jun",
-          "Jul",
-          "Aug",
-          "Sep",
-          "Oct",
-          "Nov",
-          "Dec",
-        ];
-        key = months[date.getMonth()];
-      }
+    allTransactions.sort((a, b) => (a.date?.getTime() ?? 0) - (b.date?.getTime() ?? 0)).forEach((txn) => {
+      if (!txn.date) return;
+      const date = new Date(txn.date);
+      if (period === "weekly") date.setDate(date.getDate() - date.getDay());
+      const key = period === "monthly"
+        ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
+        : `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
       if (!grouped[key]) {
         grouped[key] = { income: 0, expenses: 0 };
@@ -388,7 +319,7 @@ export default function FinancePage() {
       name,
       ...values,
     }));
-  }, [invoices, expenses, income, payments, period]);
+  }, [expenses, income, period]);
 
   // Calculate revenue breakdown from invoices
   const revenueBreakdown = useMemo(() => {
@@ -396,7 +327,7 @@ export default function FinancePage() {
     const colors = ["var(--color-brand-600)", "var(--color-brand-green)", "var(--color-brand-900)", "var(--color-brand-yellow)"];
 
     invoices.forEach((inv) => {
-      const category = inv.description || "Other Fees";
+      const category = String(inv.description || "Other Fees");
       categories[category] = (categories[category] || 0) + Number(inv.totalAmount || 0);
     });
 
@@ -416,7 +347,7 @@ export default function FinancePage() {
     const colors = ["var(--color-brand-700)", "var(--color-brand-yellow)", "var(--color-brand-green)", "var(--color-brand-300)"];
 
     expenses.forEach((exp) => {
-      const category = exp.category || "Other";
+      const category = String(exp.category || "Other");
       categories[category] = (categories[category] || 0) + Number(exp.amount || 0);
     });
 
@@ -435,40 +366,50 @@ export default function FinancePage() {
     const allTxns = [
       ...invoices.map((inv) => ({
         type: "Payment Received",
-        description: inv.studentName || inv.description || "Invoice",
+        description: String(inv.studentName || inv.description || "Invoice"),
         amount: Number(inv.totalAmount || 0),
-        status: inv.status || "Unpaid",
-        date: inv.createdAt?.toDate?.() || new Date(inv.createdAt),
+        status: String(inv.status || "Unpaid"),
+        date: financeRecordDate(inv),
+        positive: true,
+      })),
+      ...income.filter((entry) => !entry.paymentId).map((entry) => ({
+        type: String(entry.category || "Income"),
+        description: String(entry.description || entry.source || "Income"),
+        amount: Number(entry.amount || 0),
+        status: "Recorded",
+        date: financeRecordDate(entry),
         positive: true,
       })),
       ...expenses.map((exp) => ({
-        type: exp.category || "Expense",
-        description: exp.description || exp.vendor || "Expense",
+        type: String(exp.category || "Expense"),
+        description: String(exp.description || exp.vendor || "Expense"),
         amount: Number(exp.amount || 0),
-        status: exp.status || "Recorded",
-        date: exp.createdAt?.toDate?.() || new Date(exp.createdAt),
+        status: String(exp.status || "Recorded"),
+        date: financeRecordDate(exp),
         positive: false,
       })),
       ...payments.map((pay) => ({
         type: "Payment Recorded",
-        description: pay.description || "Payment",
+        description: String(pay.description || "Payment"),
         amount: Number(pay.amount || 0),
-        status: pay.status || "Recorded",
-        date: pay.createdAt?.toDate?.() || new Date(pay.createdAt),
+        status: String(pay.status || "Recorded"),
+        date: financeRecordDate(pay),
         positive: true,
       })),
     ];
 
     return allTxns
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .filter((txn) => matchesFinanceDate({ date: txn.date }, dateRange))
+      .filter((txn) => txn.date !== null)
+      .sort((a, b) => b.date!.getTime() - a.date!.getTime())
       .map((txn) => {
         const now = new Date();
-        const txnDate = new Date(txn.date);
+        const txnDate = txn.date!;
         const diffMs = now.getTime() - txnDate.getTime();
         const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
         const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
 
-        let timeStr = "";
+        let timeStr: string;
         if (diffHours < 1) timeStr = "Just now";
         else if (diffHours < 24) timeStr = `${diffHours}h ago`;
         else if (diffDays === 1) timeStr = "Yesterday";
@@ -480,7 +421,7 @@ export default function FinancePage() {
           time: timeStr,
         };
       });
-  }, [invoices, expenses, payments]);
+  }, [invoices, expenses, income, payments, dateRange]);
 
   const profitMargin = useMemo(() => {
     if (!summary.totalIncome) return 0;
@@ -490,7 +431,7 @@ export default function FinancePage() {
   const handleExportReport = () => {
     setIsExporting(true);
     try {
-      const doc = buildFinanceOverviewPDF(summary, period, recentTransactions);
+      const doc = buildFinanceOverviewPDF(summary, `All dates; transactions: ${rangeLabel}; ${period} chart intervals`, recentTransactions, data?.expectedIncome ?? 0);
       doc.save("finance-overview-report.pdf");
     } catch (err) {
       console.error("Failed to export finance overview report:", err);
@@ -502,57 +443,65 @@ export default function FinancePage() {
   const summaryCards = [
     {
       title: "Total Income",
+      href: "/finance/overview/income",
       value: formatCurrency(summary.totalIncome),
-      description: "This period",
-      change: "+12.4%",
+      description: "Recorded income",
       icon: ArrowUpCircle,
       tone: "emerald",
     },
     {
       title: "Total Expenses",
+      href: "/finance/overview/expenses",
       value: formatCurrency(summary.totalExpenses),
       description: "Operational spend",
-      change: "+6.1%",
       icon: ArrowDownCircle,
       tone: "rose",
     },
     {
       title: "Net Profit",
+      href: "/finance/overview/net-profit",
       value: formatCurrency(summary.netProfit),
       description: `${profitMargin}% margin`,
-      change: "+9.8%",
       icon: TrendingUp,
       tone: "blue",
     },
     {
       title: "Outstanding",
+      href: "/finance/overview/outstanding",
       value: formatCurrency(summary.outstandingAmount),
       description: `${summary.outstandingInvoices} unpaid invoices`,
-      change: "-2.3%",
       icon: FileText,
       tone: "amber",
     },
     {
       title: "Cash Balance",
+      href: "/finance/overview/cash",
       value: formatCurrency(summary.cashBalance),
-      description: "On hand",
-      change: "+4.2%",
+      description: "Recorded cash receipts",
       icon: Wallet,
       tone: "slate",
     },
     {
       title: "Bank Balance",
+      href: "/finance/overview/bank",
       value: formatCurrency(summary.bankBalance),
-      description: "Institution account",
-      change: "+8.7%",
+      description: "Recorded bank / online receipts",
       icon: Banknote,
       tone: "violet",
+    },
+    {
+      title: "Expected Income",
+      href: `/finance/overview/expected-income?month=${data?.month ?? ""}`,
+      value: data ? formatCurrency(data.expectedIncome) : "—",
+      description: `Monthly fees / attendance · ${data?.month ?? ""} (BS)`,
+      icon: ArrowUpCircle,
+      tone: "emerald",
     },
   ];
 
   const cashFlowMix = [
-    { name: "Income", value: summary.totalIncome || 1, color: "var(--color-brand-green)" },
-    { name: "Expenses", value: summary.totalExpenses || 1, color: "#f97316" },
+    { name: "Income", value: summary.totalIncome, color: "var(--color-brand-green)" },
+    { name: "Expenses", value: summary.totalExpenses, color: "#f97316" },
   ];
 
   return (
@@ -587,7 +536,7 @@ export default function FinancePage() {
           <button
             type="button"
             onClick={handleExportReport}
-            disabled={isExporting || isLoading}
+            disabled={isExporting || isLoading || !!error}
             className="ui-button inline-flex items-center gap-2 bg-brand-600 py-2 text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-60"
           >
             <Download size={16} />
@@ -596,6 +545,8 @@ export default function FinancePage() {
         </div>
       </div>
 
+      {error && <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-700">Unable to load financial data: {error}</p>}
+
       {isLoading && (
         <div className="ui-surface flex items-center gap-2 p-4 text-sm text-slate-500">
           <Loader2 size={18} className="animate-spin" />
@@ -603,7 +554,7 @@ export default function FinancePage() {
         </div>
       )}
 
-      {!isLoading && (
+      {data && !error && (
         <>
           <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {summaryCards.map((card) => {
@@ -622,7 +573,7 @@ export default function FinancePage() {
                           : "bg-slate-100 text-slate-700";
 
               return (
-                <div key={card.title} className="ui-surface p-5 transition hover:-translate-y-0.5 hover:shadow-md">
+                <Link key={card.title} to={card.href} className="ui-surface block p-5 transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-brand-600">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-medium text-slate-500">{card.title}</p>
@@ -635,9 +586,9 @@ export default function FinancePage() {
 
                   <div className="mt-4 flex items-center justify-between gap-3">
                     <p className="text-xs text-slate-500">{card.description}</p>
-                    <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${badgeTone}`}>{card.change}</span>
+                    <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${badgeTone}`}>View details →</span>
                   </div>
-                </div>
+                </Link>
               );
             })}
           </section>
@@ -671,7 +622,7 @@ export default function FinancePage() {
                     <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fill: "#64748b", fontSize: 12 }} />
                     <YAxis tickLine={false} axisLine={false} tick={{ fill: "#64748b", fontSize: 12 }} tickFormatter={(val) => `Rs. ${Number(val) / 1000}k`} />
-                    <Tooltip formatter={(value: any, name: any) => [formatCurrency(Number(value ?? 0)), String(name ?? "Amount")] } />
+                    <Tooltip formatter={(value, name) => [formatCurrency(Number(value ?? 0)), String(name ?? "Amount")] } />
                     <Area type="monotone" dataKey="income" stroke="var(--color-brand-600)" strokeWidth={3} fill="url(#incomeArea)" />
                     <Area type="monotone" dataKey="expenses" stroke="#f59e0b" strokeWidth={3} fill="url(#expenseArea)" />
                   </AreaChart>
@@ -691,7 +642,7 @@ export default function FinancePage() {
                         <Cell key={entry.name} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: any) => [formatCurrency(Number(value ?? 0)), "Amount"]} />
+                    <Tooltip formatter={(value) => [formatCurrency(Number(value ?? 0)), "Amount"]} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -717,7 +668,7 @@ export default function FinancePage() {
                   <h2 className="ui-section-title">Revenue breakdown</h2>
                   <p className="text-sm text-slate-500">Major fee streams</p>
                 </div>
-                <div className="rounded-full bg-brand-50 px-2 py-1 text-xs font-medium text-brand-700">Annualized</div>
+                <div className="rounded-full bg-brand-50 px-2 py-1 text-xs font-medium text-brand-700">Selected range</div>
               </div>
 
               <div className="mt-5 h-72">
@@ -726,7 +677,7 @@ export default function FinancePage() {
                     <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fill: "#64748b", fontSize: 11 }} interval={0} angle={-12} textAnchor="end" height={56} />
                     <YAxis tickLine={false} axisLine={false} tick={{ fill: "#64748b", fontSize: 12 }} tickFormatter={(val) => `Rs. ${Number(val) / 1000}k`} />
-                    <Tooltip formatter={(value: any) => [formatCurrency(Number(value ?? 0)), "Revenue"]} />
+                    <Tooltip formatter={(value) => [formatCurrency(Number(value ?? 0)), "Revenue"]} />
                     <Bar dataKey="value" radius={[8, 8, 0, 0]}>
                       {revenueBreakdown.map((entry) => (
                         <Cell key={entry.name} fill={entry.color} />
@@ -743,7 +694,7 @@ export default function FinancePage() {
                   <h2 className="ui-section-title">Expense allocation</h2>
                   <p className="text-sm text-slate-500">Operational spending mix</p>
                 </div>
-                <div className="rounded-full bg-rose-50 px-2 py-1 text-xs font-medium text-rose-700">Monthly</div>
+                <div className="rounded-full bg-rose-50 px-2 py-1 text-xs font-medium text-rose-700">Selected range</div>
               </div>
 
               <div className="mt-5 h-72">
@@ -752,7 +703,7 @@ export default function FinancePage() {
                     <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fill: "#64748b", fontSize: 11 }} interval={0} angle={-12} textAnchor="end" height={56} />
                     <YAxis tickLine={false} axisLine={false} tick={{ fill: "#64748b", fontSize: 12 }} tickFormatter={(val) => `Rs. ${Number(val) / 1000}k`} />
-                    <Tooltip formatter={(value: any) => [formatCurrency(Number(value ?? 0)), "Expense"]} />
+                    <Tooltip formatter={(value) => [formatCurrency(Number(value ?? 0)), "Expense"]} />
                     <Bar dataKey="value" radius={[8, 8, 0, 0]}>
                       {expenseBreakdown.map((entry) => (
                         <Cell key={entry.name} fill={entry.color} />
@@ -777,7 +728,10 @@ export default function FinancePage() {
                 </Link>
               </div>
 
-              <div className="mt-5 overflow-hidden rounded-xl border border-slate-200">
+              <div className="mt-5">
+                <FinanceDateRange value={dateRange} onChange={setDateRange} />
+              </div>
+              <div className="overflow-hidden rounded-xl border border-slate-200">
                 <table className="ui-table divide-y divide-slate-200">
                   <thead className="ui-table-head">
                     <tr>

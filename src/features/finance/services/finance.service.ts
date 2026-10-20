@@ -1,3 +1,4 @@
+import { financeRecordDate, matchesFinanceDate } from "./finance-date";
 import {
   collection,
   getDocs,
@@ -14,9 +15,9 @@ import type {
   FinanceLedgerEntry,
 } from "../types/finance.types";
 
-type AnyRecord = Record<string, any>;
+type AnyRecord = Record<string, unknown>;
 
-function toNumber(value: unknown): number {
+export function toNumber(value: unknown): number {
   if (typeof value === "number" && Number.isFinite(value)) {
     return value;
   }
@@ -30,71 +31,15 @@ function toNumber(value: unknown): number {
   return 0;
 }
 
-function normalizePaymentMethod(value: unknown): "cash" | "bank" | "other" {
+export function normalizePaymentMethod(value: unknown): "cash" | "bank" | "other" {
   const method = String(value ?? "").trim().toLowerCase().replace(/[_-]+/g, " ");
   if (method === "cash") return "cash";
   if (method.includes("bank") || method.includes("online") || method.includes("esewa") || method.includes("khalti") || method.includes("card")) return "bank";
   return "other";
 }
 
-function getDateValue(record: AnyRecord): Date | null {
-  const value =
-    record.date ??
-    record.transactionDate ??
-    record.paymentDate ??
-    record.expenseDate ??
-    record.incomeDate ??
-    record.createdAt;
-
-  if (!value) return null;
-
-  if (value?.toDate) {
-    return value.toDate();
-  }
-
-  if (value instanceof Date) {
-    return value;
-  }
-
-  const date = new Date(value);
-
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function isDateInRange(
-  record: AnyRecord,
-  filters?: FinanceDateFilter,
-): boolean {
-  if (!filters?.startDate && !filters?.endDate) {
-    return true;
-  }
-
-  const date = getDateValue(record);
-
-  if (!date) {
-    return false;
-  }
-
-  if (filters.startDate) {
-    const start = new Date(filters.startDate);
-    start.setHours(0, 0, 0, 0);
-
-    if (date < start) {
-      return false;
-    }
-  }
-
-  if (filters.endDate) {
-    const end = new Date(filters.endDate);
-    end.setHours(23, 59, 59, 999);
-
-    if (date > end) {
-      return false;
-    }
-  }
-
-  return true;
-}
+const getDateValue = financeRecordDate;
+const isDateInRange = matchesFinanceDate;
 
 /**
  * Get income records.
@@ -228,171 +173,39 @@ export async function getFinanceSummary(
     getFinancePayments(filters),
   ]);
 
-  const totalIncome = incomeRecords.reduce(
-    (total, record) =>
-      total +
-      toNumber(
-        record.amount ??
-          record.totalAmount ??
-          record.paidAmount,
-      ),
-    0,
-  );
+  return calculateFinanceSummary(incomeRecords, expenseRecords, invoiceRecords, paymentRecords);
+}
 
-  const totalExpenses = expenseRecords.reduce(
-    (total, record) =>
-      total +
-      toNumber(
-        record.amount ??
-          record.totalAmount,
-      ),
-    0,
-  );
+export function outstandingDue(invoice: AnyRecord): number {
+  const status = String(invoice.status ?? "").toLowerCase();
+  if (invoice.deletedAt || status === "cancelled" || status === "paid") return 0;
+  return Math.max(0, toNumber(invoice.dueAmount ?? Math.max(toNumber(invoice.totalAmount ?? invoice.amount) - toNumber(invoice.paidAmount), 0)));
+}
 
-  const outstandingAmount = invoiceRecords.reduce(
-    (total, invoice) => {
-      const invoiceTotal = toNumber(
-        invoice.totalAmount ??
-          invoice.amount,
-      );
+export function isReceivedPayment(payment: AnyRecord): boolean {
+  return !payment.deletedAt && !["cancelled", "pending"].includes(String(payment.status ?? "").toLowerCase());
+}
 
-      const paid = toNumber(
-        invoice.paidAmount,
-      );
-
-      const due = toNumber(
-        invoice.dueAmount ??
-          Math.max(
-            invoiceTotal - paid,
-            0,
-          ),
-      );
-
-      return total + Math.max(due, 0);
-    },
-    0,
-  );
-
-  const outstandingInvoices = invoiceRecords.filter(
-    (invoice) => {
-      const total = toNumber(
-        invoice.totalAmount ??
-          invoice.amount,
-      );
-
-      const paid = toNumber(
-        invoice.paidAmount,
-      );
-
-      const due = toNumber(
-        invoice.dueAmount ??
-          Math.max(
-            total - paid,
-            0,
-          ),
-      );
-
-      const status = String(
-        invoice.status ?? "",
-      ).toLowerCase();
-
-      return due > 0 && status !== "paid";
-    },
-  ).length;
-
-  const overdueAmount = invoiceRecords.reduce(
-    (total, invoice) => {
-      const status = String(
-        invoice.status ?? "",
-      ).toLowerCase();
-
-      const dueDate = getDateValue({
-        date:
-          invoice.dueDate ??
-          invoice.paymentDueDate,
-      });
-
-      const invoiceTotal = toNumber(
-        invoice.totalAmount ??
-          invoice.amount,
-      );
-
-      const paid = toNumber(
-        invoice.paidAmount,
-      );
-
-      const due = toNumber(
-        invoice.dueAmount ??
-          Math.max(
-            invoiceTotal - paid,
-            0,
-          ),
-      );
-
-      if (
-        status === "paid" ||
-        due <= 0 ||
-        !dueDate
-      ) {
-        return total;
-      }
-
-      if (dueDate < new Date()) {
-        return total + due;
-      }
-
-      return total;
-    },
-    0,
-  );
-
-  /**
-   * At this stage payments are treated as cash/bank receipts.
-   *
-   * If payment records contain account information,
-   * we can split this accurately later.
-   */
-  const cashBalance = paymentRecords
-    .filter(
-      (payment) =>
-        normalizePaymentMethod(payment.accountType ?? payment.paymentMethod) === "cash",
-    )
-    .reduce(
-      (total, payment) =>
-        total +
-        toNumber(
-          payment.amount ??
-            payment.paidAmount,
-        ),
-      0,
-    );
-
-  const bankBalance = paymentRecords
-    .filter(
-      (payment) =>
-        normalizePaymentMethod(payment.accountType ?? payment.paymentMethod) === "bank",
-    )
-    .reduce(
-      (total, payment) =>
-        total +
-        toNumber(
-          payment.amount ??
-            payment.paidAmount,
-        ),
-      0,
-    );
-
+/** Shared by the overview and its detail pages, so card totals reconcile with their records. */
+export function calculateFinanceSummary(
+  incomeRecords: AnyRecord[], expenseRecords: AnyRecord[], invoiceRecords: AnyRecord[], paymentRecords: AnyRecord[],
+): FinanceSummary {
+  const totalIncome = incomeRecords.filter((item) => !item.deletedAt).reduce((sum, item) => sum + toNumber(item.amount ?? item.totalAmount ?? item.paidAmount), 0);
+  const totalExpenses = expenseRecords.filter((item) => !item.deletedAt).reduce((sum, item) => sum + toNumber(item.amount ?? item.totalAmount), 0);
+  const outstandingAmount = invoiceRecords.reduce((sum, invoice) => sum + outstandingDue(invoice), 0);
+  const overdueAmount = invoiceRecords.reduce((sum, invoice) => {
+    const dueDate = getDateValue({ date: invoice.dueDate ?? invoice.paymentDueDate });
+    return sum + (dueDate && dueDate < new Date() ? outstandingDue(invoice) : 0);
+  }, 0);
+  const receipts = paymentRecords.filter(isReceivedPayment);
+  const balance = (method: "cash" | "bank") => receipts
+    .filter((payment) => normalizePaymentMethod(payment.accountType ?? payment.paymentMethod) === method)
+    .reduce((sum, payment) => sum + toNumber(payment.amount ?? payment.paidAmount), 0);
+  const money = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
   return {
-    totalIncome,
-    totalExpenses,
-    netProfit: totalIncome - totalExpenses,
-
-    outstandingAmount,
-    outstandingInvoices,
-    overdueAmount,
-
-    cashBalance,
-    bankBalance,
+    totalIncome: money(totalIncome), totalExpenses: money(totalExpenses), netProfit: money(totalIncome - totalExpenses),
+    outstandingAmount: money(outstandingAmount), outstandingInvoices: invoiceRecords.filter((invoice) => outstandingDue(invoice) > 0).length,
+    overdueAmount: money(overdueAmount), cashBalance: money(balance("cash")), bankBalance: money(balance("bank")),
   };
 }
 

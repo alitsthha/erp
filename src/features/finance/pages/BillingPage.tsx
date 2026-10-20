@@ -1,3 +1,4 @@
+import UnbilledBillsSection from "../components/UnbilledBillsSection";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { useUnsavedWork } from "@/hooks/useUnsavedWork";
 import { Link, useSearchParams } from "react-router-dom";
@@ -666,6 +667,8 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
             {success}
           </div>
         )}
+
+        {!loadingInvoices && !loadingStudents && <UnbilledBillsSection />}
 
         {/* =================================================
             FILTER CARD

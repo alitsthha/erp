@@ -1,15 +1,19 @@
+import type { Student } from "@/features/students/types/student.types";
 import { hydrateActivityReferences } from "@/features/activities/services/activity-reference.service";
 import {
   collection,
   getDocs,
   query,
   where,
+  onSnapshot,
+  type QuerySnapshot,
+  type DocumentData,
 } from "firebase/firestore";
 
 import { db } from "@/firebase/config";
 import { getKathmanduToday } from "@/utils/calendar-date";
 import { applyBillingSelection, type BillingSelection } from "./billing-selection.service";
-import { getBillingCalendarAttendance } from "./billing-sessions.service";
+import { getBillingCalendarAttendance, mergeBillingAttendance } from "./billing-sessions.service";
 import { billedEnrollmentCharges, billingDateKey, summarizeBillingHistory, type BillingRecord } from "./billing-history.service";
 
 import type {
@@ -619,10 +623,100 @@ export async function getStudentAttendanceForMonth(
     }));
 }
 
+/** A workspace-scoped snapshot for previews only. Invoice generation always reads fresh data. */
+export interface BillingPreviewData {
+  studentsById: Map<string, Student>;
+  enrollmentsByStudent: Map<string, Enrollment[]>;
+  invoicesByStudent: Map<string, BillingRecord[]>;
+  attendanceByEnrollment: Map<string, Attendance[]>;
+  calendarAttendance: Attendance[];
+}
+
+export async function loadBillingPreviewData(): Promise<BillingPreviewData> {
+  const [enrollmentSnapshot, invoiceSnapshot, attendanceSnapshot, dailySnapshot, studentSnapshot] = await Promise.all(
+    ["enrollments", "invoices", "attendances", "daily_attendances", "students"].map((name) => getDocs(collection(db, name)))
+  );
+  return buildBillingPreviewData([enrollmentSnapshot, invoiceSnapshot, attendanceSnapshot, dailySnapshot, studentSnapshot]);
+}
+
+async function buildBillingPreviewData([enrollmentSnapshot, invoiceSnapshot, attendanceSnapshot, dailySnapshot, studentSnapshot]: QuerySnapshot<DocumentData>[]): Promise<BillingPreviewData> {
+  const studentsById = new Map(studentSnapshot.docs
+    .filter((item) => !item.data().deletedAt)
+    .map((item) => [item.id, { ...item.data(), id: item.id } as Student]));
+  const enrollments = await hydrateActivityReferences(enrollmentSnapshot.docs
+    .filter((item) => !item.data().deletedAt)
+    .map((item) => ({ ...item.data(), id: item.id }) as Enrollment));
+  const enrollmentsByStudent = new Map<string, Enrollment[]>();
+  for (const enrollment of enrollments) {
+    const items = enrollmentsByStudent.get(enrollment.studentId) ?? [];
+    items.push(enrollment);
+    enrollmentsByStudent.set(enrollment.studentId, items);
+  }
+  const invoicesByStudent = new Map<string, BillingRecord[]>();
+  for (const item of invoiceSnapshot.docs) {
+    const invoice = { ...item.data(), id: item.id } as BillingRecord;
+    const studentId = String(invoice.studentId ?? "");
+    const items = invoicesByStudent.get(studentId) ?? [];
+    items.push(invoice);
+    invoicesByStudent.set(studentId, items);
+  }
+  const attendanceByEnrollment = new Map<string, Attendance[]>();
+  for (const item of attendanceSnapshot.docs) {
+    if (item.data().deletedAt) continue;
+    const attendance = mapAttendance(item.id, item.data());
+    if (attendance.status !== "Present") continue;
+    const items = attendanceByEnrollment.get(attendance.enrollmentId) ?? [];
+    items.push(attendance);
+    attendanceByEnrollment.set(attendance.enrollmentId, items);
+  }
+  const calendarAttendance = await mergeBillingAttendance(
+    attendanceSnapshot.docs.map((item) => ({ ...item.data(), id: item.id }) as Attendance),
+    dailySnapshot.docs.map((item) => item.data()),
+  );
+  return { studentsById, enrollmentsByStudent, invoicesByStudent, attendanceByEnrollment, calendarAttendance };
+}
+
+/** One listener per source: date changes reuse this data; source edits refresh the preview. */
+export function subscribeBillingPreviewData(
+  onChange: (data: BillingPreviewData) => void,
+  onError: (error: Error) => void,
+): () => void {
+  const names = ["enrollments", "invoices", "attendances", "daily_attendances", "students"];
+  const snapshots = new Map<string, QuerySnapshot<DocumentData>>();
+  let active = true;
+  let version = 0;
+  let queued = false;
+  const refresh = () => {
+    version++;
+    if (queued || snapshots.size !== names.length) return;
+    queued = true;
+    queueMicrotask(() => {
+      queued = false;
+      const request = version;
+      void buildBillingPreviewData(names.map((name) => snapshots.get(name)!)).then((data) => {
+        if (active && request === version) onChange(data);
+      }).catch((error: unknown) => {
+        if (active && request === version) onError(error instanceof Error ? error : new Error("Unable to refresh unbilled fees."));
+      });
+    });
+  };
+  const stops = names.map((name) => onSnapshot(collection(db, name), (snapshot) => {
+    if (!active) return;
+    snapshots.set(name, snapshot);
+    refresh();
+  }, (error) => {
+    snapshots.delete(name);
+    version++;
+    if (active) onError(error);
+  }));
+  return () => { active = false; version++; stops.forEach((stop) => stop()); };
+}
+
 export async function calculateStudentMonthlyFee(
   studentId: string,
   period: string,
-  options?: FeeCalculationOptions
+  options?: FeeCalculationOptions,
+  previewData?: BillingPreviewData,
 ): Promise<StudentFeeSummary> {
   const { month, billingDate } = resolveBillingPeriod(period, options?.billingDate);
   if (!studentId || !month) throw new Error("A student and valid billing period are required.");
@@ -635,21 +729,36 @@ export async function calculateStudentMonthlyFee(
 
   const cutoff = billingDate || `${month}-${String(getDaysInBsMonth(Number(month.slice(0, 4)), Number(month.slice(5, 7)))).padStart(2, "0")}`;
   const paymentCutoff = billingDateKey(options?.paymentDate) || cutoff;
-  const [enrollments, invoiceSnapshot, advanceSnapshot] = await Promise.all([
-    getStudentEnrollments(studentId),
-    getDocs(query(collection(db, "invoices"), where("studentId", "==", studentId))),
-    getDocs(query(collection(db, "financeIncome"), where("studentId", "==", studentId))),
-  ]);
-  const invoices: BillingRecord[] = invoiceSnapshot.docs.map((item) => ({ ...item.data(), id: item.id }));
-  const advances: BillingRecord[] = advanceSnapshot.docs.map((item) => ({ ...item.data(), id: item.id }));
-  // Query by invoice so legacy receipts without a studentId are included too.
-  const paymentSnapshots = await Promise.all(invoices.filter((item) => !item.deletedAt && item.status !== "Cancelled").map((item) =>
-    getDocs(query(collection(db, "financePayments"), where("invoiceId", "==", item.id)))
-  ));
-  const payments: BillingRecord[] = paymentSnapshots.flatMap((snapshot) => snapshot.docs.map((item) => ({ ...item.data(), id: item.id })));
-  const activeEnrollments = enrollments.filter((enrollment) => enrollment.status === "Active");
+  let enrollments: Enrollment[];
+  let invoices: BillingRecord[];
+  let advances: BillingRecord[] = [];
+  let payments: BillingRecord[] = [];
+  if (previewData) {
+    enrollments = previewData.enrollmentsByStudent.get(studentId) ?? [];
+    invoices = previewData.invoicesByStudent.get(studentId) ?? [];
+  } else {
+    const [enrollmentData, invoiceSnapshot, advanceSnapshot] = await Promise.all([
+      getStudentEnrollments(studentId),
+      getDocs(query(collection(db, "invoices"), where("studentId", "==", studentId))),
+      getDocs(query(collection(db, "financeIncome"), where("studentId", "==", studentId))),
+    ]);
+    enrollments = enrollmentData;
+    invoices = invoiceSnapshot.docs.map((item) => ({ ...item.data(), id: item.id }));
+    advances = advanceSnapshot.docs.map((item) => ({ ...item.data(), id: item.id }));
+    // Query by invoice so legacy receipts without a studentId are included too.
+    const paymentSnapshots = await Promise.all(invoices.filter((item) => !item.deletedAt && item.status !== "Cancelled").map((item) =>
+      getDocs(query(collection(db, "financePayments"), where("invoiceId", "==", item.id)))
+    ));
+    payments = paymentSnapshots.flatMap((snapshot) => snapshot.docs.map((item) => ({ ...item.data(), id: item.id })));
+  }
+  const activeEnrollments = enrollments.filter((enrollment) => {
+    const started = normalizeBsDate(enrollment.enrollmentDate);
+    return enrollment.status === "Active" && (!started || started <= cutoff);
+  });
   const attendanceCutoff = [cutoff, getKathmanduToday().bs].sort()[0];
-  const calendarAttendance = await getBillingCalendarAttendance(`${startMonth}-01`, attendanceCutoff);
+  const calendarAttendance = previewData
+    ? previewData.calendarAttendance.filter((item) => item.sessionDateBS >= `${startMonth}-01` && item.sessionDateBS <= attendanceCutoff)
+    : await getBillingCalendarAttendance(`${startMonth}-01`, attendanceCutoff);
 
   const lines: StudentFeeLine[] = [];
   let grossAmount = 0;
@@ -659,12 +768,12 @@ export async function calculateStudentMonthlyFee(
       continue;
     }
 
-    const snapshot = await getDocs(query(collection(db, "attendances"), where("enrollmentId", "==", enrollment.id)));
-    // Keep every historical ID for recognizing older bills, even when duplicate
-    // records now collapse into a single calendar class date.
-    const allAttendance = snapshot.docs.filter((item) => !item.data().deletedAt)
-      .map((item) => mapAttendance(item.id, item.data()))
-      .filter((item) => item.status === "Present");
+    const allAttendance = previewData
+      ? previewData.attendanceByEnrollment.get(enrollment.id) ?? []
+      : (await getDocs(query(collection(db, "attendances"), where("enrollmentId", "==", enrollment.id)))).docs
+          .filter((item) => !item.data().deletedAt)
+          .map((item) => mapAttendance(item.id, item.data()))
+          .filter((item) => item.status === "Present");
     const enrollmentDate = normalizeBsDate(enrollment.enrollmentDate);
     const inPeriod = (item: Attendance) => {
       const date = billingDateKey(item.sessionDateBS || item.sessionDate);
@@ -690,8 +799,10 @@ export async function calculateStudentMonthlyFee(
     for (const date of byDate.keys()) heldDates.add(date);
     line.heldSessions = heldDates.size;
     line.attendanceDates = line.countedMonthly ? [] : unbilledAttendance.map((item) => billingDateKey(item.sessionDateBS || item.sessionDate));
-    grossAmount += line.countedMonthly ? line.monthlyFee * billingMonths.length : attendance.length * line.sessionFee;
-    line.billedMonths = line.countedMonthly ? billingMonths.filter((value) => !billed.months.has(value)) : [];
+    // A flat monthly fee starts in the enrollment month, never in earlier months.
+    const eligibleMonths = billingMonths.filter((value) => !enrollmentDate || value >= enrollmentDate.slice(0, 7));
+    grossAmount += line.countedMonthly ? line.monthlyFee * eligibleMonths.length : attendance.length * line.sessionFee;
+    line.billedMonths = line.countedMonthly ? eligibleMonths.filter((value) => !billed.months.has(value)) : [];
     line.attendanceIds = line.countedMonthly ? [] : unbilledAttendance.map((item) => item.id!);
     if (line.countedMonthly && line.monthlyFeeAmount > 0) {
       line.monthlyFeeAmount = roundMoney(line.monthlyFeeAmount * line.billedMonths.length);
@@ -753,10 +864,17 @@ export async function countPresentSessions(
 
 export async function calculateAllStudentMonthlyFees(
   period: string,
-  options?: FeeCalculationOptions
+  options?: FeeCalculationOptions,
+  previewData?: BillingPreviewData,
 ): Promise<StudentFeeSummary[]> {
   if (!period) {
     return [];
+  }
+
+  if (previewData) {
+    return Promise.all([...previewData.enrollmentsByStudent.entries()]
+      .filter(([, enrollments]) => enrollments.some((enrollment) => enrollment.status === "Active"))
+      .map(([studentId]) => calculateStudentMonthlyFee(studentId, period, options, previewData)));
   }
 
   const snapshot = await getDocs(collection(db, "enrollments"));

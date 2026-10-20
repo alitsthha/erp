@@ -47,6 +47,7 @@ import AddStaffPage from "@/features/staff/pages/AddStaffPage";
 import EditStaffPage from "@/features/staff/pages/EditStaffPage";
 
 // ================= FINANCE =================
+import FinanceMetricPage from "@/features/finance/pages/FinanceMetricPage";
 import FinancePage from "@/features/finance/pages/FinancePage";
 import BillingPage from "@/features/finance/pages/BillingPage";
 import IncomePage from "@/features/finance/pages/IncomePage";
@@ -247,6 +248,8 @@ const router = createBrowserRouter(createRoutesFromElements(<>
               path="/finance"
               element={<AdminRoute><FinancePage /></AdminRoute>}
             />
+
+            <Route path="/finance/overview/:metric" element={<AdminRoute><FinanceMetricPage /></AdminRoute>} />
 
             <Route
               path="/finance/billing"

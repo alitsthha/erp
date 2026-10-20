@@ -1,5 +1,5 @@
 import { hydrateActivityReferences } from "@/features/activities/services/activity-reference.service";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where, type DocumentData } from "firebase/firestore";
 import { db } from "@/firebase/config";
 import type { Attendance } from "@/features/attendance/types/attendance.types";
 import { mergeCalendarAttendance } from "@/features/calendar/calendar.utils";
@@ -14,10 +14,20 @@ export async function getBillingCalendarAttendance(first: string, last: string):
       collection(db, name), where("sessionDateBS", ">=", first), where("sessionDateBS", "<=", last),
     )))
   );
-  const records = individual.docs
-    .map((item) => ({ ...item.data(), id: item.id }) as Attendance);
-  const fallback = daily.docs.filter((item) => !item.data().deletedAt).flatMap((item) => {
-    const data = item.data();
+  return mergeBillingAttendance(
+    individual.docs.map((item) => ({ ...item.data(), id: item.id }) as Attendance),
+    daily.docs.map((item) => item.data()),
+  );
+}
+
+/** Shared merge rules for normal bill creation and the cached unbilled preview. */
+export async function mergeBillingAttendance(records: Attendance[], daily: DocumentData[]): Promise<Attendance[]> {
+  return hydrateActivityReferences(mergeBillingAttendanceRecords(records, daily));
+}
+
+/** Shared attendance precedence for billing and monthly expected income. */
+export function mergeBillingAttendanceRecords(records: Attendance[], daily: DocumentData[]): Attendance[] {
+  const fallback = daily.filter((data) => !data.deletedAt).flatMap((data) => {
     return (Array.isArray(data.attendances) ? data.attendances : [])
       .filter((record) => !record.deletedAt)
       .map((record) => ({
@@ -28,6 +38,6 @@ export async function getBillingCalendarAttendance(first: string, last: string):
   });
   // Keep tombstones through the merge so an older daily summary cannot
   // resurrect a deleted individual attendance record.
-  return hydrateActivityReferences(mergeCalendarAttendance(records, fallback)
-    .filter((record) => !(record as Attendance & { deletedAt?: unknown }).deletedAt));
+  return mergeCalendarAttendance(records, fallback)
+    .filter((record) => !(record as Attendance & { deletedAt?: unknown }).deletedAt);
 }

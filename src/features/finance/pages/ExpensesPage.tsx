@@ -1,3 +1,6 @@
+import FinanceDateRange from "../components/FinanceDateRange";
+import { matchesFinanceDate } from "../services/finance-date";
+import type { FinanceDateFilter } from "../types/finance.types";
 import { useSessionState } from "@/hooks/useSessionState";
 import SafeForm from "@/components/forms/SafeForm";
 import SearchableSelect from "@/components/forms/SearchableSelect";
@@ -51,6 +54,7 @@ function formatCurrency(value: number) {
 
 export default function ExpensesPage() {
   const navigate = useNavigate();
+  const [dateRange, setDateRange] = useSessionState<FinanceDateFilter>("finance:ExpensesPage:dateRange", {});
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -76,12 +80,12 @@ export default function ExpensesPage() {
     void loadExpenses();
   }, []);
 
+  const datedRecords = useMemo(() => expenses.filter((record) => matchesFinanceDate(record, dateRange)), [expenses, dateRange]);
+
   const filteredExpenses = useMemo(() => {
     const value = search.trim().toLowerCase();
 
-    if (!value) return expenses;
-
-    return expenses.filter((expense) => {
+    return datedRecords.filter((expense) => {
       const haystack = [
         expense.description,
         expense.category,
@@ -91,14 +95,13 @@ export default function ExpensesPage() {
         .join(" ")
         .toLowerCase();
 
-      return haystack.includes(value);
+      return !value || haystack.includes(value);
     }).filter((expense) => categoryFilter === "all" || expense.category === categoryFilter);
-  }, [expenses, search, categoryFilter]);
+  }, [datedRecords, search, categoryFilter]);
 
-  const totalExpenses = expenses.reduce((total, item) => total + (item.amount ?? 0), 0);
-  const thisMonthExpenses = expenses.filter((item) => {
-    const month = new Date(item.expenseDate).toISOString().slice(0, 7);
-    return month === new Date().toISOString().slice(0, 7);
+  const totalExpenses = datedRecords.reduce((total, item) => total + (item.amount ?? 0), 0);
+  const thisMonthExpenses = datedRecords.filter((item) => {
+    return item.expenseDate.slice(0, 7) === getCurrentBSDate().slice(0, 7);
   }).reduce((total, item) => total + item.amount, 0);
 
   async function handleSubmit(event: React.FormEvent) {
@@ -190,7 +193,7 @@ export default function ExpensesPage() {
 
           <div className="ui-surface p-5">
             <p className="text-sm text-slate-500">Transactions</p>
-            <p className="mt-2 text-2xl font-bold text-slate-900">{expenses.length}</p>
+            <p className="mt-2 text-2xl font-bold text-slate-900">{datedRecords.length}</p>
           </div>
         </div>
 
@@ -315,6 +318,7 @@ export default function ExpensesPage() {
 
             </div>
 
+            <FinanceDateRange value={dateRange} onChange={setDateRange} />
             <ListToolbar search={search} onSearchChange={setSearch} placeholder="Search description, vendor, or reference..." resultCount={filteredExpenses.length} onClear={() => { setSearch(""); setCategoryFilter("all"); }} filter={<SearchableSelect aria-label="Filter expenses by category" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="ui-field w-full px-3"><option value="all">All categories</option>{expenseCategories.map((category) => <option key={category}>{category}</option>)}</SearchableSelect>} />
 
             {loading ? (

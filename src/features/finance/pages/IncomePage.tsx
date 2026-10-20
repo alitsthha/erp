@@ -1,3 +1,6 @@
+import FinanceDateRange from "../components/FinanceDateRange";
+import { matchesFinanceDate } from "../services/finance-date";
+import type { FinanceDateFilter } from "../types/finance.types";
 import { useSessionState } from "@/hooks/useSessionState";
 import SafeForm from "@/components/forms/SafeForm";
 import SearchableSelect from "@/components/forms/SearchableSelect";
@@ -21,6 +24,7 @@ const formatCurrency = (value: number) => `Rs. ${value.toLocaleString("en-IN")}`
 
 export default function IncomePage() {
   const navigate = useNavigate();
+  const [dateRange, setDateRange] = useSessionState<FinanceDateFilter>("finance:IncomePage:dateRange", {});
   const [records, setRecords] = useState<Income[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
@@ -108,26 +112,30 @@ export default function IncomePage() {
     }
   }
 
+  const datedRecords = useMemo(() => records.filter((record) => matchesFinanceDate(record, dateRange)), [records, dateRange]);
+
+  const filteredRecords = useMemo(() => {
+    const keyword = search.trim().toLowerCase();
+    return datedRecords.filter((record) => {
+      const matchesSearch = !keyword || `${record.description} ${record.source ?? ""} ${record.incomeNumber}`.toLowerCase().includes(keyword);
+      return matchesSearch && (categoryFilter === "all" || record.category === categoryFilter);
+    });
+  }, [datedRecords, search, categoryFilter]);
+
   const totalIncome = useMemo(
-    () => records.reduce((sum, item) => sum + Number(item.amount ?? 0), 0),
-    [records],
+    () => datedRecords.reduce((sum, item) => sum + Number(item.amount ?? 0), 0),
+    [datedRecords],
   );
 
   const studentFeeIncome = useMemo(
     () =>
-      records
+      datedRecords
         .filter((item) => item.category === "Student Fee" || item.category === "Student Fee (Advance)")
         .reduce((sum, item) => sum + Number(item.amount ?? 0), 0),
-    [records],
+    [datedRecords],
   );
 
-  const filteredRecords = useMemo(() => {
-    const keyword = search.trim().toLowerCase();
-    return records.filter((record) => {
-      const matchesSearch = !keyword || `${record.description} ${record.source ?? ""} ${record.incomeNumber}`.toLowerCase().includes(keyword);
-      return matchesSearch && (categoryFilter === "all" || record.category === categoryFilter);
-    });
-  }, [records, search, categoryFilter]);
+
 
 
   return (
@@ -303,6 +311,7 @@ export default function IncomePage() {
           </SafeForm>
 
           <div className="ui-surface p-4 sm:p-6">
+            <FinanceDateRange value={dateRange} onChange={setDateRange} />
             <ListToolbar
               search={search}
               onSearchChange={setSearch}
