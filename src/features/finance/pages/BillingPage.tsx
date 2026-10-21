@@ -351,7 +351,25 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
     downloadLink.click();
 
     const parentName = invoiceCustomer?.guardianName || invoiceCustomer?.parentName || "Parent / Guardian";
-    const messageBody = `Dear ${parentName},\n\nThe invoice for ${invoice.studentName} (${invoice.billingMonth}) is ready.\nInvoice: ${invoice.invoiceNumber}\nPAN: ${organizationPan || "Not configured"}\nTotal due: Rs. ${formatCurrency(invoice.totalAmount)}\n\nPlease contact ${ORGANIZATION_DETAILS.email} if you have any questions.`;
+    const messageBody = [
+      ORGANIZATION_DETAILS.name,
+      `Dear ${parentName},`,
+      "",
+      `Bill no.: ${invoice.invoiceNumber}`,
+      `Student: ${invoice.studentName} (${invoice.studentCode})`,
+      `Billing month (BS): ${invoice.billingMonth}`,
+      `Bill date (BS): ${invoice.invoiceDate}`,
+      ...(invoice.dueDate ? [`Due date (BS): ${invoice.dueDate}`] : []),
+      ...(organizationPan ? [`PAN: ${organizationPan}`] : []),
+      "",
+      invoice.dueAmount > 0
+        ? "Please pay the amount due and send us a receipt of your payment, " +
+          "so we can confirm the transaction."
+        : "If you have not already shared it, please send us a screenshot of your payment for our records.",
+      "",
+      `For questions, contact ${ORGANIZATION_DETAILS.email}.`,
+      "Thank you!",
+    ].join("\n");
 
     if (method === "mail") {
       const recipient = invoiceCustomer?.guardianEmail || invoiceCustomer?.parentEmail || invoiceCustomer?.studentEmail || "";
@@ -360,7 +378,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
         return;
       }
 
-      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(recipient)}&su=${encodeURIComponent(`Invoice ${invoice.invoiceNumber} for ${invoice.studentName}`)}&body=${encodeURIComponent(`${messageBody}\n\nInvoice PDF downloaded: ${fileName}`)}`;
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(recipient)}&su=${encodeURIComponent(`Invoice ${invoice.invoiceNumber} for ${invoice.studentName}`)}&body=${encodeURIComponent(messageBody)}`;
       window.open(gmailUrl, "_blank", "noopener,noreferrer");
       setSuccess(`Gmail compose window opened for ${recipient}.`);
       if (invoice.id) {
@@ -372,8 +390,8 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
     } else {
       const whatsappNumber = normalizeWhatsappNumber(invoiceCustomer?.guardianPhone || invoiceCustomer?.parentPhone || "");
       const whatsappUrl = whatsappNumber
-        ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`${messageBody}\n\nInvoice PDF downloaded: ${fileName}`)}`
-        : `https://wa.me/?text=${encodeURIComponent(`${messageBody}\n\nInvoice PDF downloaded: ${fileName}`)}`;
+        ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(messageBody)}`
+        : `https://wa.me/?text=${encodeURIComponent(messageBody)}`;
       window.open(whatsappUrl, "_blank", "noopener,noreferrer");
       setSuccess("WhatsApp share window opened with the invoice details.");
       if (invoice.id) {
