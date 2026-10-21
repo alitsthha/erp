@@ -1,7 +1,8 @@
-import FinanceDateRange from "../components/FinanceDateRange";
+import BSMonthSelect from "../components/BSMonthSelect";
+import { convertADToBS, getCurrentBSDate } from "@/utils/nepali-date";
+import { filterFinanceOverviewPeriod } from "../services/finance-overview.service";
 import { useSessionState } from "@/hooks/useSessionState";
-import { financeRecordDate, matchesFinanceDate } from "../services/finance-date";
-import type { FinanceDateFilter } from "../types/finance.types";
+import { financeRecordDate } from "../services/finance-date";
 import PaginatedList from "@/components/common/PaginatedList";
 import { useMemo, useState } from "react";
 import {
@@ -53,9 +54,8 @@ const initialSummary: FinanceSummary = {
 };
 
 const periodOptions = [
-  { key: "daily", label: "Daily" },
-  { key: "weekly", label: "Weekly" },
   { key: "monthly", label: "Monthly" },
+  { key: "overall", label: "Overall" },
 ] as const;
 
 type TrendPoint = {
@@ -268,12 +268,13 @@ function buildFinanceOverviewPDF(
 }
 
 export default function FinancePage() {
-  const [dateRange, setDateRange] = useSessionState<FinanceDateFilter>("finance:FinancePage:dateRange", {});
-  const rangeLabel = dateRange.startDate || dateRange.endDate ? `${dateRange.startDate || "Beginning"} to ${dateRange.endDate || "Present"} (BS)` : "All dates";
-  const { data, loading: isLoading, error } = useFinanceOverview();
+  const [period, setPeriod] = useSessionState<"monthly" | "overall">("finance:overview:period", "monthly");
+  const [month, setMonth] = useSessionState("finance:overview:month", getCurrentBSDate().slice(0, 7));
+  const rangeLabel = period === "monthly" ? `${month} (BS)` : "All dates";
+  const { data: sourceData, loading: isLoading, error } = useFinanceOverview();
+  const data = useMemo(() => sourceData ? filterFinanceOverviewPeriod(sourceData, period, month) : undefined, [sourceData, period, month]);
   const summary = data?.summary ?? initialSummary;
   const [isExporting, setIsExporting] = useState(false);
-  const [period, setPeriod] = useState<(typeof periodOptions)[number]["key"]>("monthly");
   const invoices = data?.invoices ?? emptyRecords;
   const expenses = data?.expenses ?? emptyRecords;
   const income = data?.income ?? emptyRecords;
@@ -299,10 +300,8 @@ export default function FinancePage() {
     allTransactions.sort((a, b) => (a.date?.getTime() ?? 0) - (b.date?.getTime() ?? 0)).forEach((txn) => {
       if (!txn.date) return;
       const date = new Date(txn.date);
-      if (period === "weekly") date.setDate(date.getDate() - date.getDay());
-      const key = period === "monthly"
-        ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
-        : `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+      const bsDate = convertADToBS(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`);
+      const key = period === "monthly" ? bsDate : bsDate.slice(0, 7);
 
       if (!grouped[key]) {
         grouped[key] = { income: 0, expenses: 0 };
@@ -399,7 +398,6 @@ export default function FinancePage() {
     ];
 
     return allTxns
-      .filter((txn) => matchesFinanceDate({ date: txn.date }, dateRange))
       .filter((txn) => txn.date !== null)
       .sort((a, b) => b.date!.getTime() - a.date!.getTime())
       .map((txn) => {
@@ -421,7 +419,7 @@ export default function FinancePage() {
           time: timeStr,
         };
       });
-  }, [invoices, expenses, income, payments, dateRange]);
+  }, [invoices, expenses, income, payments]);
 
   const profitMargin = useMemo(() => {
     if (!summary.totalIncome) return 0;
@@ -431,7 +429,7 @@ export default function FinancePage() {
   const handleExportReport = () => {
     setIsExporting(true);
     try {
-      const doc = buildFinanceOverviewPDF(summary, `All dates; transactions: ${rangeLabel}; ${period} chart intervals`, recentTransactions, data?.expectedIncome ?? 0);
+      const doc = buildFinanceOverviewPDF(summary, `${period}: ${rangeLabel}`, recentTransactions, data?.expectedIncome ?? 0);
       doc.save("finance-overview-report.pdf");
     } catch (err) {
       console.error("Failed to export finance overview report:", err);
@@ -545,6 +543,9 @@ export default function FinancePage() {
         </div>
       </div>
 
+      {period === "monthly" && <BSMonthSelect value={month} onChange={setMonth} label="Overview month (BS)" />}
+      <p className="text-sm text-slate-500">Showing {rangeLabel}. Expected Income is a monthly estimate for {month} (BS).</p>
+
       {error && <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-700">Unable to load financial data: {error}</p>}
 
       {isLoading && (
@@ -573,7 +574,7 @@ export default function FinancePage() {
                           : "bg-slate-100 text-slate-700";
 
               return (
-                <Link key={card.title} to={card.href} className="ui-surface block p-5 transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-brand-600">
+                <Link key={card.title} to={card.href + (card.title === "Expected Income" ? "" : `?period=${period}&month=${month}`)} className="ui-surface block p-5 transition hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-brand-600">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-medium text-slate-500">{card.title}</p>
@@ -598,7 +599,7 @@ export default function FinancePage() {
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <h2 className="ui-section-title">Cash flow trend</h2>
-                  <p className="text-sm text-slate-500">Income vs expenses over the {period} period</p>
+                  <p className="text-sm text-slate-500">Income vs expenses · {rangeLabel}</p>
                 </div>
                 <div className="flex items-center gap-3 text-xs font-medium text-slate-500">
                   <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full bg-brand-500" /> Income</span>
@@ -729,7 +730,7 @@ export default function FinancePage() {
               </div>
 
               <div className="mt-5">
-                <FinanceDateRange value={dateRange} onChange={setDateRange} />
+
               </div>
               <div className="overflow-hidden rounded-xl border border-slate-200">
                 <table className="ui-table divide-y divide-slate-200">

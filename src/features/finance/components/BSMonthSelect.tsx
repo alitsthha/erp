@@ -1,12 +1,12 @@
 import { useId } from "react";
 import { BS_MONTHS } from "@/utils/nepali-date";
 
-export default function BSMonthSelect({ value, onChange }: { value: string; onChange: (month: string) => void }) {
+export default function BSMonthSelect({ value, onChange, label = "Expected income month (BS)" }: { value: string; onChange: (month: string) => void; label?: string }) {
   const id = useId();
   const [year, month] = value.split("-");
   return (
     <fieldset className="ui-surface max-w-lg p-4">
-      <legend className="px-1 text-sm font-medium text-slate-700">Expected income month (BS)</legend>
+      <legend className="px-1 text-sm font-medium text-slate-700">{label}</legend>
       <div className="grid grid-cols-2 gap-3">
         <div><label htmlFor={`${id}-month`} className="mb-1.5 block text-sm text-slate-600">Month</label>
           <select id={`${id}-month`} value={month} onChange={(event) => onChange(`${year}-${event.target.value}`)} className="ui-field w-full px-3">

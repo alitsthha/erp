@@ -1,3 +1,4 @@
+import { matchesFinanceDate } from "./finance-date";
 import type { Attendance } from "@/features/attendance/types/attendance.types";
 import { getKathmanduToday } from "@/utils/calendar-date";
 import { mergeBillingAttendanceRecords } from "./billing-sessions.service";
@@ -206,4 +207,19 @@ export function subscribeFinanceOverview(onChange: (data: FinanceOverviewData) =
     if (activeSubscription) onError(error);
   }));
   return () => { activeSubscription = false; stops.forEach((stop) => stop()); };
+}
+
+/** Keep every overview visualization and total on the same reporting period. */
+export function filterFinanceOverviewPeriod(data: FinanceOverviewData, period: "monthly" | "overall", month: string): FinanceOverviewData {
+  const range = period === "monthly" ? { startDate: `${month}-01`, endDate: `${month}-32` } : {};
+  const filtered = {
+    ...data, month,
+    income: data.income.filter((record) => matchesFinanceDate(record, range)),
+    expenses: data.expenses.filter((record) => matchesFinanceDate(record, range)),
+    invoices: data.invoices.filter((record) => matchesFinanceDate(record, range)),
+    payments: data.payments.filter((record) => matchesFinanceDate(record, range)),
+  };
+  filtered.summary = calculateFinanceSummary(filtered.income, filtered.expenses, filtered.invoices, filtered.payments);
+  filtered.expectedIncome = sum(expectedIncomeRows(filtered, month));
+  return filtered;
 }

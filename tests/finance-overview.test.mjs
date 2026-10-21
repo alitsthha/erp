@@ -276,3 +276,35 @@ test('expected-income route renders month and year selectors without a day picke
   assert(!html.includes('2083-06-01'));
   assert(!html.includes('type="date"'));
 });
+
+
+test('monthly overview filters every financial source inclusively and overall restores all records', () => {
+  const api = service();
+  const source = sources();
+  source.financeIncome = [
+    { id: 'first', incomeDate: '2083-06-01', amount: 100 },
+    { id: 'last', incomeDate: '2083-06-31', amount: 200 },
+    { id: 'previous', incomeDate: '2083-05-30', amount: 400 },
+    { id: 'next', incomeDate: '2083-07-01', amount: 800 },
+  ];
+  source.financeExpenses = [{ id: 'expense', expenseDate: '2083-06-10', amount: 50 }, { id: 'undated', amount: 70 }];
+  source.financePayments = [{ id: 'cash', paymentDate: '2083-06-10', paymentMethod: 'Cash', amount: 100 }, { id: 'bank', paymentDate: '2083-05-10', paymentMethod: 'Bank', amount: 200 }];
+  const data = api.buildFinanceOverviewData(source, '2083-06');
+  const monthly = api.filterFinanceOverviewPeriod(data, 'monthly', '2083-06');
+  assert.equal(monthly.summary.totalIncome, 300);
+  assert.equal(monthly.summary.totalExpenses, 50);
+  assert.equal(monthly.summary.netProfit, 250);
+  assert.equal(monthly.summary.outstandingAmount, 500);
+  assert.equal(monthly.summary.cashBalance, 100);
+  assert.equal(monthly.summary.bankBalance, 0);
+  assert.equal(monthly.income.length, 2);
+  for (const metric of ['income', 'expenses', 'outstanding', 'cash', 'bank']) {
+    const key = { income: 'totalIncome', expenses: 'totalExpenses', outstanding: 'outstandingAmount', cash: 'cashBalance', bank: 'bankBalance' }[metric];
+    assert.equal(sum(api.financeDetailRows(monthly, metric)), monthly.summary[key]);
+  }
+  const overall = api.filterFinanceOverviewPeriod(data, 'overall', '2083-06');
+  assert.equal(overall.summary.totalIncome, 1500);
+  assert.equal(overall.summary.totalExpenses, 120);
+  assert.equal(overall.summary.bankBalance, 200);
+  assert.equal(data.income.length, 4, 'filtering preserves the subscription data');
+});

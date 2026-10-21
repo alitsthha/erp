@@ -10,11 +10,15 @@ The missing-bill count reconciles the full current student list: total students 
 
 # Finance overview details
 
+The overview offers Monthly and Overall filters. Monthly uses the selected complete BS month for financial cards, charts, transactions, detail links and PDF exports; Overall includes all dates. Expected Income remains a monthly estimate for the selected month in either view.
+
 Click any Finance overview card to open the records behind its total. Outstanding and Expected Income support selecting multiple activities; the list and total update together. Outstanding invoice balances are allocated proportionally across their activity lines after invoice-level discounts and payments, with rounding that preserves the full outstanding amount. Manual invoices without an activity appear under Unassigned.
 
 Expected Income covers a complete BS month selected by month and year, using current active students and enrollments. Monthly enrollments keep their flat monthly fee. When an activity has attendance records in that month, session enrollments use their distinct Present attendance dates multiplied by the session rate (Absent and missing student marks are not charged). Duplicate, deleted, future, out-of-month and pre-enrollment sessions are excluded, and legacy daily attendance follows the same fallback rules as billing. Activities without attendance data use their planned session count or configured monthly fee, clearly marked as planned. Attendance changes update both the overview and detail page. Amounts are before discounts, advances and payments. Cash and bank overview totals retain their existing meaning of recorded receipts, without subtracting expenses or adding opening balances.
 
 # Email delivery
+
+Sending a bill through Gmail or WhatsApp prepares an itemized text bill with student details, bill dates, fees, discount, payments and the remaining amount due. The message asks the parent or guardian to share a payment screenshot with the student name and bill number for confirmation.
 
 Invoice emails and attendance alerts are written to the Firestore `mail` collection. Invoice emails include the generated PDF as a base64 attachment.
 

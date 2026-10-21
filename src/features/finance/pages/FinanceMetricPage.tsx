@@ -7,7 +7,7 @@ import BSMonthSelect from "../components/BSMonthSelect";
 import { getCurrentBSDate } from "@/utils/nepali-date";
 import ActivityMultiSelect from "../components/ActivityMultiSelect";
 import { useFinanceOverview } from "../hooks/useFinanceOverview";
-import { financeDetailRows, filterFinanceDetailRows, type FinanceMetric } from "../services/finance-overview.service";
+import { financeDetailRows, filterFinanceDetailRows, filterFinanceOverviewPeriod, type FinanceMetric } from "../services/finance-overview.service";
 
 const metrics: Record<FinanceMetric, { title: string; description: string }> = {
   income: { title: "Total Income", description: "Recorded income, including student payments and advances." },
@@ -34,7 +34,7 @@ function FinanceMetricWorkspace({ metric }: { metric: FinanceMetric }) {
   const [activityIds, setActivityIds] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const supportsActivities = metric === "outstanding" || metric === "expected-income";
-  const rows = useMemo(() => data ? financeDetailRows(data, metric, month) : [], [data, metric, month]);
+  const rows = useMemo(() => data ? financeDetailRows(params.get("period") === "monthly" ? filterFinanceOverviewPeriod(data, "monthly", month) : data, metric, month) : [], [data, metric, month, params]);
   const filteredRows = useMemo(() => filterFinanceDetailRows(rows, activityIds, search), [rows, activityIds, search]);
   const options = useMemo(() => {
     const choices = new Map((data?.activities ?? []).filter((activity) => !activity.deletedAt)
