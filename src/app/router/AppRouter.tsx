@@ -217,7 +217,7 @@ const router = createBrowserRouter(createRoutesFromElements(<>
             />
 
             <Route
-              path="/attendance/student/:studentId/:dateBS"
+              path="/attendance/student/:studentId/:dateBS?"
               element={<StudentAttendanceDetailPage />}
             />
 

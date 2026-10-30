@@ -9,6 +9,8 @@ import type { Enrollment } from "../types/enrollment.types";
 import EnrollmentActions from "./EnrollmentActions";
 
 type Props = {
+  onToggleStatus?: (enrollment: Enrollment) => void;
+  updatingId?: string | null;
   enrollments: Enrollment[];
 
   onViewEnrollment: (
@@ -25,6 +27,8 @@ type Props = {
 };
 
 export default function EnrollmentTable({
+  onToggleStatus,
+  updatingId,
   enrollments,
   onViewEnrollment,
   onEditEnrollment,
@@ -169,6 +173,9 @@ export default function EnrollmentTable({
                 {/* Actions */}
                 <td className="px-4 py-3">
                   <EnrollmentActions
+                    active={enrollment.status === "Active"}
+                    busy={updatingId === enrollment.id}
+                    onToggleStatus={onToggleStatus ? () => onToggleStatus(enrollment) : undefined}
                     onView={() =>
                       onViewEnrollment(enrollment)
                     }
@@ -254,6 +261,9 @@ export default function EnrollmentTable({
               </div>
 
               <EnrollmentActions
+                active={enrollment.status === "Active"}
+                busy={updatingId === enrollment.id}
+                onToggleStatus={onToggleStatus ? () => onToggleStatus(enrollment) : undefined}
                 onView={() =>
                   onViewEnrollment(enrollment)
                 }

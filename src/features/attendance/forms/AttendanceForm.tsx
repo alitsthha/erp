@@ -1,3 +1,4 @@
+import { isEnrollmentActiveOn } from "@/features/enrollments/utils/enrollment-eligibility";
 import SafeForm from "@/components/forms/SafeForm";
 import SearchableSelect from "@/components/forms/SearchableSelect";
 import ListSortControl from "@/components/common/ListSortControl";
@@ -114,14 +115,6 @@ export default function AttendanceForm({
 
   const hasActivityFilter = Boolean(activityId);
 
-  const isDateBeforeOrOn = (left: string, right: string) => {
-    if (!left || !right) {
-      return true;
-    }
-
-    return left <= right;
-  };
-
   /*
    * Keep date synchronized with parent.
    */
@@ -142,41 +135,10 @@ export default function AttendanceForm({
         return false;
       }
 
-      const isActive =
-        enrollment.status === "Active" ||
-        !enrollment.status;
-
-      if (!isActive) {
-        return false;
-      }
-
-      if (activityId && enrollment.activityId !== activityId) {
-        return false;
-      }
-
-      if (!sessionDate) {
-        return true;
-      }
-
-      const enrollmentDate =
-        typeof enrollment.enrollmentDate === "string"
-          ? enrollment.enrollmentDate.trim()
-          : "";
-
-      if (!enrollmentDate) {
-        return true;
-      }
-
-      const normalizedEnrollmentDate = enrollmentDate.includes("-")
-        ? enrollmentDate.slice(0, 10)
-        : enrollmentDate;
-
-      return isDateBeforeOrOn(
-        normalizedEnrollmentDate,
-        sessionDate
-      );
+      return (!activityId || enrollment.activityId === activityId) &&
+        isEnrollmentActiveOn(enrollment, sessionDate);
     });
-  }, [enrollments, activityId, sessionDate]);
+  }, [enrollments, activityId, sessionDate, role, activityIds]);
 
   /*
    * Load attendance for selected date.

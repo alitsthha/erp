@@ -1,4 +1,5 @@
 import type { Attendance, AttendanceListRow } from "../types/attendance.types";
+import { attendanceDateBS } from "./attendance-tracking";
 
 export interface AttendanceActor { uid: string; name: string; email?: string; role?: string; staffId?: string }
 
@@ -31,11 +32,13 @@ export function getAttendanceTeachers(records: Attendance[]) {
 }
 
 export function getActivityClassCounts(row: AttendanceListRow, history: Attendance[]) {
+  const month = attendanceDateBS(row).slice(0, 7);
   const sources = row.groupedRecords || [row];
   const activities = new Map(sources.map((record) => [record.activityId, { id: record.activityId, name: record.activityName, dates: new Set<string>() }]));
   for (const record of history) {
-    if (record.studentId === row.studentId && record.status === "Present") {
-      activities.get(record.activityId)?.dates.add(record.sessionDateBS || record.sessionDate);
+    const date = attendanceDateBS(record);
+    if (month && date.slice(0, 7) === month && record.studentId === row.studentId && record.status === "Present") {
+      activities.get(record.activityId)?.dates.add(date);
     }
   }
   return [...activities.values()].map((activity) => ({ id: activity.id, name: activity.name, count: activity.dates.size }));

@@ -37,6 +37,8 @@ export function applyBillingSelection(summary: StudentFeeSummary, selection?: Bi
       attendanceDates: dates,
       attendanceIds: dates.map((date) => line.attendanceIds![line.attendanceDates!.indexOf(date)]),
       attendedSessions: dates.length,
+      advanceAttendanceDates: dates.filter((date) => line.advanceAttendanceDates?.includes(date)),
+      advanceSessions: dates.filter((date) => line.advanceAttendanceDates?.includes(date)).length,
       monthlyFeeApplied: monthlyFeeAmount > 0,
       monthlyFeeAmount,
       sessionAmount,

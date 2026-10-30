@@ -47,6 +47,7 @@ interface BillingLineDisplay {
   attendedSessions?: number;
   takenSessions?: number;
   heldSessions?: number;
+  advanceSessions?: number;
 }
 
 export function billingLineQuantity(line: BillingLineDisplay): string {
@@ -56,6 +57,10 @@ export function billingLineQuantity(line: BillingLineDisplay): string {
     return `${months} ${months === 1 ? "month" : "months"}`;
   }
   const taken = line.takenSessions ?? line.sessionCount ?? line.attendedSessions ?? 0;
+  if (line.advanceSessions) {
+    const billed = line.sessionCount ?? line.attendedSessions ?? 0;
+    return `${billed} ${billed === 1 ? "session" : "sessions"}`;
+  }
   // Legacy invoices never saved actual held counts; don't present an expected
   // monthly count as if it were a historical calendar count.
   return line.heldSessions === undefined ? `${taken} sessions` : `${taken} / ${line.heldSessions}`;
@@ -64,6 +69,7 @@ export function billingLineQuantity(line: BillingLineDisplay): string {
 export function billingLineDetail(line: BillingLineDisplay): string {
   if (line.countedMonthly) return line.billedMonths?.length ? `Monthly: ${line.billedMonths.join(", ")} BS` : "Monthly fee";
   const billed = line.sessionCount ?? line.attendedSessions ?? 0;
+  if (line.advanceSessions) return `${line.advanceSessions} advance ${line.advanceSessions === 1 ? "session" : "sessions"}; ${line.takenSessions ?? 0} taken / ${line.heldSessions ?? 0} held`;
   return line.takenSessions !== undefined && billed !== line.takenSessions
     ? `Taken / held; ${billed} ${billed === 1 ? "session" : "sessions"} billed`
     : line.heldSessions === undefined ? "Billed sessions" : "Taken / held";

@@ -34,6 +34,9 @@ import {
 ========================================================= */
 
 export interface StudentFeeLine {
+  /** Newly billable future dates; used to keep advance quantities aligned with selections. */
+  advanceAttendanceDates?: string[];
+  advanceSessions?: number;
   billedMonths?: string[];
   attendanceIds?: string[];
   attendanceDates?: string[];
@@ -81,6 +84,8 @@ export interface StudentFeeLine {
 }
 
 export interface StudentFeeSummary {
+  /** Preserve manual billing's future-session policy when generating the invoice. */
+  includeFutureAttendance?: boolean;
   /** Fees in the selected period, before removing previously invoiced fees. */
   grossAmount: number;
   previouslyBilledAmount: number;
@@ -120,6 +125,8 @@ export interface StudentFeeSummary {
 }
 
 export interface FeeCalculationOptions {
+  /** Manual billing can charge future attendance through billingDate. Defaults to false. */
+  includeFutureAttendance?: boolean;
   /** Invoice issue date used for payment history, independent of the fee period. */
   paymentDate?: string;
   selection?: BillingSelection;
@@ -755,7 +762,8 @@ export async function calculateStudentMonthlyFee(
     const started = normalizeBsDate(enrollment.enrollmentDate);
     return enrollment.status === "Active" && (!started || started <= cutoff);
   });
-  const attendanceCutoff = [cutoff, getKathmanduToday().bs].sort()[0];
+  const todayBS = getKathmanduToday().bs;
+  const attendanceCutoff = options?.includeFutureAttendance ? cutoff : [cutoff, todayBS].sort()[0];
   const calendarAttendance = previewData
     ? previewData.calendarAttendance.filter((item) => item.sessionDateBS >= `${startMonth}-01` && item.sessionDateBS <= attendanceCutoff)
     : await getBillingCalendarAttendance(`${startMonth}-01`, attendanceCutoff);
@@ -792,13 +800,15 @@ export async function calculateStudentMonthlyFee(
     const billed = billedEnrollmentCharges(enrollment.id, enrollment.activityId, invoices, [...allAttendance, ...presentRecords]);
     const unbilledAttendance = attendance.filter((item) => !billed.attendanceDates.has(billingDateKey(item.sessionDateBS || item.sessionDate)));
     const line = calculateEnrollmentFee(enrollment, unbilledAttendance.length, month, { billingDate });
-    line.takenSessions = attendance.length;
+    line.takenSessions = attendance.filter((item) => billingDateKey(item.sessionDateBS || item.sessionDate) <= todayBS).length;
     // An Absent mark still confirms that the activity took place that day.
-    const heldDates = new Set(calendarRecords.filter((item) => item.activityId === enrollment.activityId)
+    const heldDates = new Set(calendarRecords.filter((item) => item.activityId === enrollment.activityId && billingDateKey(item.sessionDateBS || item.sessionDate) <= todayBS)
       .map((item) => billingDateKey(item.sessionDateBS || item.sessionDate)));
-    for (const date of byDate.keys()) heldDates.add(date);
+    for (const date of byDate.keys()) if (date <= todayBS) heldDates.add(date);
     line.heldSessions = heldDates.size;
     line.attendanceDates = line.countedMonthly ? [] : unbilledAttendance.map((item) => billingDateKey(item.sessionDateBS || item.sessionDate));
+    line.advanceAttendanceDates = line.attendanceDates.filter((date) => date > todayBS);
+    line.advanceSessions = line.advanceAttendanceDates.length;
     // A flat monthly fee starts in the enrollment month, never in earlier months.
     const eligibleMonths = billingMonths.filter((value) => !enrollmentDate || value >= enrollmentDate.slice(0, 7));
     grossAmount += line.countedMonthly ? line.monthlyFee * eligibleMonths.length : attendance.length * line.sessionFee;
@@ -837,6 +847,7 @@ export async function calculateStudentMonthlyFee(
   const firstEnrollment = activeEnrollments[0];
 
   return applyBillingSelection({
+    includeFutureAttendance: Boolean(options?.includeFutureAttendance),
     grossAmount: roundMoney(grossAmount),
     previouslyBilledAmount: roundMoney(Math.max(grossAmount - totalAmount, 0)),
     ...summarizeBillingHistory(studentId, paymentCutoff, invoices, payments, advances),

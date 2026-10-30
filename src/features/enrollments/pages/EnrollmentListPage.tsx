@@ -4,6 +4,7 @@ import ListSortControl from "@/components/common/ListSortControl";
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -23,6 +24,7 @@ import EnrollmentTable from "../components/EnrollmentTable";
 import {
   deleteEnrollment,
   getEnrollments,
+  setEnrollmentStatus,
 } from "../services/enrollment.service";
 
 import type { Enrollment } from "../types/enrollment.types";
@@ -32,6 +34,26 @@ export default function EnrollmentListPage() {
   const [searchParams] = useSearchParams();
   const studentId = searchParams.get("studentId");
   const { isAdmin } = useAuth();
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const statusUpdateInProgress = useRef(false);
+
+  const handleToggleStatus = async (enrollment: Enrollment) => {
+    if (!isAdmin || !enrollment.id || statusUpdateInProgress.current) return;
+    const status = enrollment.status === "Active" ? "Inactive" : "Active";
+    statusUpdateInProgress.current = true;
+    setUpdatingId(enrollment.id);
+    setError(null);
+    try {
+      await setEnrollmentStatus(enrollment.id, status);
+      setEnrollments((items) => items.map((item) => item.id === enrollment.id ? { ...item, status } : item));
+    } catch (error) {
+      console.error(error);
+      setError("Unable to update enrollment status. Please try again.");
+    } finally {
+      statusUpdateInProgress.current = false;
+      setUpdatingId(null);
+    }
+  };
 
   const [enrollments, setEnrollments] =
     useState<Enrollment[]>([]);
@@ -197,9 +219,8 @@ export default function EnrollmentListPage() {
           </h1>
 
           <p className="mt-1 max-w-2xl text-sm text-slate-500">
-            Connect students with academy
-            activities and manage their
-            enrollment fees.
+            Enrollments stay active across months until revoked. Revoke an enrollment
+            when a student stops classes; their attendance history is preserved.
           </p>
         </div>
 
@@ -373,6 +394,8 @@ export default function EnrollmentListPage() {
       ) : (
        <EnrollmentTable
   enrollments={filteredEnrollments}
+  updatingId={updatingId}
+  onToggleStatus={isAdmin ? handleToggleStatus : undefined}
   onViewEnrollment={(enrollment) => {
     if (!enrollment.id) {
       return;

@@ -1,3 +1,5 @@
+import BSMonthNavigator from "@/components/common/BSMonthNavigator";
+import { useKathmanduToday } from "@/hooks/useKathmanduToday";
 import AttendanceRecorderDetails from "../components/AttendanceRecorderDetails";
 import PaginatedList from "@/components/common/PaginatedList";
 import { useEffect, useMemo, useState } from "react";
@@ -9,13 +11,16 @@ import { getAttendanceByStudentId } from "@/features/attendance/services/attenda
 import { useAuth } from "@/app/providers/AuthProvider";
 import { isActivityAllowedForRole } from "@/lib/rbac";
 import { getBSWeekday } from "@/utils/nepali-date";
-import { getAttendedClasses } from "../utils/attendance-tracking";
+import { attendanceDateBS, getAttendedClasses } from "../utils/attendance-tracking";
 
 export default function StudentAttendanceDetailPage() {
   const { isAdmin, role, activityIds } = useAuth();
   const navigate = useNavigate();
   const { studentId, dateBS } = useParams();
 
+  const todayBS = useKathmanduToday();
+  const [chosenMonth, setChosenMonth] = useState<string | null>(null);
+  const month = chosenMonth || dateBS?.slice(0, 7) || todayBS.slice(0, 7);
   const [allRecords, setAllRecords] = useState<Attendance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -48,13 +53,13 @@ export default function StudentAttendanceDetailPage() {
     record.studentId === studentId && !!role &&
     isActivityAllowedForRole(role, record.activityName, record.activityCode, activityIds, record.activityId)
   ), [allRecords, studentId, role, activityIds]);
-  const targetDate = dateBS ?? "";
+  const targetDate = dateBS?.slice(0, 7) === month ? dateBS : "";
   const records = studentRecords.filter((record) =>
-    !targetDate || (record.sessionDateBS || record.sessionDate) === targetDate
+    attendanceDateBS(record).slice(0, 7) === month && (!targetDate || attendanceDateBS(record) === targetDate)
   );
   const attendedClasses = useMemo(() =>
-    getAttendedClasses(studentRecords)[studentId ?? ""] ?? [],
-  [studentRecords, studentId]);
+    getAttendedClasses(studentRecords, "all", month)[studentId ?? ""] ?? [],
+  [studentRecords, studentId, month]);
   const studentName = studentRecords[0]?.studentName || "Student";
   const studentCode = studentRecords[0]?.studentCode || "";
 
@@ -117,27 +122,33 @@ export default function StudentAttendanceDetailPage() {
 
             <div className="inline-flex items-center gap-2 rounded-xl bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700">
               <CalendarDays size={16} />
-              {targetDate ? `${targetDate} BS · ${getBSWeekday(targetDate)}` : "All dates"}
+              {targetDate ? `${targetDate} BS · ${getBSWeekday(targetDate)}` : `${month} BS`}
             </div>
           </div>
         </div>
       </div>
 
+      <BSMonthNavigator month={month} currentMonth={todayBS.slice(0, 7)} onChange={(value) => {
+        setChosenMonth(value === todayBS.slice(0, 7) ? null : value);
+        navigate(`/attendance/student/${encodeURIComponent(studentId!)}`);
+      }} />
+
       <details open className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <summary className="cursor-pointer font-semibold text-brand-700">
-          View dates · {attendedClasses.length} {attendedClasses.length === 1 ? "class" : "classes"} attended
+          {month} BS · {attendedClasses.length} {attendedClasses.length === 1 ? "class" : "classes"} attended this month
         </summary>
         <p className="mt-2 text-sm text-slate-500">
-          {studentName}'s attended classes, newest first. Select a date to review or edit its attendance below.
+          {studentName}'s attended classes for this Nepali month, newest first. Select a date to review or edit its attendance below.
         </p>
         {attendedClasses.length > 0 ? (
           <ul className="mt-4 grid max-h-80 gap-2 overflow-y-auto sm:grid-cols-2">
             {<PaginatedList items={attendedClasses} list>{(session) => {
-              const attendedDate = session.sessionDateBS || session.sessionDate;
+              const attendedDate = attendanceDateBS(session);
               const isSelected = attendedDate === targetDate;
               return (
                 <li key={`${session.activityId}-${attendedDate}`}>
                   <Link
+                    onClick={() => setChosenMonth(null)}
                     to={`/attendance/student/${encodeURIComponent(session.studentId)}/${encodeURIComponent(attendedDate)}`}
                     aria-current={isSelected ? "date" : undefined}
                     className={`block rounded-xl border p-3 text-sm transition ${isSelected
@@ -152,7 +163,7 @@ export default function StudentAttendanceDetailPage() {
             }}</PaginatedList>}
           </ul>
         ) : (
-          <p className="mt-4 text-sm text-slate-500">No attended classes recorded yet.</p>
+          <p className="mt-4 text-sm text-slate-500">No attended classes recorded this month.</p>
         )}
       </details>
 
@@ -185,8 +196,8 @@ export default function StudentAttendanceDetailPage() {
                 </td>
 
                 <td className="px-4 py-3 align-top text-sm text-slate-700">
-                  <div className="font-medium">{record.sessionDateBS || record.sessionDate} BS</div>
-                  <div className="text-xs text-slate-400">{getBSWeekday(record.sessionDateBS || record.sessionDate)}</div>
+                  <div className="font-medium">{attendanceDateBS(record)} BS</div>
+                  <div className="text-xs text-slate-400">{getBSWeekday(attendanceDateBS(record))}</div>
                 </td>
 
                 <td className="px-4 py-3 align-top">

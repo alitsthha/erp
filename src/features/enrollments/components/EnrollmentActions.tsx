@@ -5,18 +5,28 @@ import {
 } from "lucide-react";
 
 type Props = {
+  active: boolean;
+  busy?: boolean;
+  onToggleStatus?: () => void;
   onView: () => void;
   onEdit: () => void;
   onDelete: () => void;
 };
 
 export default function EnrollmentActions({
+  active,
+  busy,
+  onToggleStatus,
   onView,
   onEdit,
   onDelete,
 }: Props) {
   return (
     <div className="flex items-center justify-end gap-2">
+      {onToggleStatus && <button type="button" onClick={onToggleStatus} disabled={busy}
+        className="ui-button border border-slate-200 bg-white text-xs text-slate-700">
+        {busy ? "Saving…" : active ? "Revoke" : "Reactivate"}
+      </button>}
       {/* View */}
       <button
         type="button"

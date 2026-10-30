@@ -1,3 +1,5 @@
+import ManualBillingDialog from "../components/ManualBillingDialog";
+import { saveManualBillingSessions, manualBillingSelection, type ManualBillingSession } from "../services/manual-billing.service";
 import UnbilledBillsSection from "../components/UnbilledBillsSection";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { useUnsavedWork } from "@/hooks/useUnsavedWork";
@@ -23,6 +25,8 @@ import {
   Mail,
   MessageCircle,
   Send,
+  Search,
+  X,
   UserRound,
 } from "lucide-react";
 
@@ -99,9 +103,11 @@ export default function BillingPage() {
 
 function BillingWorkspace() {
   const { isAdmin } = useAuth();
+  const [manualBillingOpen, setManualBillingOpen] = useState(false);
   const [searchParams] = useSearchParams();
   const paymentMode = searchParams.get("action") === "payment";
   const [showOutstandingOnly, setShowOutstandingOnly] = useState(paymentMode);
+  const [invoiceSearch, setInvoiceSearch] = useState("");
   const invoicesRef = useRef<HTMLElement>(null);
   const [invoiceReviewOpen, setInvoiceReviewOpen] = useState(false);
   const invoiceCreationInProgress = useRef(false);
@@ -190,10 +196,18 @@ function BillingWorkspace() {
     if (paymentMode) invoicesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [paymentMode]);
 
-  const displayedInvoices = invoices.filter((invoice) =>
-    (!selectedStudentId || invoice.studentId === selectedStudentId) &&
-    (!showOutstandingOnly || invoice.dueAmount > 0)
-  );
+  const displayedInvoices = useMemo(() => {
+    const terms = invoiceSearch.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    return invoices.filter((invoice) => {
+      if (selectedStudentId && invoice.studentId !== selectedStudentId) return false;
+      if (showOutstandingOnly && invoice.dueAmount <= 0) return false;
+      const searchable = [invoice.invoiceNumber, invoice.studentName, invoice.studentCode,
+        invoice.status, invoice.invoiceDate, invoice.billingMonth,
+        invoice.invoiceDate ? formatBSDate(invoice.invoiceDate) : "",
+      ].join(" ").toLowerCase();
+      return terms.every((term) => searchable.includes(term));
+    });
+  }, [invoices, selectedStudentId, showOutstandingOnly, invoiceSearch]);
 
   /* =====================================================
      LOAD STUDENTS
@@ -456,6 +470,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
         discount,
         invoiceDate,
         selection,
+        includeFutureAttendance: calculatedSummary?.includeFutureAttendance,
         billingDate,
         months: monthCount,
         startMonth: billingStartMonth,
@@ -622,6 +637,32 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
     }
   }
 
+  async function handleManualBilling(sessions: ManualBillingSession[]) {
+    const request = ++calculationRequest.current;
+    setSummary(null);
+    setError("");
+    setSuccess("");
+    const saved = await saveManualBillingSessions(selectedStudentId, sessions);
+    setBillingStartMonth(saved.startMonth);
+    setBillingDate(saved.billingDate);
+    try {
+      const result = await calculateStudentMonthlyFee(selectedStudentId, saved.billingDate.slice(0, 7), {
+        includeFutureAttendance: true,
+        billingDate: saved.billingDate, startMonth: saved.startMonth,
+        months: getInclusiveBsMonthCount(saved.startMonth, saved.billingDate.slice(0, 7)), paymentDate: invoiceDate,
+      });
+      if (request === calculationRequest.current) {
+        setSelection(manualBillingSelection(result, saved.sessions));
+        setSummary(result);
+        setManualBillingOpen(false);
+        setSuccess("Sessions saved to enrollment and attendance. Review the selected charges below, then generate the invoice.");
+      }
+    } catch (error) {
+      console.error("Manual sessions saved but bill calculation failed:", error);
+      throw new Error("Sessions were saved, but the bill could not be calculated. Retry to calculate it; existing sessions will be reused.", { cause: error });
+    }
+  }
+
   /* =====================================================
      SELECTED STUDENT
   ===================================================== */
@@ -635,6 +676,8 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
 
   return (
     <div className="min-h-full bg-slate-50">
+      {manualBillingOpen && selectedStudent && <ManualBillingDialog
+        studentName={selectedStudent.fullName} onClose={() => setManualBillingOpen(false)} onSave={handleManualBilling} />}
       <div className="ui-page mx-auto w-full space-y-6">
 
         {/* =================================================
@@ -819,6 +862,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                 <p className="text-sm font-medium text-slate-600">
                   {monthCount} month{monthCount === 1 ? "" : "s"} to review
                 </p>
+                <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={
@@ -830,7 +874,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                     !selectedStudentId ||
                     !month
                   }
-                  className="ui-button flex w-full items-center justify-center gap-2 bg-brand-600 py-3 text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="ui-button flex flex-1 items-center justify-center gap-2 bg-brand-600 py-3 text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {loadingFee ? (
                     <>
@@ -851,6 +895,13 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                     </>
                   )}
                 </button>
+
+                {isAdmin && <button type="button" onClick={() => setManualBillingOpen(true)}
+                  disabled={loadingFee || creatingInvoice || loadingStudents || !selectedStudent}
+                  className="ui-button flex items-center justify-center gap-2 border border-brand-600 bg-white py-3 text-brand-700 disabled:opacity-50">
+                  Manual Billing
+                </button>}
+                </div>
 
                 {summary && summary.totalAmount > 0 && (
                   <button
@@ -1211,9 +1262,29 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
             </div>
           </div>
 
-          <label className="mt-4 flex items-center gap-2 text-sm"><input type="checkbox" checked={showOutstandingOnly} onChange={(event) => setShowOutstandingOnly(event.target.checked)} />Show outstanding invoices only</label>
+          <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center">
+            <div className="relative min-w-0 flex-1">
+              <label htmlFor="invoice-search" className="sr-only">Search invoices and receivables</label>
+              <Search size={17} aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input id="invoice-search" type="search" value={invoiceSearch}
+                onChange={(event) => setInvoiceSearch(event.target.value)}
+                placeholder="Search invoice, student, code, status or BS date…"
+                className="ui-field w-full pl-10 pr-11 text-slate-900 outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100" />
+              {invoiceSearch && <button type="button" aria-label="Clear invoice search" onClick={() => setInvoiceSearch("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X size={16} /></button>}
+            </div>
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={showOutstandingOnly} onChange={(event) => setShowOutstandingOnly(event.target.checked)} />Show outstanding invoices only</label>
+          </div>
+          {!loadingInvoices && <p aria-live="polite" className="mt-2 text-xs text-slate-500">{displayedInvoices.length} {displayedInvoices.length === 1 ? "invoice" : "invoices"} found{selectedStudentId ? " for the selected student" : ""}.</p>}
           {paymentMode && <p className="mt-2 text-sm text-brand-700">Choose an invoice below to record a payment for the selected student.</p>}
           <div className="mt-5">
+            {!loadingInvoices && invoiceSearch.trim() && displayedInvoices.length === 0 ? (
+              <div className="rounded-xl border border-slate-200 p-8 text-center">
+                <p className="text-sm font-medium text-slate-600">No invoices match your search.</p>
+                <p className="mt-1 text-xs text-slate-500">Try another invoice number, student, status or BS date, or adjust the student and outstanding filters.</p>
+                <button type="button" onClick={() => setInvoiceSearch("")} className="ui-button mt-3 border border-slate-200 text-brand-700">Clear search</button>
+              </div>
+            ) : (
             <InvoiceTable
               invoices={displayedInvoices}
               isLoading={loadingInvoices}
@@ -1230,6 +1301,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                 setError("");
               }}
             />
+            )}
           </div>
         </section>
 

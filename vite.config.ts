@@ -18,6 +18,8 @@ export default defineConfig(({ mode }) => {
       tailwindcss(),
     ],
     resolve: {
+      // The date picker includes older React peers; use the app's single renderer.
+      dedupe: ["react", "react-dom"],
       alias: {
         "@": path.resolve(__dirname, "./src"),
       },

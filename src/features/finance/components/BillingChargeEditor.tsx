@@ -16,7 +16,7 @@ export default function BillingChargeEditor({ summary, selection, onChange, disa
       <legend className="sr-only">Choose charges for this invoice</legend>
       <div>
         <h3 className="font-semibold text-slate-900">Choose charges for this invoice</h3>
-        <p className="mt-1 text-sm text-slate-500">Select activities, months and attended sessions. Totals update immediately. Anything unchecked can be billed later.</p>
+        <p className="mt-1 text-sm text-slate-500">Select activities, months and session dates. Advance sessions are labeled. Totals update immediately. Anything unchecked can be billed later.</p>
       </div>
       {summary.lines.map((line) => {
         const chosen = selection[line.enrollmentId];
@@ -53,7 +53,7 @@ export default function BillingChargeEditor({ summary, selection, onChange, disa
                       <div className="mt-3 flex max-h-60 flex-wrap gap-3 overflow-y-auto">
                         {dates.map((date) => <label key={date} className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm">
                           <input type="checkbox" checked={chosen.attendanceDates.includes(date)} onChange={(event) => update(line.enrollmentId, { attendanceDates: event.target.checked ? [...chosen.attendanceDates, date] : chosen.attendanceDates.filter((value) => value !== date) })} />
-                          {formatBSDate(date)}
+                          {formatBSDate(date)}{line.advanceAttendanceDates?.includes(date) ? " · Advance" : ""}
                         </label>)}
                       </div>
                     </details>

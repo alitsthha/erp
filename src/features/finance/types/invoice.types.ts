@@ -15,6 +15,8 @@ export interface InvoiceLine {
   /** Actual calendar counts frozen when generated; absent on legacy invoices. */
   takenSessions?: number;
   heldSessions?: number;
+  /** Sessions billed before their dates, frozen at invoice creation. */
+  advanceSessions?: number;
   enrollmentId?: string;
 
   activityId?: string;

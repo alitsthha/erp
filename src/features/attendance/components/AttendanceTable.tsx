@@ -7,6 +7,7 @@ import { formatBSDate, getBSWeekday } from "@/utils/nepali-date";
 import { UserCheck, UserX } from "lucide-react";
 import type { ActivityColors } from "@/features/activities/utils/activity-color";
 import { getActivityClassCounts } from "../utils/attendance-recorder";
+import { attendanceDateBS } from "../utils/attendance-tracking";
 
 interface AttendanceTableProps {
   data: AttendanceListRow[];
@@ -58,7 +59,7 @@ export default function AttendanceTable({
             <th scope="col" className="px-4 py-3">Student</th>
             <th scope="col" className="px-4 py-3">Nepali Date (BS)</th>
             <th scope="col" className="px-4 py-3">Status</th>
-            <th scope="col" className="px-4 py-3">Classes Taken</th>
+            <th scope="col" className="px-4 py-3">Classes Taken (BS Month)</th>
             <th scope="col" className="px-4 py-3">Teacher</th>
             <th scope="col" className="px-4 py-3">Notes</th>
             <th scope="col" className="px-4 py-3 text-right">Actions</th>
@@ -69,7 +70,7 @@ export default function AttendanceTable({
             const rowIds = attendanceSelectionRecords([record]).map((item) => item.id!);
             const checked = rowIds.length > 0 && rowIds.every((id) => selectedIds.includes(id));
             const isPresent = record.status === "Present";
-            const dateBS = record.sessionDateBS || record.sessionDate;
+            const dateBS = attendanceDateBS(record);
             const attendedClasses = classHistory[record.studentId] ?? [];
             const classCounts = getActivityClassCounts(record, attendedClasses);
 
@@ -132,12 +133,12 @@ export default function AttendanceTable({
                   </span>
                 </td>
 
-                {/* Classes Taken: separate lifetime counts for each activity in this row. */}
+                {/* Classes Taken: separate Nepali month counts for each activity in this row. */}
                 <td className="px-4 py-3 align-middle">
                   <div className="flex min-w-36 flex-wrap gap-1.5">
                     {classCounts.map((activity) => {
                       const color = activityColors[activity.id]?.color || "#94A3B8";
-                      return <span key={activity.id} title={`${activity.name}: ${activity.count} ${activity.count === 1 ? "class" : "classes"} taken`} className="inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs text-slate-700" style={{ borderColor: `${color}55`, backgroundColor: `${color}0D` }}>
+                      return <span key={activity.id} title={`${activity.name}: ${activity.count} ${activity.count === 1 ? "class" : "classes"} taken in ${dateBS.slice(0, 7)} BS`} className="inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs text-slate-700" style={{ borderColor: `${color}55`, backgroundColor: `${color}0D` }}>
                         <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full border border-black/10" style={{ backgroundColor: color }} />
                         <span>{activity.name || "Activity"}</span><strong className="text-slate-900">{activity.count}</strong>
                       </span>;

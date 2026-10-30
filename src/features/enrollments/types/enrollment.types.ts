@@ -52,6 +52,7 @@ export interface Enrollment {
 
   notes?: string;
 
+  /** Active indefinitely; Inactive revokes participation without removing history. */
   status: EnrollmentStatus;
 
   createdAt?: unknown;

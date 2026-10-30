@@ -299,3 +299,13 @@ export async function deleteEnrollment(
     doc(db, "enrollments", enrollmentId)
   );
 }
+
+/** Revoke/reactivate without deleting the enrollment or its attendance history. */
+export async function setEnrollmentStatus(enrollmentId: string, status: Enrollment["status"]): Promise<void> {
+  if (!enrollmentId) throw new Error("Enrollment ID is required.");
+  if (status !== "Active" && status !== "Inactive") throw new Error("Invalid enrollment status.");
+  await updateDoc(doc(db, "enrollments", enrollmentId), {
+    status,
+    updatedAt: serverTimestamp(),
+  });
+}

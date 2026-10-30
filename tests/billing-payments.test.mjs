@@ -776,3 +776,63 @@ test('roster uses inclusive selected invoice dates even for other billing months
   assert.equal(singleDay.generatedStudents, 1);
   assert(!singleDay.pending.some((item) => item.student.id === 'to'));
 });
+
+test('manual billing includes selected advance sessions in preview and invoice without rebilling them later', async () => {
+  const db = database({
+    'enrollments/e1': enrollment,
+    'attendances/today': attendance('2083-06-28'),
+    'attendances/advance1': attendance('2083-07-02'),
+    'attendances/advance2': attendance('2083-07-04'),
+    'attendances/afterCutoff': attendance('2083-07-06'),
+    'attendances/absent': attendance('2083-07-03', { status: 'Absent' }),
+    'financeIncome/futurePayment': { studentId: 's1', category: 'Student Fee (Advance)', amount: 500, incomeDate: '2083-07-02' },
+  }, '2083-06-28');
+  const period = { billingDate: '2083-07-05', invoiceDate: '2083-06-28', paymentDate: '2083-06-28', startMonth: '2083-06', months: 2, includeFutureAttendance: true };
+  const preview = await db.fees.calculateStudentMonthlyFee('s1', '2083-07', period);
+  assert.equal(preview.includeFutureAttendance, true);
+  assert.equal(preview.totalAmount, 300);
+  assert.equal(preview.lines[0].advanceSessions, 2);
+  assert.equal(preview.lines[0].takenSessions, 1);
+  assert.equal(preview.lines[0].heldSessions, 1);
+  assert.equal(preview.availableAdvance, 0, 'future payments must not be pulled into today’s invoice');
+  const selection = { e1: { included: true, months: [], attendanceDates: ['2083-06-28', '2083-07-02'] } };
+  const selected = await db.fees.calculateStudentMonthlyFee('s1', '2083-07', { ...period, selection });
+  assert.equal(selected.totalAmount, 200);
+  assert.equal(selected.lines[0].advanceSessions, 1);
+  const id = await db.invoices.createInvoiceFromStudentFee('s1', '2083-07', { ...period, selection });
+  const invoice = db.records.get(`invoices/${id}`);
+  assert.equal(invoice.totalAmount, 200);
+  assert.equal(invoice.invoiceDate, '2083-06-28');
+  assert.equal(invoice.lines[0].sessionCount, 2);
+  assert.equal(invoice.lines[0].advanceSessions, 1);
+  assert.equal(invoice.lines[0].attendanceDates.join(','), '2083-06-28,2083-07-02');
+  await assert.rejects(db.invoices.createInvoiceFromStudentFee('s1', '2083-07', { ...period, selection }), /already billed|changed/);
+  const later = database(Object.fromEntries(db.records), '2083-07-05');
+  const remaining = await later.fees.calculateStudentMonthlyFee('s1', '2083-07', { ...period, includeFutureAttendance: false });
+  assert.equal(remaining.totalAmount, 100);
+  assert.equal(remaining.lines[0].attendanceDates.join(','), '2083-07-04');
+});
+
+test('advance billing supports enrollments beginning in a future BS month and preserves monthly rates', async () => {
+  for (const countedMonthly of [false, true]) {
+    const db = database({
+      'enrollments/e1': { ...enrollment, enrollmentDate: '2084-01-01', countedMonthly },
+      'attendances/future': attendance('2084-01-02'),
+    }, '2083-12-28');
+    const period = { billingDate: '2084-01-02', invoiceDate: '2083-12-28', startMonth: '2084-01', includeFutureAttendance: true };
+    const summary = await db.fees.calculateStudentMonthlyFee('s1', '2084-01', period);
+    assert.equal(summary.totalAmount, countedMonthly ? 1000 : 100);
+    assert.equal(summary.lines[0].takenSessions, 0);
+    assert.equal(summary.lines[0].heldSessions, 0);
+    const id = await db.invoices.createInvoiceFromStudentFee('s1', '2084-01', period);
+    assert.equal(db.records.get(`invoices/${id}`).totalAmount, summary.totalAmount);
+    assert.equal((await db.fees.calculateStudentMonthlyFee('s1', '2084-01', period)).totalAmount, 0);
+  }
+});
+
+test('advance invoice quantities show billed sessions without treating them as completed classes', () => {
+  const display = load('src/features/finance/components/invoice-document.ts', {});
+  const line = { sessionCount: 3, advanceSessions: 2, takenSessions: 1, heldSessions: 1 };
+  assert.equal(display.billingLineQuantity(line), '3 sessions');
+  assert.equal(display.billingLineDetail(line), '2 advance sessions; 1 taken / 1 held');
+});

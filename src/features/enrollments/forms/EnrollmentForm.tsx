@@ -621,7 +621,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
               </h2>
 
               <p className="mt-0.5 text-xs text-slate-500">
-                Active enrollments are included in attendance.
+                Active enrollments continue every month until revoked. Inactive (revoked) enrollments are excluded from new attendance; existing history is kept.
               </p>
             </div>
           </div>
@@ -635,7 +635,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
             </option>
 
             <option value="Inactive">
-              Inactive
+              Inactive (revoked)
             </option>
           </SearchableSelect>
         </div>

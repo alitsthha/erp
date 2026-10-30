@@ -1142,3 +1142,291 @@ test('calendar activity legend shows monthly counts and toggles the matching act
   assert.match(html, /Music \(1\)/);
   assert.match(html, /Art \(0\)/);
 });
+
+test('attendance counts use complete BS months, including final days and year rollover', () => {
+  const { getBSMonth, shiftBSMonth } = loadModule('src/utils/calendar-date.ts');
+  const { getAttendedClasses, attendanceInBSMonth } = loadModule('src/features/attendance/utils/attendance-tracking.ts');
+  const { getActivityClassCounts } = loadModule('src/features/attendance/utils/attendance-recorder.ts');
+  for (const month of ['2083-01', '2083-06', '2083-12']) {
+    const calendar = getBSMonth(month);
+    const previous = getBSMonth(shiftBSMonth(month, -1));
+    const next = getBSMonth(shiftBSMonth(month, 1));
+    const daily = calendar.days.map(({ bs, ad }) => attendanceRow({ sessionDateBS: bs, sessionDate: ad }));
+    const history = [
+      ...daily,
+      attendanceRow({ sessionDateBS: previous.last }),
+      attendanceRow({ sessionDateBS: next.first }),
+      { ...daily[0], sessionDateBS: '' }, // Same class saved with a legacy AD-only date.
+      { ...daily[0], status: 'Absent' },
+      { ...daily[0], studentId: 'other' },
+      { ...daily[0], activityId: 'music' },
+    ];
+    assert.equal(getAttendedClasses(history, 'after', month).s1.length, calendar.days.length);
+    assert.equal(getActivityClassCounts(daily[0], history)[0].count, calendar.days.length);
+    assert.equal(attendanceInBSMonth(history, month).length, history.length - 2);
+    assert.equal(getActivityClassCounts({ ...daily[0], sessionDateBS: next.first }, history)[0].count, 1);
+    assert.equal(getAttendedClasses(history, 'after', shiftBSMonth(month, 2)).s1, undefined);
+    assert.notEqual(calendar.days[0].ad.slice(0, 7), calendar.days.at(-1).ad.slice(0, 7));
+  }
+});
+
+test('Nepal midnight starts a new BS month even when the UTC date has not changed', () => {
+  const { getKathmanduToday, getBSMonth } = loadModule('src/utils/calendar-date.ts');
+  const firstAD = getBSMonth('2084-01').days[0].ad;
+  const midnight = Date.parse(`${firstAD}T00:00:00+05:45`);
+  assert.equal(getKathmanduToday(new Date(midnight - 1)).bs.slice(0, 7), '2083-12');
+  assert.equal(getKathmanduToday(new Date(midnight)).bs, '2084-01-01');
+  assert.equal(new Date(midnight - 1).toISOString().slice(0, 10), new Date(midnight).toISOString().slice(0, 10));
+});
+
+test('permanent enrollments remain eligible across months and years until revoked', () => {
+  const { isEnrollmentActiveOn } = loadModule('src/features/enrollments/utils/enrollment-eligibility.ts');
+  const { convertBSToAD } = loadModule('src/utils/nepali-date.ts');
+  for (const enrollmentDate of ['2083-06-25', convertBSToAD('2083-06-25')]) {
+    const enrollment = { status: 'Active', enrollmentDate };
+    assert.equal(isEnrollmentActiveOn(enrollment, '2083-06-24'), false);
+    for (const date of ['2083-06-25', '2083-07-01', '2084-01-01']) {
+      assert.equal(isEnrollmentActiveOn(enrollment, date), true);
+      assert.equal(isEnrollmentActiveOn({ ...enrollment, status: 'Inactive' }, date), false);
+    }
+  }
+});
+
+test('revoking and reactivating keeps the enrollment identity, start date, fees and attendance', async () => {
+  const enrollment = { studentId: 's1', activityId: 'a1', status: 'Active', enrollmentDate: '2083-06-25', sessionFee: 100 };
+  const attendance = attendanceRow({ enrollmentId: 'e1' });
+  const db = database({ 'enrollments/e1': enrollment, 'attendances/r1': attendance });
+  const { setEnrollmentStatus } = loadModule('src/features/enrollments/services/enrollment.service.ts', db.mocks);
+  await setEnrollmentStatus('e1', 'Inactive');
+  assert.equal(db.data.get('enrollments/e1').status, 'Inactive');
+  assert.equal(db.data.get('attendances/r1'), attendance);
+  await setEnrollmentStatus('e1', 'Active');
+  assert.deepEqual(db.data.get('enrollments/e1'), { ...enrollment, updatedAt: 'server-time' });
+  assert.equal(db.data.get('attendances/r1'), attendance);
+  await assert.rejects(setEnrollmentStatus('', 'Inactive'), /ID is required/);
+  await assert.rejects(setEnrollmentStatus('e1', 'Invalid'), /Invalid enrollment status/);
+});
+
+test('attendance month clock refreshes at Nepal midnight and after a suspended tab resumes', () => {
+  const calendar = loadModule('src/utils/calendar-date.ts');
+  const nextAD = calendar.getBSMonth('2084-01').days[0].ad;
+  const midnight = Date.parse(`${nextAD}T00:00:00+05:45`);
+  let now = midnight - 1;
+  let state;
+  let cleanup;
+  let nextId = 0;
+  const timers = new Map();
+  const events = new Map();
+  const target = {
+    addEventListener: (name, fn) => events.set(name, fn),
+    removeEventListener: (name) => events.delete(name),
+  };
+  const module = { exports: {} };
+  const code = ts.transpileModule(readFileSync(path.join(root, 'src/hooks/useKathmanduToday.ts'), 'utf8'), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  vm.runInNewContext(code, {
+    module, exports: module.exports,
+    require: (name) => name === 'react' ? {
+      useState: () => [state, (value) => { state = value; }],
+      useEffect: (effect) => { cleanup = effect(); },
+    } : calendar,
+    Date: class extends Date { constructor() { super(now); } },
+    window: target, document: target,
+    setTimeout: (fn, delay) => { timers.set(++nextId, { fn, delay }); return nextId; },
+    clearTimeout: (id) => timers.delete(id),
+  });
+  module.exports.useKathmanduToday();
+  assert.equal(state.slice(0, 7), '2083-12');
+  assert.equal([...timers.values()][0].delay, 1);
+  now = midnight;
+  [...timers.values()][0].fn();
+  assert.equal(state, '2084-01-01');
+  assert.equal(timers.size, 1);
+  now += 86_400_000;
+  events.get('visibilitychange')();
+  assert.equal(state, '2084-01-02');
+  cleanup();
+  assert.equal(timers.size + events.size, 0);
+});
+
+function manualBillingDatabase(extra = {}) {
+  const db = database({
+    'students/s1': { fullName: 'Manual Student', studentCode: 'ST1', status: 'Active' },
+    'activities/music': { activityName: 'Music', activityCode: 'MU1', status: 'Active', feePerSession: 200 },
+    'activities/art': { activityName: 'Art', activityCode: 'AR1', status: 'Active', countedMonthly: true, feePerMonth: 3000 },
+    ...extra,
+  });
+  const actor = { uid: 'admin', name: 'admin@academy.edu', role: 'admin' };
+  db.mocks['@/features/attendance/services/attendance-recorder.service'] = { getAttendanceActor: async () => actor };
+  db.mocks['./attendance-recorder.service'] = db.mocks['@/features/attendance/services/attendance-recorder.service'];
+  db.mocks['@/firebase/config'].auth = { currentUser: { uid: 'admin' } };
+  return db;
+}
+
+test('manual billing creates permanent enrollments, audited attendance and daily summaries and is safe to repeat', async () => {
+  const db = manualBillingDatabase();
+  const { saveManualBillingSessions } = loadModule('src/features/finance/services/manual-billing.service.ts', db.mocks);
+  const sessions = [
+    { activityId: 'music', dateBS: '2083-06-25' },
+    { activityId: 'music', dateBS: '2083-07-01' },
+    { activityId: 'art', dateBS: '2083-07-01' },
+    { activityId: 'music', dateBS: '2083-06-25' },
+  ];
+  const result = await saveManualBillingSessions('s1', sessions);
+  assert.equal(result.sessions.length, 3);
+  assert.equal(result.startMonth, '2083-06');
+  assert.equal(result.billingDate, '2083-07-01');
+  const enrollments = [...db.data.entries()].filter(([key]) => key.startsWith('enrollments/'));
+  assert.equal(enrollments.length, 2);
+  assert.equal(enrollments.find(([, item]) => item.activityId === 'music')[1].enrollmentDate, '2083-06-25');
+  assert.ok(enrollments.every(([, item]) => item.status === 'Active'));
+  const attendance = [...db.data.entries()].filter(([key]) => key.startsWith('attendances/') && key.split('/').length === 2);
+  assert.equal(attendance.length, 3);
+  assert.ok(attendance.every(([, item]) => item.status === 'Present' && item.recordedByUserId === 'admin'));
+  assert.equal(attendance.find(([, item]) => item.activityId === 'music')[1].sessionFee, 200);
+  assert.equal(attendance.find(([, item]) => item.activityId === 'art')[1].sessionFee, 0);
+  assert.equal(db.data.get('daily_attendances/2083-07-01').presentCount, 2);
+  assert.equal([...db.data.keys()].filter((key) => key.includes('/auditLogs/')).length, 3);
+  const writes = db.writes;
+  await saveManualBillingSessions('s1', sessions);
+  assert.equal(db.writes, writes);
+});
+
+test('manual billing reuses revoked enrollment, extends start date, corrects absence and preserves already paid sessions', async () => {
+  const enrollment = { enrollmentCode: 'EN1', studentId: 's1', studentName: 'Student', studentCode: 'ST1', activityId: 'music', status: 'Inactive', enrollmentDate: '2083-07-01', sessionFee: 150 };
+  const paid = attendanceRow({ id: 'paid', studentId: 's1', activityId: 'music', enrollmentId: 'e1', sessionDateBS: '2083-07-02', status: 'Present', sessionFee: 150, billingStatus: 'Paid', dueAmount: 0, notes: 'Keep this', recordedByName: 'Original Teacher' });
+  const db = manualBillingDatabase({
+    'enrollments/e1': enrollment,
+    'attendances/paid': paid,
+    'attendances/absent': { ...paid, id: 'absent', sessionDateBS: '2083-06-25', status: 'Absent', billingStatus: 'No Charge', sessionFee: 0 },
+  });
+  const { saveManualBillingSessions } = loadModule('src/features/finance/services/manual-billing.service.ts', db.mocks);
+  await saveManualBillingSessions('s1', [{ activityId: 'music', dateBS: '2083-06-25' }, { activityId: 'music', dateBS: '2083-07-02' }]);
+  assert.equal(db.data.get('enrollments/e1').status, 'Active');
+  assert.equal(db.data.get('enrollments/e1').enrollmentDate, '2083-06-25');
+  assert.equal(db.data.get('attendances/absent').status, 'Present');
+  assert.equal(db.data.get('attendances/absent').sessionFee, 150);
+  assert.equal(db.data.get('attendances/paid'), paid);
+  assert.equal([...db.data.keys()].filter((key) => key.startsWith('enrollments/')).length, 1);
+});
+
+test('manual billing validates all activities and dates before writing any enrollments or attendance', async () => {
+  const db = manualBillingDatabase();
+  const { saveManualBillingSessions } = loadModule('src/features/finance/services/manual-billing.service.ts', db.mocks);
+  for (const sessions of [[], [{ activityId: 'music', dateBS: '2083-13-01' }], [{ activityId: 'music', dateBS: '2083-06-25' }, { activityId: 'missing', dateBS: '2083-06-25' }]]) {
+    await assert.rejects(saveManualBillingSessions('s1', sessions));
+    assert.equal(db.writes, 0);
+  }
+  await assert.rejects(saveManualBillingSessions('missing', [{ activityId: 'music', dateBS: '2083-06-25' }]), /no longer exists/);
+  assert.equal(db.writes, 0);
+});
+
+test('manual billing initially selects only requested unbilled sessions and BS months', () => {
+  const { manualBillingSelection } = loadModule('src/features/finance/services/manual-billing.service.ts', manualBillingDatabase().mocks);
+  const summary = { lines: [
+    { enrollmentId: 'e1', activityId: 'music', countedMonthly: false, attendanceDates: ['2083-06-24', '2083-06-25'], billedMonths: [] },
+    { enrollmentId: 'e2', activityId: 'art', countedMonthly: true, billedMonths: ['2083-06', '2083-07', '2083-08'] },
+    { enrollmentId: 'e3', activityId: 'dance', countedMonthly: false, attendanceDates: ['2083-06-25'] },
+  ] };
+  const selection = manualBillingSelection(summary, [
+    { activityId: 'music', dateBS: '2083-06-25' },
+    { activityId: 'music', dateBS: '2083-06-26' }, // Already billed; not available in summary.
+    { activityId: 'art', dateBS: '2083-06-25' },
+    { activityId: 'art', dateBS: '2083-08-01' },
+  ]);
+  assert.equal(selection.e1.attendanceDates.join(','), '2083-06-25');
+  assert.equal(selection.e2.months.join(','), '2083-06,2083-08');
+  assert.equal(selection.e3.included, false);
+});
+
+test('manual billing recovers from a failed later date without duplicating earlier attendance or enrollment', async () => {
+  const db = manualBillingDatabase();
+  const firestore = db.mocks['firebase/firestore'];
+  const runTransaction = firestore.runTransaction;
+  let fail = true;
+  firestore.runTransaction = async (_db, callback) => runTransaction(_db, (transaction) => callback({
+    ...transaction,
+    set: (ref, value) => {
+      if (fail && ref.path.startsWith('attendances/') && value.sessionDateBS === '2083-06-26') throw new Error('Network interrupted');
+      transaction.set(ref, value);
+    },
+  }));
+  const { saveManualBillingSessions } = loadModule('src/features/finance/services/manual-billing.service.ts', db.mocks);
+  const input = [{ activityId: 'music', dateBS: '2083-06-25' }, { activityId: 'music', dateBS: '2083-06-26' }];
+  await assert.rejects(saveManualBillingSessions('s1', input), /Retry the same selection/);
+  assert.equal([...db.data.keys()].filter((key) => key.startsWith('attendances/') && key.split('/').length === 2).length, 1);
+  fail = false;
+  await saveManualBillingSessions('s1', input);
+  assert.equal([...db.data.keys()].filter((key) => key.startsWith('attendances/') && key.split('/').length === 2).length, 2);
+  assert.equal([...db.data.keys()].filter((key) => key.startsWith('enrollments/')).length, 1);
+});
+
+test('manual sessions flow into normal billing at enrollment rates with only requested charges selected', async () => {
+  const db = manualBillingDatabase();
+  const service = loadModule('src/features/finance/services/manual-billing.service.ts', db.mocks);
+  const input = [{ activityId: 'music', dateBS: '2083-06-25' }, { activityId: 'art', dateBS: '2083-07-01' }];
+  await service.saveManualBillingSessions('s1', [...input, { activityId: 'music', dateBS: '2083-06-26' }]);
+  const { calculateStudentMonthlyFee } = loadModule('src/features/finance/services/fee-calculation.service.ts', db.mocks);
+  const { applyBillingSelection } = loadModule('src/features/finance/services/billing-selection.service.ts', db.mocks);
+  const summary = await calculateStudentMonthlyFee('s1', '2083-07', { startMonth: '2083-06', billingDate: '2083-07-01', months: 2 });
+  const selected = applyBillingSelection(summary, service.manualBillingSelection(summary, input));
+  assert.equal(selected.sessionFeeTotal, 200);
+  assert.equal(selected.monthlyFeeTotal, 3000);
+  assert.equal(selected.totalAmount, 3200);
+});
+
+test('manual billing rejects non-admin users before creating records', async () => {
+  const db = manualBillingDatabase();
+  db.mocks['@/features/attendance/services/attendance-recorder.service'] = { getAttendanceActor: async () => ({ uid: 'teacher', role: 'staff' }) };
+  const { saveManualBillingSessions } = loadModule('src/features/finance/services/manual-billing.service.ts', db.mocks);
+  await assert.rejects(saveManualBillingSessions('s1', [{ activityId: 'music', dateBS: '2083-06-25' }]), /Only administrators/);
+  assert.equal(db.writes, 0);
+});
+
+test('Zener datepicker preserves BS strings for forms and clears to an empty string', () => {
+  const React = require('react');
+  const { renderToStaticMarkup } = require('react-dom/server');
+  const NepaliDate = require('@zener/nepali-date').default;
+  let pickerProps;
+  const Picker = (props) => { pickerProps = props; return React.createElement('input', { readOnly: true }); };
+  const Field = loadModule('src/components/forms/NepaliDatePickerInput.tsx', {
+    '@zener/nepali-datepicker-react': { __esModule: true, default: Picker },
+  }).default;
+  const values = [];
+  renderToStaticMarkup(React.createElement(Field, {
+    label: 'Session date', value: '2083-07-01', required: true, onChange: (value) => values.push(value),
+  }));
+  assert.equal(pickerProps.type, 'BS');
+  assert.equal(pickerProps.lang, 'en');
+  assert.equal(pickerProps.value, '2083-07-01');
+  pickerProps.onChange(new NepaliDate('2083-07-09'));
+  pickerProps.onChange(null);
+  assert.deepEqual(values, ['2083-07-09', '']);
+  renderToStaticMarkup(React.createElement(Field, { value: '', disabled: true, onChange: () => {} }));
+  assert.equal(pickerProps.value, null);
+  assert.equal(pickerProps.disabled, true);
+});
+
+test('manual billing saves future BS sessions and includes them only when calculating advance attendance', async () => {
+  const db = manualBillingDatabase();
+  const service = loadModule('src/features/finance/services/manual-billing.service.ts', db.mocks);
+  const sessions = [{ activityId: 'music', dateBS: '2088-01-01' }, { activityId: 'music', dateBS: '2088-01-02' }];
+  const saved = await service.saveManualBillingSessions('s1', sessions);
+  assert.equal(saved.billingDate, '2088-01-02');
+  const records = [...db.data.entries()].filter(([key]) => key.startsWith('attendances/') && key.split('/').length === 2);
+  assert.equal(records.length, 2);
+  assert.ok(records.every(([, record]) => record.status === 'Present' && record.notes.includes('Advance session')));
+  const { calculateStudentMonthlyFee } = loadModule('src/features/finance/services/fee-calculation.service.ts', db.mocks);
+  const period = { billingDate: saved.billingDate, startMonth: saved.startMonth };
+  assert.equal((await calculateStudentMonthlyFee('s1', '2088-01', period)).totalAmount, 0);
+  const summary = await calculateStudentMonthlyFee('s1', '2088-01', { ...period, includeFutureAttendance: true });
+  assert.equal(summary.totalAmount, 400);
+  assert.equal(summary.lines[0].advanceSessions, 2);
+  assert.equal(summary.lines[0].takenSessions, 0);
+  assert.equal(summary.lines[0].heldSessions, 0);
+  assert.equal(service.manualBillingSelection(summary, sessions)[summary.lines[0].enrollmentId].attendanceDates.length, 2);
+  const writes = db.writes;
+  await service.saveManualBillingSessions('s1', sessions);
+  assert.equal(db.writes, writes);
+});

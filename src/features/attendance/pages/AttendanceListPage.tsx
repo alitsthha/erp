@@ -20,7 +20,8 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { filterActivityRecords, readAttendanceFilters } from "../utils/attendance-navigation";
-import { getKathmanduToday } from "@/utils/calendar-date";
+import { useKathmanduToday } from "@/hooks/useKathmanduToday";
+import BSMonthNavigator from "@/components/common/BSMonthNavigator";
 
 import type {
   Attendance,
@@ -43,7 +44,7 @@ import AttendanceSearch from "@/features/attendance/components/AttendanceSearch"
 import AttendanceFilters from "@/features/attendance/components/AttendanceFilters";
 import AttendanceTable from "@/features/attendance/components/AttendanceTable";
 import AttendanceReminder from "@/features/attendance/components/AttendanceReminder";
-import { getAttendedClasses } from "../utils/attendance-tracking";
+import { attendanceInBSMonth, getAttendedClasses } from "../utils/attendance-tracking";
 
 import { useAuth } from "@/app/providers/AuthProvider";
 import { isActivityAllowedForRole, isTeacherRole } from "@/lib/rbac";
@@ -62,7 +63,7 @@ export default function AttendanceListPage() {
   const { role, activityIds, isAdmin } = useAuth();
 
   // Current BS Date by default
-  const [todayBS, setTodayBS] = useState(() => getKathmanduToday().bs);
+  const todayBS = useKathmanduToday();
   const [searchParams, setSearchParams] = useRememberedSearchParams("attendance");
   const { date: selectedDateBS, activityId: selectedActivityId, view: viewMode } = readAttendanceFilters(searchParams, todayBS);
   const updateRouteFilter = (key: string, value: string) => setSearchParams((previous) => {
@@ -71,7 +72,13 @@ export default function AttendanceListPage() {
     if (key === "activityId") next.delete("activity");
     return next;
   });
-  const setSelectedDateBS = (value: string) => updateRouteFilter("date", value);
+  const setSelectedDateBS = (value: string) => setSearchParams((previous) => {
+    const next = new URLSearchParams(previous);
+    if (value === todayBS) next.delete("date");
+    else next.set("date", value);
+    return next;
+  });
+  const selectedMonth = selectedDateBS.slice(0, 7);
   const setSelectedActivityId = (value: string) => updateRouteFilter("activityId", value);
   const setViewMode = (value: ViewMode) => updateRouteFilter("view", value);
 
@@ -98,10 +105,6 @@ export default function AttendanceListPage() {
 
   useEffect(() => subscribeActivityColors(setActivityColors, () => setActivityColors({})), []);
 
-  useEffect(() => {
-    const timer = window.setInterval(() => setTodayBS(getKathmanduToday().bs), 60_000);
-    return () => window.clearInterval(timer);
-  }, []);
 
   // Load recorded dates list on mount
   useEffect(() => {
@@ -158,11 +161,11 @@ export default function AttendanceListPage() {
 
   // Determine active raw records list based on view mode and role access
   const activeRecords: Attendance[] = useMemo(() => {
-    const raw = viewMode === "daily" ? dailyData?.attendances || [] : allAttendances;
+    const raw = viewMode === "daily" ? dailyData?.attendances || [] : attendanceInBSMonth(allAttendances, selectedMonth);
     return raw.filter((item) =>
       isActivityAllowedForRole(role, item.activityName, item.activityCode, activityIds, item.activityId)
     );
-  }, [viewMode, dailyData, allAttendances, role, activityIds]);
+  }, [viewMode, dailyData, allAttendances, role, activityIds, selectedMonth]);
 
   // Extract distinct activities available for selected date / dataset
   const availableActivities = useMemo(() => {
@@ -288,8 +291,8 @@ export default function AttendanceListPage() {
     const allowedRecords = allAttendances.filter((record) =>
       isActivityAllowedForRole(role, record.activityName, record.activityCode, activityIds, record.activityId)
     );
-    return getAttendedClasses(allowedRecords, selectedActivityId);
-  }, [allAttendances, role, activityIds, selectedActivityId]);
+    return getAttendedClasses(allowedRecords, selectedActivityId, selectedMonth);
+  }, [allAttendances, role, activityIds, selectedActivityId, selectedMonth]);
 
   // Filter records by activity, search, and status
   const filteredAttendances = useMemo(() => {
@@ -484,7 +487,7 @@ export default function AttendanceListPage() {
               }`}
             >
               <ListFilter size={14} />
-              All history
+              Monthly view
             </button>
           </div>
 
@@ -535,6 +538,9 @@ export default function AttendanceListPage() {
           totalRecordsCount={activeRecords.length}
         />
       )}
+
+      {viewMode === "all" && <BSMonthNavigator month={selectedMonth} currentMonth={todayBS.slice(0, 7)}
+        onChange={(month) => setSelectedDateBS(month === todayBS.slice(0, 7) ? todayBS : `${month}-01`)} />}
 
       {/* =====================================================
           SUMMARY METRICS
@@ -755,7 +761,7 @@ export default function AttendanceListPage() {
             <h2 className="ui-section-title text-sm">
               {viewMode === "daily"
                 ? `Records · ${formatBSDate(selectedDateBS, "full")}`
-                : "All attendance records"}
+                : `Attendance · ${selectedMonth} BS`}
             </h2>
 
             <p className="mt-0.5 text-xs text-slate-500">

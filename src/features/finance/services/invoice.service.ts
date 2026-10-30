@@ -315,6 +315,7 @@ export async function createInvoiceFromStudentFee(
     months?: number;
     startMonth?: string;
     selection?: BillingSelection;
+    includeFutureAttendance?: boolean;
     notes?: string;
   }
 ): Promise<string> {
@@ -350,7 +351,7 @@ export async function createInvoiceFromStudentFee(
     await calculateStudentMonthlyFee(
       studentId,
       billingMonth,
-      { billingDate, months: options?.months, startMonth: options?.startMonth, paymentDate: invoiceDate, selection: options?.selection }
+      { billingDate, months: options?.months, startMonth: options?.startMonth, paymentDate: invoiceDate, selection: options?.selection, includeFutureAttendance: options?.includeFutureAttendance }
     );
 
   if (!feeSummary.studentId) {
@@ -433,6 +434,7 @@ export async function createInvoiceFromStudentFee(
           attendanceDates: line.attendanceDates ?? [],
           takenSessions: line.takenSessions ?? line.attendedSessions,
           heldSessions: line.heldSessions ?? 0,
+          advanceSessions: line.advanceSessions ?? 0,
 
           monthlyDueDate:
             line.monthlyDueDate,
