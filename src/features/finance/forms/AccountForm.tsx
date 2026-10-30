@@ -275,7 +275,7 @@ export default function AccountForm({
               </label>
 
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-500">
+                <span className="ui-field-icon text-sm font-medium text-slate-500">
                   Rs.
                 </span>
 
@@ -288,7 +288,7 @@ export default function AccountForm({
                     valueAsNumber: true,
                   })}
                   disabled={submitting}
-                  className={`${inputClass} pl-12`}
+                  className={`${inputClass} ui-field-prefix`}
                 />
               </div>
 
@@ -307,7 +307,7 @@ export default function AccountForm({
               </label>
 
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-500">
+                <span className="ui-field-icon text-sm font-medium text-slate-500">
                   Rs.
                 </span>
 
@@ -320,7 +320,7 @@ export default function AccountForm({
                     valueAsNumber: true,
                   })}
                   disabled
-                  className={`${inputClass} bg-slate-50 pl-12`}
+                  className={`${inputClass} bg-slate-50 ui-field-prefix`}
                 />
               </div>
 

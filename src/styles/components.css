@@ -1,5 +1,43 @@
 /* Shared page recipes. Keep data-driven activity and status colors in components. */
+/* Semantic spacing remains intact when shared controls merge Tailwind classes. */
+@utility ui-field-leading {
+  padding-left: 2.5rem;
+}
+
+@utility ui-field-prefix {
+  padding-left: 3rem;
+}
+
+@utility ui-field-trailing {
+  padding-right: 2.75rem;
+}
+
 @layer components {
+  .ui-field-icon {
+    position: absolute;
+    inset-inline-start: 0.875rem;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .ui-field-icon-multiline {
+    top: 0.875rem;
+    transform: none;
+  }
+
+  .ui-field-action {
+    position: absolute;
+    inset-inline-end: 0;
+    top: 0;
+    display: flex;
+    width: 2.75rem;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+  }
+
   .ui-page {
     width: 100%;
     min-width: 0;

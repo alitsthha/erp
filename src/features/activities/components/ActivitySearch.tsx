@@ -13,7 +13,7 @@ export default function ActivitySearch({
     <div className="relative w-full">
       <Search
         size={17}
-        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+        className="ui-field-icon text-slate-400"
       />
 
       <input
@@ -23,7 +23,7 @@ export default function ActivitySearch({
         onChange={(e) =>
           onChange?.(e.target.value)
         }
-        className="ui-field w-full pl-10 pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
+        className="ui-field w-full ui-field-leading pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
       />
     </div>
   );

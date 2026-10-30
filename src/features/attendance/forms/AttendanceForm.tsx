@@ -601,13 +601,13 @@ export default function AttendanceForm({
 
         <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="relative w-full md:max-w-md">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Search className="ui-field-icon h-4 w-4 text-slate-400" />
             <input
               type="text"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="Search student, code, or activity"
-              className="ui-field w-full bg-slate-50 pl-10 pr-4 text-slate-900 outline-none transition focus:border-brand-600 focus:bg-white focus:ring-2 focus:ring-slate-200"
+              className="ui-field w-full bg-slate-50 ui-field-leading pr-4 text-slate-900 outline-none transition focus:border-brand-600 focus:bg-white focus:ring-2 focus:ring-slate-200"
             />
           </div>
 

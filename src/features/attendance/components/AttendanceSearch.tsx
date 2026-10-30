@@ -14,14 +14,14 @@ export default function AttendanceSearch({
 }: AttendanceSearchProps) {
   return (
     <div className="relative">
-      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+      <Search className="ui-field-icon h-4 w-4 text-slate-400" />
       <Input
         type="text"
         aria-label="Search attendance"
         placeholder={placeholder}
         value={value}
         onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
-        className="pl-10"
+        className="ui-field-leading"
       />
     </div>
   );

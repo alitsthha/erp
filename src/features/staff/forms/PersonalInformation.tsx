@@ -33,7 +33,7 @@ export default function PersonalInformation({
         <div className="relative">
           <User
             size={17}
-            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+            className="ui-field-icon text-slate-400"
           />
 
           <input
@@ -42,7 +42,7 @@ export default function PersonalInformation({
             placeholder="Enter staff's full name"
             autoComplete="name"
             {...register("fullName")}
-            className={`ui-field w-full bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
+            className={`ui-field w-full bg-white ui-field-leading pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
               errors.fullName
                 ? "border-red-300 focus:border-red-400 focus:ring-red-50"
                 : "border-slate-300 focus:border-brand-600 focus:ring-brand-50"
@@ -100,7 +100,7 @@ export default function PersonalInformation({
         <div className="relative">
           <Phone
             size={17}
-            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+            className="ui-field-icon text-slate-400"
           />
 
           <input
@@ -108,7 +108,7 @@ export default function PersonalInformation({
             type="tel"
             placeholder="Enter phone number"
             {...register("phone")}
-            className={`ui-field w-full bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
+            className={`ui-field w-full bg-white ui-field-leading pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
               errors.phone
                 ? "border-red-300 focus:border-red-400 focus:ring-red-50"
                 : "border-slate-300 focus:border-brand-600 focus:ring-brand-50"
@@ -135,7 +135,7 @@ export default function PersonalInformation({
         <div className="relative">
           <Mail
             size={17}
-            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+            className="ui-field-icon text-slate-400"
           />
 
           <input
@@ -143,7 +143,7 @@ export default function PersonalInformation({
             type="email"
             placeholder="Enter email address (optional)"
             {...register("email")}
-            className={`ui-field w-full bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
+            className={`ui-field w-full bg-white ui-field-leading pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
               errors.email
                 ? "border-red-300 focus:border-red-400 focus:ring-red-50"
                 : "border-slate-300 focus:border-brand-600 focus:ring-brand-50"
@@ -170,7 +170,7 @@ export default function PersonalInformation({
         <div className="relative">
           <MapPin
             size={17}
-            className="pointer-events-none absolute left-3.5 top-3.5 text-slate-400"
+            className="ui-field-icon ui-field-icon-multiline text-slate-400"
           />
 
           <textarea
@@ -178,7 +178,7 @@ export default function PersonalInformation({
             rows={3}
             placeholder="Enter complete address"
             {...register("address")}
-            className={`w-full rounded-lg border bg-white pl-10 pr-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
+            className={`w-full rounded-lg border bg-white ui-field-leading pr-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
               errors.address
                 ? "border-red-300 focus:border-red-400 focus:ring-red-50"
                 : "border-slate-300 focus:border-brand-600 focus:ring-brand-50"

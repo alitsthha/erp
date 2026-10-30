@@ -163,7 +163,7 @@ export default function StudentForm({
             <div className="relative">
               <User
                 size={17}
-                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                className="ui-field-icon text-slate-400"
               />
 
               <input
@@ -174,7 +174,7 @@ export default function StudentForm({
                 {...register("fullName", {
                   onBlur: (event) => setValue("fullName", formatPersonName(event.target.value), { shouldValidate: true }),
                 })}
-                className={`ui-field w-full bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
+                className={`ui-field w-full bg-white ui-field-leading pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
                   errors.fullName
                     ? "border-red-300 focus:border-red-400 focus:ring-red-50"
                     : "border-slate-300 focus:border-brand-600 focus:ring-brand-50"
@@ -201,13 +201,13 @@ export default function StudentForm({
             <div className="relative">
               <CheckCircle2
                 size={17}
-                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                className="ui-field-icon text-slate-400"
               />
 
               <SearchableSelect value={watch("status")}
                 id="status"
                 {...register("status")}
-                className="ui-field w-full appearance-none pl-10 pr-4 text-slate-900 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
+                className="ui-field w-full appearance-none ui-field-leading pr-4 text-slate-900 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
               >
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
@@ -288,7 +288,7 @@ export default function StudentForm({
             <div className="relative">
               <Users
                 size={17}
-                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                className="ui-field-icon text-slate-400"
               />
 
               <input
@@ -299,7 +299,7 @@ export default function StudentForm({
                 {...register("guardianName", {
                   onBlur: (event) => setValue("guardianName", formatPersonName(event.target.value), { shouldValidate: true }),
                 })}
-                className={`ui-field w-full bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
+                className={`ui-field w-full bg-white ui-field-leading pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
                   errors.guardianName
                     ? "border-red-300 focus:border-red-400 focus:ring-red-50"
                     : "border-slate-300 focus:border-brand-600 focus:ring-brand-50"
@@ -326,7 +326,7 @@ export default function StudentForm({
             <div className="relative">
               <Phone
                 size={17}
-                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                className="ui-field-icon text-slate-400"
               />
 
               <input
@@ -339,7 +339,7 @@ export default function StudentForm({
                 placeholder="98XXXXXXXX"
                 autoComplete="tel"
                 {...register("guardianPhone")}
-                className={`ui-field w-full bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
+                className={`ui-field w-full bg-white ui-field-leading pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
                   errors.guardianPhone
                     ? "border-red-300 focus:border-red-400 focus:ring-red-50"
                     : "border-slate-300 focus:border-brand-600 focus:ring-brand-50"
@@ -390,7 +390,7 @@ export default function StudentForm({
             <div className="relative">
               <Mail
                 size={17}
-                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                className="ui-field-icon text-slate-400"
               />
 
               <input
@@ -399,7 +399,7 @@ export default function StudentForm({
                 placeholder="guardian@example.com"
                 autoComplete="email"
                 {...register("guardianEmail")}
-                className={`ui-field w-full bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
+                className={`ui-field w-full bg-white ui-field-leading pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
                   errors.guardianEmail
                     ? "border-red-300 focus:border-red-400 focus:ring-red-50"
                     : "border-slate-300 focus:border-brand-600 focus:ring-brand-50"
@@ -449,7 +449,7 @@ export default function StudentForm({
           <div className="relative">
             <MapPin
               size={17}
-              className="pointer-events-none absolute left-3.5 top-3.5 text-slate-400"
+              className="ui-field-icon ui-field-icon-multiline text-slate-400"
             />
 
             <textarea
@@ -458,7 +458,7 @@ export default function StudentForm({
               placeholder="Enter current address"
               autoComplete="street-address"
               {...register("address")}
-              className={`w-full resize-none rounded-lg border bg-white py-3 pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
+              className={`w-full resize-none rounded-lg border bg-white py-3 ui-field-leading pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
                 errors.address
                   ? "border-red-300 focus:border-red-400 focus:ring-red-50"
                   : "border-slate-300 focus:border-brand-600 focus:ring-brand-50"

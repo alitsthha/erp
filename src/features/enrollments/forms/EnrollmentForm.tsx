@@ -376,13 +376,13 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
             <div className="relative">
               <ActivityIcon
                 size={17}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                className="ui-field-icon text-slate-400"
               />
 
               <SearchableSelect value={watch("activityId")}
                 id="activityId"
                 {...register("activityId")}
-                className={`h-11 w-full appearance-none rounded-xl border bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:ring-2 ${
+                className={`h-11 w-full appearance-none rounded-xl border bg-white ui-field-leading pr-4 text-sm text-slate-900 outline-none transition focus:ring-2 ${
                   errors.activityId
                     ? "border-red-300 focus:border-red-400 focus:ring-red-50"
                     : "border-slate-300 focus:border-brand-600 focus:ring-brand-50"
@@ -460,7 +460,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
             </label>
 
             <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500">
+              <span className="ui-field-icon text-sm font-semibold text-slate-500">
                 Rs.
               </span>
 
@@ -470,7 +470,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
                 min="0"
                 step="0.01"
                 {...register(selectedActivity?.countedMonthly ? "monthlyFee" : "sessionFee")}
-                className={`ui-field w-full bg-white pl-14 pr-4 text-sm font-medium text-slate-900 outline-none transition focus:ring-2 ${
+                className={`ui-field w-full bg-white ui-field-prefix pr-4 text-sm font-medium text-slate-900 outline-none transition focus:ring-2 ${
                   errors.sessionFee
                     ? "border-red-300 focus:border-red-400 focus:ring-red-50"
                     : "border-slate-300 focus:border-brand-600 focus:ring-brand-50"
@@ -505,7 +505,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
             <div className="relative">
               <FileText
                 size={17}
-                className="pointer-events-none absolute left-3 top-3.5 text-slate-400"
+                className="ui-field-icon ui-field-icon-multiline text-slate-400"
               />
 
               <textarea
@@ -513,7 +513,7 @@ export default function EnrollmentForm({ enrollmentId }: Props) {
                 {...register("notes")}
                 rows={3}
                 placeholder="Add any useful notes about this enrollment..."
-                className="ui-field w-full resize-none pl-10 pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
+                className="ui-field w-full resize-none ui-field-leading pr-4 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
               />
             </div>
           </div>

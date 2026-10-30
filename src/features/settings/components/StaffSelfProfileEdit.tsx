@@ -177,13 +177,13 @@ export default function StaffSelfProfileEdit() {
           <div>
             <label className="mb-1.5 block text-xs font-semibold text-slate-700">Full Name *</label>
             <div className="relative">
-              <User size={16} className="absolute left-3.5 top-3.5 text-slate-400" />
+              <User size={16} className="ui-field-icon text-slate-400" />
               <input
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Your full name"
-                className="ui-field w-full pl-10 pr-3 text-xs outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
+                className="ui-field w-full ui-field-leading pr-3 text-xs outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
                 required
               />
             </div>
@@ -193,12 +193,12 @@ export default function StaffSelfProfileEdit() {
           <div>
             <label className="mb-1.5 block text-xs font-semibold text-slate-700">Gmail Address</label>
             <div className="relative">
-              <Mail size={16} className="absolute left-3.5 top-3.5 text-slate-400" />
+              <Mail size={16} className="ui-field-icon text-slate-400" />
               <input
                 type="email"
                 value={user?.email || ""}
                 disabled
-                className="ui-field w-full bg-slate-50 pl-10 pr-3 text-xs font-medium text-slate-500"
+                className="ui-field w-full bg-slate-50 ui-field-leading pr-3 text-xs font-medium text-slate-500"
               />
             </div>
           </div>
@@ -207,13 +207,13 @@ export default function StaffSelfProfileEdit() {
           <div>
             <label className="mb-1.5 block text-xs font-semibold text-slate-700">Contact Phone Number</label>
             <div className="relative">
-              <Phone size={16} className="absolute left-3.5 top-3.5 text-slate-400" />
+              <Phone size={16} className="ui-field-icon text-slate-400" />
               <input
                 type="text"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="+977 98XXXXXXXX"
-                className="ui-field w-full pl-10 pr-3 text-xs outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
+                className="ui-field w-full ui-field-leading pr-3 text-xs outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
               />
             </div>
           </div>
@@ -222,13 +222,13 @@ export default function StaffSelfProfileEdit() {
           <div>
             <label className="mb-1.5 block text-xs font-semibold text-slate-700">Qualification & Specialization</label>
             <div className="relative">
-              <GraduationCap size={16} className="absolute left-3.5 top-3.5 text-slate-400" />
+              <GraduationCap size={16} className="ui-field-icon text-slate-400" />
               <input
                 type="text"
                 value={qualification}
                 onChange={(e) => setQualification(e.target.value)}
                 placeholder="e.g. Bachelor in Fine Arts"
-                className="ui-field w-full pl-10 pr-3 text-xs outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
+                className="ui-field w-full ui-field-leading pr-3 text-xs outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
               />
             </div>
           </div>
@@ -237,13 +237,13 @@ export default function StaffSelfProfileEdit() {
           <div className="sm:col-span-2">
             <label className="mb-1.5 block text-xs font-semibold text-slate-700">Physical Address</label>
             <div className="relative">
-              <MapPin size={16} className="absolute left-3.5 top-3.5 text-slate-400" />
+              <MapPin size={16} className="ui-field-icon text-slate-400" />
               <input
                 type="text"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="Street, City, Ward No., Nepal"
-                className="ui-field w-full pl-10 pr-3 text-xs outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
+                className="ui-field w-full ui-field-leading pr-3 text-xs outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
               />
             </div>
           </div>
@@ -261,13 +261,13 @@ export default function StaffSelfProfileEdit() {
           <div>
             <label className="mb-1.5 block text-xs font-semibold text-slate-700">Contact Name</label>
             <div className="relative">
-              <HeartPulse size={16} className="absolute left-3.5 top-3.5 text-slate-400" />
+              <HeartPulse size={16} className="ui-field-icon text-slate-400" />
               <input
                 type="text"
                 value={emergencyContactName}
                 onChange={(e) => setEmergencyContactName(e.target.value)}
                 placeholder="Guardian / Spouse Name"
-                className="ui-field w-full pl-10 pr-3 text-xs outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
+                className="ui-field w-full ui-field-leading pr-3 text-xs outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
               />
             </div>
           </div>
@@ -275,13 +275,13 @@ export default function StaffSelfProfileEdit() {
           <div>
             <label className="mb-1.5 block text-xs font-semibold text-slate-700">Contact Phone</label>
             <div className="relative">
-              <Phone size={16} className="absolute left-3.5 top-3.5 text-slate-400" />
+              <Phone size={16} className="ui-field-icon text-slate-400" />
               <input
                 type="text"
                 value={emergencyContactPhone}
                 onChange={(e) => setEmergencyContactPhone(e.target.value)}
                 placeholder="+977 98XXXXXXXX"
-                className="ui-field w-full pl-10 pr-3 text-xs outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
+                className="ui-field w-full ui-field-leading pr-3 text-xs outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
               />
             </div>
           </div>

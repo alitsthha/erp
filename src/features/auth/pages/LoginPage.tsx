@@ -266,7 +266,7 @@ export default function LoginPage() {
                 id="password"
                 type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
-                className="ui-field w-full px-4 pr-12 placeholder-slate-400 outline-none transition focus:border-brand-600 focus:ring-1 focus:ring-brand-500"
+                className="ui-field w-full px-4 ui-field-trailing placeholder-slate-400 outline-none transition focus:border-brand-600 focus:ring-1 focus:ring-brand-500"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -274,7 +274,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute right-4 top-3.5 text-slate-400 transition hover:text-slate-600 focus:outline-none"
+                className="ui-field-action text-slate-400 transition hover:text-slate-600 focus:outline-none"
                 title={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}

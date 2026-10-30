@@ -14,8 +14,8 @@ export default function ListSortControl({ value, onChange, allowDate = true }: P
   const context = useContext(ListSortContext);
   return <label className="relative block w-full shrink-0 sm:w-52">
     <span className="sr-only">Sort records</span>
-    <ArrowUpDown size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-    <SearchableSelect aria-label="Sort records" value={value ?? context?.order ?? "default"} onChange={(event) => (onChange ?? context?.setOrder)?.(event.target.value as ListSortOrder)} className="ui-field w-full pl-9 pr-7 text-slate-700 outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100">
+    <ArrowUpDown size={16} className="ui-field-icon text-slate-400" />
+    <SearchableSelect aria-label="Sort records" value={value ?? context?.order ?? "default"} onChange={(event) => (onChange ?? context?.setOrder)?.(event.target.value as ListSortOrder)} className="ui-field w-full ui-field-leading pr-7 text-slate-700 outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100">
       <option value="default">Default order</option>
       <option value="name-asc">Name: A–Z</option>
       <option value="name-desc">Name: Z–A</option>

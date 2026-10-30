@@ -19,8 +19,8 @@ export default function ListToolbar({ search, onSearchChange, placeholder = "Sea
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <label className="relative min-w-0 flex-1">
           <span className="sr-only">Search list</span>
-          <Search size={18} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder={placeholder} className="ui-field w-full pl-10 pr-4 outline-none placeholder:text-slate-400 focus:border-brand-600 focus:ring-2 focus:ring-brand-100" />
+          <Search size={18} className="ui-field-icon text-slate-400" />
+          <input value={search} onChange={(event) => onSearchChange(event.target.value)} placeholder={placeholder} className="ui-field w-full ui-field-leading pr-4 outline-none placeholder:text-slate-400 focus:border-brand-600 focus:ring-2 focus:ring-brand-100" />
         </label>
         <ListSortControl />
         {filter && <div className="flex items-center gap-2"><SlidersHorizontal size={16} className="text-slate-400" />{filter}</div>}

@@ -375,7 +375,7 @@ export default function ActivityForm({ activityId }: Props) {
               <div className="relative">
                 <UserRound
                     size={17}
-                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                    className="ui-field-icon text-slate-400"
                 />
 
                 <SearchableSelect value={watch("coachStaffId")}
@@ -384,7 +384,7 @@ export default function ActivityForm({ activityId }: Props) {
                         const selected = staff.find((item) => item.id === event.target.value);
                         setValue("coachName", selected?.fullName ?? "");
                       } })}
-                    className="ui-field w-full pl-10 pr-4 text-slate-900 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
+                    className="ui-field w-full ui-field-leading pr-4 text-slate-900 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
                 >
                   <option value="">Select instructor</option>
                   {staff.map((member) => <option key={member.id} value={member.id}>{member.fullName} ({member.staffCode})</option>)}
@@ -405,7 +405,7 @@ export default function ActivityForm({ activityId }: Props) {
               <div className="relative">
                 <FileText
                     size={17}
-                    className="pointer-events-none absolute left-3 top-3.5 text-slate-400"
+                    className="ui-field-icon ui-field-icon-multiline text-slate-400"
                 />
 
                 <textarea
@@ -413,7 +413,7 @@ export default function ActivityForm({ activityId }: Props) {
                     rows={4}
                     placeholder="Briefly describe this activity..."
                     {...register("description")}
-                    className={`pl-10 ${textareaClass(
+                    className={`ui-field-leading ${textareaClass(
                         Boolean(errors.description)
                     )}`}
                 />
@@ -486,7 +486,7 @@ export default function ActivityForm({ activityId }: Props) {
               {/* Fee input */}
 
               <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500">
+              <span className="ui-field-icon text-sm font-semibold text-slate-500">
                 Rs.
               </span>
 
@@ -498,7 +498,7 @@ export default function ActivityForm({ activityId }: Props) {
                         step="0.01"
                         placeholder="0.00"
                         {...register("feePerSession")}
-                        className="ui-field w-full pl-12 pr-4 font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
+                        className="ui-field w-full ui-field-prefix pr-4 font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
                     />
                 ) : (
                     <input
@@ -508,7 +508,7 @@ export default function ActivityForm({ activityId }: Props) {
                         step="0.01"
                         placeholder="0.00"
                         {...register("feePerMonth")}
-                        className="ui-field w-full pl-12 pr-4 font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
+                        className="ui-field w-full ui-field-prefix pr-4 font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
                     />
                 )}
               </div>

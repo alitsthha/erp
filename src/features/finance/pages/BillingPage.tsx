@@ -760,7 +760,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
               <div className="relative">
                 <UserRound
                   size={18}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  className="ui-field-icon text-slate-400"
                 />
 
                 <SearchableSelect
@@ -776,7 +776,7 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
                   disabled={
                     loadingStudents
                   }
-                  className="ui-field w-full appearance-none pl-10 pr-4 text-slate-900 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-slate-200 disabled:bg-slate-100"
+                  className="ui-field w-full appearance-none ui-field-leading pr-4 text-slate-900 outline-none transition focus:border-brand-600 focus:ring-2 focus:ring-slate-200 disabled:bg-slate-100"
                 >
                   <option value="">
                     {loadingStudents

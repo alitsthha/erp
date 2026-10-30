@@ -64,13 +64,13 @@ export default function EmploymentInformation({
         <div className="relative">
           <Briefcase
             size={17}
-            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+            className="ui-field-icon text-slate-400"
           />
 
           <SearchableSelect value={watch("employmentType")}
             id="employmentType"
             {...register("employmentType")}
-            className={`ui-field w-full bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:ring-2 ${
+            className={`ui-field w-full bg-white ui-field-leading pr-4 text-sm text-slate-900 outline-none transition focus:ring-2 ${
               errors.employmentType
                 ? "border-red-300 focus:border-red-400 focus:ring-red-50"
                 : "border-slate-300 focus:border-brand-600 focus:ring-brand-50"
@@ -104,13 +104,13 @@ export default function EmploymentInformation({
         <div className="relative">
           <CheckCircle
             size={17}
-            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+            className="ui-field-icon text-slate-400"
           />
 
           <SearchableSelect value={watch("status")}
             id="status"
             {...register("status")}
-            className={`ui-field w-full bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:ring-2 ${
+            className={`ui-field w-full bg-white ui-field-leading pr-4 text-sm text-slate-900 outline-none transition focus:ring-2 ${
               errors.status
                 ? "border-red-300 focus:border-red-400 focus:ring-red-50"
                 : "border-slate-300 focus:border-brand-600 focus:ring-brand-50"

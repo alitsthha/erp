@@ -456,13 +456,13 @@ export default function RoleAssignmentPage() {
             <div className="space-y-3">
               {/* Search Filter */}
               <div className="relative">
-                <Search size={16} className="absolute left-3 top-3 text-slate-400" />
+                <Search size={16} className="ui-field-icon text-slate-400" />
                 <input
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search staff by name, email, or designation..."
-                  className="ui-field h-10 w-full pl-9 pr-3 text-xs outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
+                  className="ui-field h-10 w-full ui-field-leading pr-3 text-xs outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
                 />
               </div>
 
@@ -802,13 +802,13 @@ export default function RoleAssignmentPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder={existingUserRole ? "Your current admin password" : "Minimum 6 characters"}
-                    className="ui-field w-full pl-3 pr-10 text-xs font-medium text-slate-900 outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
+                    className="ui-field w-full pl-3 ui-field-trailing text-xs font-medium text-slate-900 outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
                     autoFocus
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3 text-slate-400 hover:text-slate-700"
+                    className="ui-field-action text-slate-400 hover:text-slate-700"
                   >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>

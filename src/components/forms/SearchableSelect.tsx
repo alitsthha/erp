@@ -50,7 +50,7 @@ const SearchableSelect = forwardRef<HTMLSelectElement, Props>(function Searchabl
             aria-describedby={props["aria-describedby"]} aria-invalid={props["aria-invalid"] || invalid || undefined}
             aria-required={required || props["aria-required"]} title={props.title}
             onBlur={() => selectRef.current?.dispatchEvent(new FocusEvent("focusout", { bubbles: true }))}
-            className={cn("ui-field h-11 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100", className, "pr-10")}
+            className={cn("ui-field h-11 w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100", className, "ui-field-trailing")}
           />
           <Combobox.Trigger aria-label="Show options" className="absolute right-0 top-0 flex h-full w-10 items-center justify-center rounded-r-lg text-slate-400 hover:text-slate-700 disabled:cursor-not-allowed">
             <ChevronDown size={17} aria-hidden="true" />

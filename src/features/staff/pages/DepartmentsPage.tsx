@@ -143,7 +143,7 @@ export default function DepartmentsPage() {
 
           <Search
             size={18}
-            className="absolute left-4 top-4 text-slate-400"
+            className="ui-field-icon text-slate-400"
           />
 
           <input
@@ -152,7 +152,7 @@ export default function DepartmentsPage() {
               setSearch(e.target.value)
             }
             placeholder="Search Department..."
-            className="ui-field w-full pl-11 pr-4"
+            className="ui-field w-full ui-field-leading pr-4"
           />
 
         </div>

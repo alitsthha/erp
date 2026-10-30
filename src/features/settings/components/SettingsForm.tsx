@@ -277,14 +277,14 @@ export default function SettingsForm() {
               <div className="relative">
                 <Building2
                   size={17}
-                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                  className="ui-field-icon text-slate-400"
                 />
                 <input
                   id="institutionName"
                   type="text"
                   placeholder="e.g. Acme Academy ERP"
                   {...register("institutionName")}
-                  className={`pl-10 ${inputClass(Boolean(errors.institutionName))}`}
+                  className={`ui-field-leading ${inputClass(Boolean(errors.institutionName))}`}
                   disabled={isSubmitting}
                 />
               </div>
@@ -329,14 +329,14 @@ export default function SettingsForm() {
               <div className="relative">
                 <Mail
                   size={17}
-                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                  className="ui-field-icon text-slate-400"
                 />
                 <input
                   id="email"
                   type="email"
                   placeholder="admin@academy.edu"
                   {...register("email")}
-                  className={`pl-10 ${inputClass(Boolean(errors.email))}`}
+                  className={`ui-field-leading ${inputClass(Boolean(errors.email))}`}
                   disabled={isSubmitting}
                 />
               </div>
@@ -358,14 +358,14 @@ export default function SettingsForm() {
               <div className="relative">
                 <Phone
                   size={17}
-                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                  className="ui-field-icon text-slate-400"
                 />
                 <input
                   id="phone"
                   type="text"
                   placeholder="+977-1-4412345"
                   {...register("phone")}
-                  className={`pl-10 ${inputClass(Boolean(errors.phone))}`}
+                  className={`ui-field-leading ${inputClass(Boolean(errors.phone))}`}
                   disabled={isSubmitting}
                 />
               </div>
@@ -387,14 +387,14 @@ export default function SettingsForm() {
               <div className="relative">
                 <Globe
                   size={17}
-                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                  className="ui-field-icon text-slate-400"
                 />
                 <input
                   id="website"
                   type="url"
                   placeholder="https://academy.edu"
                   {...register("website")}
-                  className={`pl-10 ${inputClass(Boolean(errors.website))}`}
+                  className={`ui-field-leading ${inputClass(Boolean(errors.website))}`}
                   disabled={isSubmitting}
                 />
               </div>
@@ -416,14 +416,14 @@ export default function SettingsForm() {
               <div className="relative">
                 <MapPin
                   size={17}
-                  className="pointer-events-none absolute left-3.5 top-3.5 text-slate-400"
+                  className="ui-field-icon ui-field-icon-multiline text-slate-400"
                 />
                 <textarea
                   id="address"
                   rows={2}
                   placeholder="Street Address, City, Country"
                   {...register("address")}
-                  className={`pl-10 min-h-20 w-full resize-none rounded-lg border bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 ${
+                  className={`ui-field-leading min-h-20 w-full resize-none rounded-lg border bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 ${
                     errors.address
                       ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-50"
                       : "border-slate-300 focus:border-brand-600 focus:ring-2 focus:ring-brand-50"
@@ -449,14 +449,14 @@ export default function SettingsForm() {
               <div className="relative">
                 <FileText
                   size={17}
-                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                  className="ui-field-icon text-slate-400"
                 />
                 <input
                   id="taxId"
                   type="text"
                   placeholder="PAN-302910482"
                   {...register("taxId")}
-                  className={`pl-10 ${inputClass(Boolean(errors.taxId))}`}
+                  className={`ui-field-leading ${inputClass(Boolean(errors.taxId))}`}
                   disabled={isSubmitting}
                 />
               </div>
@@ -496,14 +496,14 @@ export default function SettingsForm() {
               <div className="relative">
                 <Calendar
                   size={17}
-                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                  className="ui-field-icon text-slate-400"
                 />
                 <input
                   id="academicYear"
                   type="text"
                   placeholder="e.g. 2081/2082 or 2025-2026"
                   {...register("academicYear")}
-                  className={`pl-10 ${inputClass(Boolean(errors.academicYear))}`}
+                  className={`ui-field-leading ${inputClass(Boolean(errors.academicYear))}`}
                   disabled={isSubmitting}
                 />
               </div>
@@ -525,12 +525,12 @@ export default function SettingsForm() {
               <div className="relative">
                 <Coins
                   size={17}
-                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 z-10"
+                  className="ui-field-icon text-slate-400"
                 />
                 <SearchableSelect value={watch("currency")}
                   id="currency"
                   {...register("currency")}
-                  className={`pl-10 ${selectClass(Boolean(errors.currency))}`}
+                  className={`ui-field-leading ${selectClass(Boolean(errors.currency))}`}
                   disabled={isSubmitting}
                 >
                   <option value="NPR (Rs.)">NPR (Nepalese Rupee - Rs.)</option>
@@ -558,12 +558,12 @@ export default function SettingsForm() {
               <div className="relative">
                 <Clock
                   size={17}
-                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 z-10"
+                  className="ui-field-icon text-slate-400"
                 />
                 <SearchableSelect value={watch("timeZone")}
                   id="timeZone"
                   {...register("timeZone")}
-                  className={`pl-10 ${selectClass(Boolean(errors.timeZone))}`}
+                  className={`ui-field-leading ${selectClass(Boolean(errors.timeZone))}`}
                   disabled={isSubmitting}
                 >
                   <option value="Asia/Kathmandu (+05:45)">
