@@ -1263,17 +1263,17 @@ async function handleSendInvoiceSelection(method: "mail" | "whatsapp") {
           </div>
 
           <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center">
-            <div className="relative min-w-0 flex-1">
+            <div className="ui-field flex min-w-0 flex-1 items-center gap-2 focus-within:border-brand-600 focus-within:ring-2 focus-within:ring-brand-100">
               <label htmlFor="invoice-search" className="sr-only">Search invoices and receivables</label>
-              <Search size={17} aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search size={17} aria-hidden="true" className="pointer-events-none shrink-0 text-slate-400" />
               <input id="invoice-search" type="search" value={invoiceSearch}
                 onChange={(event) => setInvoiceSearch(event.target.value)}
                 placeholder="Search invoice, student, code, status or BS date…"
-                className="ui-field w-full pl-10 pr-11 text-slate-900 outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100" />
+                className="min-w-0 flex-1 appearance-none border-0 bg-transparent p-0 text-sm text-slate-900 outline-none focus-visible:outline-none [&::-webkit-search-cancel-button]:appearance-none" />
               {invoiceSearch && <button type="button" aria-label="Clear invoice search" onClick={() => setInvoiceSearch("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X size={16} /></button>}
+                className="-mr-2 shrink-0 rounded-lg p-2 text-slate-500 hover:bg-slate-100"><X size={16} /></button>}
             </div>
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={showOutstandingOnly} onChange={(event) => setShowOutstandingOnly(event.target.checked)} />Show outstanding invoices only</label>
+            <label className="flex min-h-11 shrink-0 items-center gap-2 text-sm"><input type="checkbox" className="shrink-0" checked={showOutstandingOnly} onChange={(event) => setShowOutstandingOnly(event.target.checked)} />Show outstanding invoices only</label>
           </div>
           {!loadingInvoices && <p aria-live="polite" className="mt-2 text-xs text-slate-500">{displayedInvoices.length} {displayedInvoices.length === 1 ? "invoice" : "invoices"} found{selectedStudentId ? " for the selected student" : ""}.</p>}
           {paymentMode && <p className="mt-2 text-sm text-brand-700">Choose an invoice below to record a payment for the selected student.</p>}
